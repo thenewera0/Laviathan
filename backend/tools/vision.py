@@ -12,18 +12,20 @@ GEMINI_URL = (
 )
 
 
-async def run(session, question: str = "What do you see?") -> dict:
+async def run(
+    session, question: str = "What do you see?", source: str = "camera"
+) -> dict:
     if not settings.gemini_api_key:
         return {
             "error": "vision requires a GEMINI_API_KEY on the backend — "
             "tell the user this sense is not yet connected"
         }
 
-    frame_b64 = await session.request_frame()
+    frame_b64 = await session.request_frame(source)
     if not frame_b64:
         return {
-            "error": "no camera frame arrived — the user may have denied "
-            "camera access or has no camera"
+            "error": f"no {source} frame arrived — the user may have "
+            "denied access or cancelled the picker"
         }
 
     payload = {
@@ -33,8 +35,13 @@ async def run(session, question: str = "What do you see?") -> dict:
                 "parts": [
                     {"inlineData": {"mimeType": "image/jpeg", "data": frame_b64}},
                     {
-                        "text": "You are the eyes of a voice assistant. "
-                        f"Answer concisely for speech: {question}"
+                        "text": "You are the eyes of a voice assistant, "
+                        + (
+                            "looking at the user's screen. "
+                            if source == "screen"
+                            else "looking through the user's camera. "
+                        )
+                        + f"Answer concisely for speech: {question}"
                     },
                 ],
             }

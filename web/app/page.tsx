@@ -3,11 +3,13 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Captions from "@/components/Captions";
+import GestureLayer from "@/components/GestureLayer";
 import MediaLayer from "@/components/MediaLayer";
 import StatusBar from "@/components/StatusBar";
 import TaskPanel from "@/components/TaskPanel";
 import ThoughtStream from "@/components/ThoughtStream";
-import { captureFrame } from "@/lib/camera";
+import { captureFrame, captureScreen } from "@/lib/camera";
+import { GestureEngine, type GestureName } from "@/lib/gestures";
 import { useLeviathan } from "@/lib/store";
 import { speechSupported, VoiceEngine } from "@/lib/voice";
 import { LeviathanSocket, type ServerMessage } from "@/lib/ws";
@@ -22,6 +24,44 @@ export default function Home() {
   const [surfaced, setSurfaced] = useState(false);
   const socketRef = useRef<LeviathanSocket | null>(null);
   const engineRef = useRef<VoiceEngine | null>(null);
+  const gesturesRef = useRef<GestureEngine | null>(null);
+
+  const toggleGestures = useCallback((on: boolean) => {
+    const s = useLeviathan.getState();
+    if (!on) {
+      gesturesRef.current?.stop();
+      gesturesRef.current = null;
+      s.setGesturesOn(false);
+      return;
+    }
+    s.setGesturesOn(true);
+    const ge = new GestureEngine({
+      onGesture: (name: GestureName) => {
+        const st = useLeviathan.getState();
+        st.setLastGesture(name);
+        if (name === "Open_Palm") {
+          engineRef.current?.hush();
+          socketRef.current?.sendInterrupt();
+          st.setMedia(null);
+        } else if (name === "Thumb_Up") {
+          socketRef.current?.sendUserText("yes");
+        } else if (name === "Thumb_Down") {
+          socketRef.current?.sendUserText("no");
+        } else if (name === "Victory") {
+          engineRef.current?.beginListening();
+        }
+      },
+      onFace: (p) => useLeviathan.getState().setFacePos(p),
+      onReady: () => {},
+      onError: (m) => {
+        useLeviathan.getState().setError(m);
+        useLeviathan.getState().setGesturesOn(false);
+        setTimeout(() => useLeviathan.getState().setError(""), 5000);
+      },
+    });
+    ge.start();
+    gesturesRef.current = ge;
+  }, []);
 
   const surface = useCallback(async () => {
     if (surfaced) return;
@@ -88,13 +128,21 @@ export default function Home() {
             }
             break;
           case "request_frame":
-            captureFrame().then((frame) =>
-              socketRef.current?.sendFrame(frame ?? "")
+            (msg.source === "screen" ? captureScreen() : captureFrame()).then(
+              (frame) => socketRef.current?.sendFrame(frame ?? "")
             );
+            break;
+          case "translation":
+            s.setTranslationLang(msg.lang ? (msg.name ?? msg.lang) : null);
             break;
           case "reply_done":
             if (speechSupported() && "speechSynthesis" in window) {
-              engineRef.current?.speak(msg.text);
+              engineRef.current?.speak(msg.text, msg.lang);
+              // Non-English voices often skip word-boundary events, so
+              // captions surface at once in translation mode
+              if (msg.lang && !msg.lang.startsWith("en")) {
+                msg.text.split(/\s+/).forEach((w) => s.pushCaptionWord(w));
+              }
             } else {
               // No TTS available: reveal the words directly
               s.setEntityState("speaking");
@@ -180,6 +228,7 @@ export default function Home() {
   useEffect(() => {
     return () => {
       engineRef.current?.stop();
+      gesturesRef.current?.stop();
       socketRef.current?.close();
     };
   }, []);
@@ -195,6 +244,7 @@ export default function Home() {
           <ThoughtStream />
           <TaskPanel />
           <MediaLayer />
+          <GestureLayer onToggle={toggleGestures} />
         </>
       ) : (
         <button

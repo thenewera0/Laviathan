@@ -17,7 +17,7 @@ export type ServerMessage =
   | { type: "meta"; provider: string; model: string; tools?: string[] }
   | { type: "state"; state: string }
   | { type: "reply_delta"; text: string }
-  | { type: "reply_done"; text: string }
+  | { type: "reply_done"; text: string; lang?: string }
   | { type: "thought"; text: string }
   | {
       type: "task";
@@ -28,7 +28,8 @@ export type ServerMessage =
       text?: string;
     }
   | { type: "announce"; text: string }
-  | { type: "request_frame" }
+  | { type: "translation"; lang: string | null; name?: string }
+  | { type: "request_frame"; source?: "camera" | "screen" }
   | { type: "error"; message: string }
   | ServerAction;
 

@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.14",
     "@react-three/fiber": "8.17.10",
     "@react-three/postprocessing": "2.16.3",
     "next": "14.2.35",

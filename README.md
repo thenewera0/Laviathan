@@ -1,4 +1,4 @@
-# LEVIATHAN — Phases 1–3: Voice · Tools · Memory & Research
+# LEVIATHAN — Phases 1–4: Voice · Tools · Memory & Research · Multimodal
 
 A voice-driven agentic AI companion. You speak, it hears, it reasons, it
 **acts**, and it answers aloud — while looking alive: a fluid, iridescent
@@ -40,6 +40,19 @@ ask *"what units do I like?"* in a later session) · *"read
 example.com/some-article and give me the gist"* · *"research the current
 state of solid-state batteries"* — then keep talking; the report
 surfaces when it's ready.
+
+**Phase 4:** it watches, gestures back, and speaks other tongues —
+
+| Capability | What happens | Needs |
+|---|---|---|
+| **gestures** (opt-in toggle, bottom-left) | MediaPipe reads one hand ON-DEVICE: open palm = hush + dismiss · 👍/👎 = yes/no · V-sign = start listening without the wake word | camera, Chrome/Edge |
+| **gaze-follow** | while gestures are on, the entity leans toward your actual face instead of the cursor (face detection on-device, nothing uploaded) | camera |
+| `see_screen` | "what's on my screen?" → you pick a window in the browser's share dialog, ONE frame goes to Gemini vision, sharing stops | GEMINI_API_KEY |
+| `set_translation` | "translate everything I say into Spanish" → every utterance is translated and SPOKEN in a matching voice until you say "stop translating" | — |
+
+Honest limits: mic recognition stays English (Web Speech `en-US`), so
+live translation is English → target for now; gesture models (~8 MB)
+download from Google's CDN the first time you toggle gestures on.
 
 **Architecture note (honest deviation):** the blueprint names
 Supabase/pgvector and Celery+Redis. Neither exists on a fresh machine,

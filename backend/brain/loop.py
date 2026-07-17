@@ -27,6 +27,9 @@ class BrainSession:
         self.history: list[dict] = []
         self._task: asyncio.Task | None = None
         self._frame_future: asyncio.Future | None = None
+        # Live translation mode (Phase 4): language code or None
+        self.translate_lang: str | None = None
+        self.translate_lang_name: str | None = None
 
     async def send(self, payload: dict) -> None:
         await self.ws.send_text(json.dumps(payload))
@@ -56,10 +59,10 @@ class BrainSession:
             if self._frame_future and not self._frame_future.done():
                 self._frame_future.set_result(msg.get("data") or "")
 
-    async def request_frame(self) -> str:
-        """Ask the client for one camera frame (base64 jpeg, no prefix)."""
+    async def request_frame(self, source: str = "camera") -> str:
+        """Ask the client for one frame (base64 jpeg): camera or screen."""
         self._frame_future = asyncio.get_running_loop().create_future()
-        await self.send({"type": "request_frame"})
+        await self.send({"type": "request_frame", "source": source})
         try:
             return await asyncio.wait_for(self._frame_future, FRAME_TIMEOUT)
         except asyncio.TimeoutError:
@@ -80,7 +83,50 @@ class BrainSession:
             trimmed.pop(0)
         self.history = trimmed
 
+    STOP_TRANSLATE = (
+        "stop translating", "stop translation", "stop the translation",
+        "end translation", "translation off",
+    )
+
+    async def _translate(self, user_text: str) -> None:
+        """Live translation mode: no tools, no memory — just the bridge."""
+        from brain.router import complete
+
+        await self.send({"type": "state", "state": "thinking"})
+        try:
+            translated = await complete(
+                [
+                    {
+                        "role": "system",
+                        "content": f"You are a live interpreter. Translate the "
+                        f"user's words into {self.translate_lang_name}. Output "
+                        "ONLY the translation — no commentary, no quotes.",
+                    },
+                    {"role": "user", "content": user_text},
+                ]
+            )
+        except Exception as exc:
+            await self.send({"type": "error", "message": str(exc)})
+            await self.send({"type": "state", "state": "error"})
+            return
+        await self.send({"type": "reply_delta", "text": translated})
+        await self.send(
+            {"type": "reply_done", "text": translated, "lang": self.translate_lang}
+        )
+
     async def _think(self, user_text: str) -> None:
+        if self.translate_lang:
+            if any(p in user_text.lower() for p in self.STOP_TRANSLATE):
+                self.translate_lang = None
+                self.translate_lang_name = None
+                await self.send({"type": "translation", "lang": None})
+                done = "The bridge closes. We speak plainly again."
+                await self.send({"type": "reply_delta", "text": done})
+                await self.send({"type": "reply_done", "text": done})
+                return
+            await self._translate(user_text)
+            return
+
         self.history.append({"role": "user", "content": user_text})
         self._trim_history()
         await self.send({"type": "state", "state": "thinking"})

@@ -15,8 +15,13 @@ from tools import (
     memory_tools,
     research,
     search,
+    translate,
     vision,
 )
+
+
+async def _see_screen(session, question: str = "What is on the screen?") -> dict:
+    return await vision.run(session, question, source="screen")
 
 TOOL_SCHEMAS: list[dict] = [
     {
@@ -190,6 +195,48 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["question"],
         },
     },
+    {
+        "name": "see_screen",
+        "description": (
+            "Look at the user's screen (they pick which window to share) "
+            "and answer a question about it. Use when asked about 'my "
+            "screen', an error they're seeing, a page they're on."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "what to look for on the screen",
+                },
+            },
+            "required": ["question"],
+        },
+    },
+    {
+        "name": "set_translation",
+        "description": (
+            "Turn LIVE TRANSLATION mode on: after this, everything the "
+            "user says is translated into the target language and spoken "
+            "aloud, until they say 'stop translating'. Use when asked to "
+            "'translate everything I say' / 'speak in French for me'. For "
+            "a single phrase, just translate it yourself instead."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "description": "target language name, e.g. 'spanish'",
+                },
+                "off": {
+                    "type": "boolean",
+                    "description": "true to turn translation mode off",
+                },
+            },
+            "required": [],
+        },
+    },
 ]
 
 _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
@@ -203,6 +250,8 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "research_agent": research.run,
     "remember": memory_tools.remember,
     "recall": memory_tools.recall,
+    "see_screen": _see_screen,
+    "set_translation": translate.run,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -217,6 +266,8 @@ THOUGHT_LINES = {
     "research_agent": "beginning a deep descent — {topic}",
     "remember": "committing to the deep memory",
     "recall": "dredging the deep memory — {query}",
+    "see_screen": "gazing upon the surface glass",
+    "set_translation": "raising a bridge between tongues",
 }
 
 

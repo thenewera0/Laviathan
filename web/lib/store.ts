@@ -47,6 +47,13 @@ interface LeviathanStore {
   media: Media | null;
   /** Long-running background work (research descents) */
   tasks: BgTask[];
+  /** Phase 4: on-device gesture control + gaze */
+  gesturesOn: boolean;
+  lastGesture: { name: string; at: number } | null;
+  /** Face position in [-1,1] (webcam-mirrored); null = no face / off */
+  facePos: { x: number; y: number } | null;
+  /** Live translation target language name, or null */
+  translationLang: string | null;
 
   setEntityState: (s: EntityState) => void;
   setAudioLevel: (v: number) => void;
@@ -63,6 +70,10 @@ interface LeviathanStore {
   setMedia: (m: Media | null) => void;
   upsertTask: (t: BgTask) => void;
   removeTask: (id: string) => void;
+  setGesturesOn: (v: boolean) => void;
+  setLastGesture: (name: string) => void;
+  setFacePos: (p: { x: number; y: number } | null) => void;
+  setTranslationLang: (l: string | null) => void;
 }
 
 let wordId = 0;
@@ -82,6 +93,10 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   thoughts: [],
   media: null,
   tasks: [],
+  gesturesOn: false,
+  lastGesture: null,
+  facePos: null,
+  translationLang: null,
 
   setEntityState: (s) => set({ entityState: s }),
   setAudioLevel: (v) => set({ audioLevel: v }),
@@ -109,4 +124,8 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
     }),
   removeTask: (id) =>
     set((st) => ({ tasks: st.tasks.filter((x) => x.id !== id) })),
+  setGesturesOn: (v) => set({ gesturesOn: v }),
+  setLastGesture: (name) => set({ lastGesture: { name, at: Date.now() } }),
+  setFacePos: (p) => set({ facePos: p }),
+  setTranslationLang: (l) => set({ translationLang: l }),
 }));

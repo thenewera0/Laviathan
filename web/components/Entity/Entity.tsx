@@ -100,13 +100,16 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     const s = p.scale + breathe + pulse;
     mesh.current.scale.setScalar(damp(mesh.current.scale.x, s, 5, dt));
 
-    // Gaze-follow: while listening it leans toward the cursor (the face,
-    // once MediaPipe arrives in Phase 4); otherwise it drifts home.
-    const lean = u.uListen.value * 0.35 + 0.06;
-    mesh.current.position.x = damp(mesh.current.position.x, pointer.x * lean, 3, dt);
-    mesh.current.position.y = damp(mesh.current.position.y, pointer.y * lean * 0.7, 3, dt);
-    mesh.current.rotation.y = damp(mesh.current.rotation.y, pointer.x * 0.25, 2.5, dt);
-    mesh.current.rotation.x = damp(mesh.current.rotation.x, -pointer.y * 0.18, 2.5, dt);
+    // Gaze-follow: it looks at YOU when the webcam sees a face (MediaPipe,
+    // on-device); the cursor is the stand-in otherwise.
+    const face = useLeviathan.getState().facePos;
+    const fx = face ? face.x : pointer.x;
+    const fy = face ? face.y : pointer.y;
+    const lean = (u.uListen.value * 0.35 + 0.06) * (face ? 1.4 : 1);
+    mesh.current.position.x = damp(mesh.current.position.x, fx * lean, 3, dt);
+    mesh.current.position.y = damp(mesh.current.position.y, fy * lean * 0.7, 3, dt);
+    mesh.current.rotation.y = damp(mesh.current.rotation.y, fx * 0.25, 2.5, dt);
+    mesh.current.rotation.x = damp(mesh.current.rotation.x, -fy * 0.18, 2.5, dt);
   });
 
   return (

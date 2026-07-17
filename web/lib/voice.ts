@@ -230,9 +230,28 @@ export class VoiceEngine {
     if (text) this.cb.onFinal(text);
   }
 
+  // ---- gesture hooks ----
+
+  /** Start listening as if the wake word was heard (gesture-triggered). */
+  beginListening() {
+    if (this.speaking) {
+      this.stopSpeaking();
+      this.cb.onBargeIn();
+    }
+    this.wakeUp();
+  }
+
+  /** Silence any speech in progress (open-palm gesture). */
+  hush() {
+    if (this.speaking) {
+      this.stopSpeaking();
+      this.cb.onSpeakEnd();
+    }
+  }
+
   // ---- spoken replies ----
 
-  speak(text: string) {
+  speak(text: string, lang?: string) {
     if (!("speechSynthesis" in window) || !text.trim()) {
       this.cb.onSpeakEnd();
       return;
@@ -240,16 +259,27 @@ export class VoiceEngine {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
 
-    // Leviathan speaks low and deliberately — pick the deepest sane voice.
     const voices = window.speechSynthesis.getVoices();
-    const preferred =
-      voices.find((v) => /en.*(Daniel|George|Ryan)/i.test(v.name + v.lang)) ??
-      voices.find((v) => /Google UK English Male/i.test(v.name)) ??
-      voices.find((v) => v.lang.startsWith("en") && /male/i.test(v.name)) ??
-      voices.find((v) => v.lang.startsWith("en"));
-    if (preferred) utter.voice = preferred;
-    utter.pitch = 0.75;
-    utter.rate = 0.95;
+    if (lang && !lang.startsWith("en")) {
+      // Translation mode: the voice must match the target tongue
+      const match =
+        voices.find((v) => v.lang.toLowerCase().startsWith(lang)) ??
+        voices.find((v) => v.lang.toLowerCase().split("-")[0] === lang);
+      if (match) utter.voice = match;
+      utter.lang = match?.lang ?? lang;
+      utter.pitch = 0.9;
+      utter.rate = 0.95;
+    } else {
+      // Leviathan speaks low and deliberately — pick the deepest sane voice.
+      const preferred =
+        voices.find((v) => /en.*(Daniel|George|Ryan)/i.test(v.name + v.lang)) ??
+        voices.find((v) => /Google UK English Male/i.test(v.name)) ??
+        voices.find((v) => v.lang.startsWith("en") && /male/i.test(v.name)) ??
+        voices.find((v) => v.lang.startsWith("en"));
+      if (preferred) utter.voice = preferred;
+      utter.pitch = 0.75;
+      utter.rate = 0.95;
+    }
 
     utter.onstart = () => {
       this.speaking = true;

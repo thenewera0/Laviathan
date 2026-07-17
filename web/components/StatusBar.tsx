@@ -12,6 +12,7 @@ export default function StatusBar() {
   const model = useLeviathan((s) => s.model);
   const entityState = useLeviathan((s) => s.entityState);
   const errorMessage = useLeviathan((s) => s.errorMessage);
+  const translationLang = useLeviathan((s) => s.translationLang);
 
   return (
     <>
@@ -35,6 +36,9 @@ export default function StatusBar() {
           </span>
         </p>
         <p className="uppercase text-foam/25">{entityState}</p>
+        {translationLang && (
+          <p className="text-glint/70">⇄ translating → {translationLang}</p>
+        )}
       </div>
 
       <div className="pointer-events-none absolute bottom-5 right-5 font-data text-[11px] tracking-wider text-foam/30">
@@ -43,7 +47,7 @@ export default function StatusBar() {
       </div>
 
       {errorMessage && (
-        <div className="pointer-events-none absolute bottom-5 left-5 max-w-xs font-data text-[11px] leading-4 text-cold">
+        <div className="pointer-events-none absolute bottom-20 left-5 max-w-xs font-data text-[11px] leading-4 text-cold">
           {errorMessage}
         </div>
       )}
