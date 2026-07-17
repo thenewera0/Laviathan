@@ -2,6 +2,33 @@
 // while a frame is being taken — the browser permission prompt and
 // hardware indicator make that visible — then every track is stopped.
 
+// Grab one jpeg frame from an already-running stream without touching
+// its tracks (used for linked devices — their share stays live).
+async function captureFromStream(
+  stream: MediaStream,
+  stopAfter: boolean
+): Promise<string | null> {
+  try {
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.muted = true;
+    await video.play();
+    await new Promise((r) => setTimeout(r, 200));
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0);
+    video.srcObject = null;
+    return canvas.toDataURL("image/jpeg", 0.75).split(",")[1] ?? null;
+  } catch {
+    return null;
+  } finally {
+    if (stopAfter) stream.getTracks().forEach((t) => t.stop());
+  }
+}
+
 // One-shot screen capture for `see_screen`. The browser's share picker
 // IS the consent step — the user chooses exactly which window to show,
 // one frame is taken, and the share ends immediately.
@@ -32,6 +59,14 @@ export async function captureScreen(): Promise<string | null> {
 }
 
 export async function captureFrame(): Promise<string | null> {
+  // A linked device is sharing? Its stream IS the eye — capture from it
+  // instead of the local camera.
+  const { getLinkedStream } = await import("./linkhost");
+  const linked = getLinkedStream();
+  if (linked && linked.getVideoTracks().length > 0) {
+    return captureFromStream(linked, false);
+  }
+
   let stream: MediaStream | null = null;
   try {
     stream = await navigator.mediaDevices.getUserMedia({

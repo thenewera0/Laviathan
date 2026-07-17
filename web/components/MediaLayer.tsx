@@ -50,13 +50,24 @@ function ReportBody({ markdown }: { markdown: string }) {
   );
 }
 
-export default function MediaLayer() {
+export default function MediaLayer({
+  onDismiss,
+  getLiveStream,
+}: {
+  onDismiss?: (kind: string) => void;
+  getLiveStream?: () => MediaStream | null;
+}) {
   const media = useLeviathan((s) => s.media);
   const setMedia = useLeviathan((s) => s.setMedia);
 
   if (!media) return null;
 
-  const wide = media.kind === "report";
+  const dismiss = () => {
+    onDismiss?.(media.kind);
+    setMedia(null);
+  };
+
+  const wide = media.kind === "report" || media.kind === "live";
 
   return (
     <div
@@ -70,9 +81,11 @@ export default function MediaLayer() {
           {media.kind === "music" && "now playing"}
           {media.kind === "link" && "surfaced link"}
           {media.kind === "report" && "surfaced report"}
+          {media.kind === "invite" && "device link — send this"}
+          {media.kind === "live" && "linked device — live"}
         </p>
         <button
-          onClick={() => setMedia(null)}
+          onClick={dismiss}
           aria-label="Dismiss"
           className="font-data text-[11px] text-foam/40 transition-colors hover:text-lumen focus-visible:text-lumen"
         >
@@ -122,6 +135,36 @@ export default function MediaLayer() {
           </p>
           <ReportBody markdown={media.markdown} />
         </div>
+      )}
+
+      {media.kind === "invite" && (
+        <div className="px-3 pb-3">
+          <p className="mb-2 font-voice text-sm italic leading-snug text-foam/70">
+            One-time link · asks for their {media.purpose} · expires in 10
+            minutes · they can stop anytime
+          </p>
+          <p className="break-all font-data text-[11px] text-lumen/70">
+            {media.url}
+          </p>
+          <button
+            onClick={() => navigator.clipboard?.writeText(media.url)}
+            className="mt-2 border border-lumen/30 px-3 py-1 font-data text-[11px] tracking-wider text-lumen transition-colors hover:bg-lumen/10"
+          >
+            copy link
+          </button>
+        </div>
+      )}
+
+      {media.kind === "live" && (
+        <video
+          autoPlay
+          playsInline
+          className="block w-full bg-black/60"
+          ref={(el) => {
+            const s = getLiveStream?.();
+            if (el && s && el.srcObject !== s) el.srcObject = s;
+          }}
+        />
       )}
 
       {media.kind === "link" && (

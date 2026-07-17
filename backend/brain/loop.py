@@ -58,6 +58,27 @@ class BrainSession:
         elif kind == "frame":
             if self._frame_future and not self._frame_future.done():
                 self._frame_future.set_result(msg.get("data") or "")
+        elif kind == "link_signal":
+            # Host's SDP/ICE answer -> relay to the linked guest device
+            from linking import registry as links
+
+            found = links.find_by_session(self)
+            if found and found[1]["guest"] is not None:
+                await found[1]["guest"].send_text(
+                    json.dumps({"type": "signal", "data": msg.get("data")})
+                )
+        elif kind == "link_close":
+            from linking import registry as links
+
+            found = links.find_by_session(self)
+            if found:
+                token, link = found
+                if link["guest"] is not None:
+                    try:
+                        await link["guest"].close()
+                    except Exception:
+                        pass
+                links.drop(token)
 
     async def request_frame(self, source: str = "camera") -> str:
         """Ask the client for one frame (base64 jpeg): camera or screen."""

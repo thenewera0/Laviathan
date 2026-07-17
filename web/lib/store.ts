@@ -16,7 +16,9 @@ export type Media =
   | { kind: "image"; url: string; title: string }
   | { kind: "music"; videoId: string; title: string; url: string }
   | { kind: "link"; url: string; reason?: string }
-  | { kind: "report"; title: string; markdown: string };
+  | { kind: "report"; title: string; markdown: string }
+  | { kind: "invite"; url: string; purpose: string }
+  | { kind: "live"; purpose: string };
 
 export interface BgTask {
   id: string;

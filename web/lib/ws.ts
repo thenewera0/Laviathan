@@ -11,7 +11,13 @@ export type ServerAction =
       url: string;
     }
   | { type: "action"; action: "show_image"; url: string; title: string }
-  | { type: "action"; action: "show_report"; title: string; markdown: string };
+  | { type: "action"; action: "show_report"; title: string; markdown: string }
+  | {
+      type: "action";
+      action: "show_link_invite";
+      url: string;
+      purpose: string;
+    };
 
 export type ServerMessage =
   | { type: "meta"; provider: string; model: string; tools?: string[] }
@@ -30,6 +36,9 @@ export type ServerMessage =
   | { type: "announce"; text: string }
   | { type: "translation"; lang: string | null; name?: string }
   | { type: "request_frame"; source?: "camera" | "screen" }
+  | { type: "link_guest_joined"; purpose: string }
+  | { type: "link_signal"; data: any }
+  | { type: "link_closed" }
   | { type: "error"; message: string }
   | ServerAction;
 
@@ -90,6 +99,14 @@ export class LeviathanSocket {
 
   sendFrame(base64Jpeg: string) {
     this.send({ type: "frame", data: base64Jpeg });
+  }
+
+  sendLinkSignal(data: any) {
+    this.send({ type: "link_signal", data });
+  }
+
+  sendLinkClose() {
+    this.send({ type: "link_close" });
   }
 
   close() {

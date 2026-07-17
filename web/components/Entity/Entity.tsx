@@ -182,7 +182,7 @@ function BackGlow() {
             float d = length(vUv - 0.5) * 2.0;
             float g = pow(smoothstep(1.0, 0.0, d), 2.6);
             float breathe = 0.85 + 0.15 * sin(uTime * 0.4);
-            vec3 col = mix(vec3(0.012, 0.05, 0.055), vec3(0.03, 0.09, 0.11), g);
+            vec3 col = mix(vec3(0.010, 0.042, 0.062), vec3(0.022, 0.072, 0.115), g);
             gl_FragColor = vec4(col * g * breathe, g * 0.8);
           }`,
       }),
@@ -279,7 +279,7 @@ export default function Entity() {
           radialModulation={false}
           modulationOffset={0}
         />
-        <Noise opacity={0.045} />
+        <Noise opacity={0.02} />
         <Vignette eskil={false} offset={0.18} darkness={0.72} />
       </EffectComposer>
     </Canvas>

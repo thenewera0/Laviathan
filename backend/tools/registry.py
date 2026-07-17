@@ -11,6 +11,7 @@ from tools import (
     browse,
     browser_actions,
     code_run,
+    device_link,
     image,
     memory_tools,
     research,
@@ -214,6 +215,29 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
     {
+        "name": "create_device_link",
+        "description": (
+            "Mint a ONE-TIME consent link that lets another device share "
+            "its camera or screen with this session over WebRTC. The "
+            "other person must open the link and explicitly approve in "
+            "their browser; the link expires in 10 minutes and either "
+            "side can stop it. Use when the user asks to 'link my phone', "
+            "'see through another device', 'connect that laptop'. This is "
+            "always consensual — refuse any covert framing."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "purpose": {
+                    "type": "string",
+                    "enum": ["camera", "screen"],
+                    "description": "what the other device will be asked to share",
+                },
+            },
+            "required": [],
+        },
+    },
+    {
         "name": "set_translation",
         "description": (
             "Turn LIVE TRANSLATION mode on: after this, everything the "
@@ -252,6 +276,7 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "recall": memory_tools.recall,
     "see_screen": _see_screen,
     "set_translation": translate.run,
+    "create_device_link": device_link.run,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -268,6 +293,7 @@ THOUGHT_LINES = {
     "recall": "dredging the deep memory — {query}",
     "see_screen": "gazing upon the surface glass",
     "set_translation": "raising a bridge between tongues",
+    "create_device_link": "extending a tendril to another shore",
 }
 
 

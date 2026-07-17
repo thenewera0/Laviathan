@@ -49,6 +49,40 @@ async def transcribe(request: Request):
     return {"text": stt.transcribe(audio)}
 
 
+@app.websocket("/link/{token}")
+async def link_endpoint(ws: WebSocket, token: str):
+    """Guest side of a device link: pure SDP/ICE relay, nothing stored."""
+    from linking import registry as links
+
+    await ws.accept()
+    link = links.claim(token, ws)
+    if link is None:
+        await ws.send_text(json.dumps({"type": "link_invalid"}))
+        await ws.close()
+        return
+
+    host = link["session"]
+    try:
+        await host.send({"type": "link_guest_joined", "purpose": link["purpose"]})
+        await ws.send_text(json.dumps({"type": "link_ready", "purpose": link["purpose"]}))
+        while True:
+            raw = await ws.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if msg.get("type") == "signal":
+                await host.send({"type": "link_signal", "data": msg.get("data")})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        links.drop(token)
+        try:
+            await host.send({"type": "link_closed"})
+        except Exception:
+            pass
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()

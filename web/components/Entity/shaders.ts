@@ -166,8 +166,9 @@ void main() {
   float facing = max(dot(n, v), 0.0);
   float fresnel = pow(1.0 - facing, 2.2);
 
-  // Abyssal skin, deepening where the surface folds inward
-  vec3 base = mix(vec3(0.010, 0.026, 0.030), vec3(0.024, 0.075, 0.080), facing * 0.5 + vDisp * 1.2);
+  // Abyssal skin, deepening where the surface folds inward — blue-leaning
+  // teal, never olive
+  vec3 base = mix(vec3(0.007, 0.020, 0.034), vec3(0.014, 0.060, 0.088), facing * 0.5 + vDisp * 1.2);
 
   // ---- INNER AURORA: the body is lit from within, never a dead void ----
   // Slow bioluminescent weather drifting under the skin, brightest where
@@ -179,7 +180,7 @@ void main() {
   float currents = smoothstep(0.15, 0.75, aur);      // only the crests glow
   float innerAmt = pow(facing, 1.7) * (0.10 + 0.90 * currents) * uGlow;
   vec3 innerCol = mix(
-    vec3(0.04, 0.24, 0.28),                       // deep teal body-light
+    vec3(0.03, 0.19, 0.32),                       // deep cyan-blue body-light
     iridescence(aur2 * 0.5 + 0.42 + uFlow * 0.015), // drifting oil-slick hue
     0.40 + 0.35 * max(aur2, 0.0)
   );
@@ -187,7 +188,7 @@ void main() {
 
   // ---- luminous tide: a slow wave of light crossing the body (idle life)
   float tide = pow(0.5 + 0.5 * sin(dot(n, vec3(0.2, 1.0, 0.35)) * 3.5 - uFlow * 1.1), 5.0);
-  inner += vec3(0.10, 0.42, 0.40) * tide * facing * uGlow * 0.35;
+  inner += vec3(0.08, 0.34, 0.46) * tide * facing * uGlow * 0.35;
 
   // ---- thin-film sheen rides the fresnel band
   float filmPhase = fresnel * 1.15 + vDisp * 1.6 + uFlow * 0.03;
@@ -252,7 +253,7 @@ void main() {
   float rim = pow(1.0 - abs(dot(n, v)), 4.5);
   float breathe = 0.85 + 0.15 * sin(uFlow * 0.6);
   // Cold bioluminescent haze, not a planetary ring — teal-dominant, soft
-  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.22, 0.68, 0.64), 0.6);
+  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.20, 0.58, 0.72), 0.6);
   vec3 col = hue * rim * uGlow * 0.30 * breathe;
   col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
   gl_FragColor = vec4(col, rim * 0.5);

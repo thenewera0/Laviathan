@@ -10,6 +10,11 @@ import TaskPanel from "@/components/TaskPanel";
 import ThoughtStream from "@/components/ThoughtStream";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
+import {
+  closeLink,
+  getLinkedStream,
+  handleLinkSignal,
+} from "@/lib/linkhost";
 import { useLeviathan } from "@/lib/store";
 import { speechSupported, VoiceEngine } from "@/lib/voice";
 import { LeviathanSocket, type ServerMessage } from "@/lib/ws";
@@ -113,6 +118,13 @@ export default function Home() {
                 title: msg.title,
                 markdown: msg.markdown,
               });
+            } else if (msg.action === "show_link_invite") {
+              s.setMedia({
+                kind: "invite",
+                url: msg.url,
+                purpose: msg.purpose,
+              });
+              navigator.clipboard?.writeText(msg.url).catch(() => {});
             } else if (msg.action === "play_music") {
               s.setMedia({
                 kind: "music",
@@ -134,6 +146,24 @@ export default function Home() {
             break;
           case "translation":
             s.setTranslationLang(msg.lang ? (msg.name ?? msg.lang) : null);
+            break;
+          case "link_signal":
+            handleLinkSignal(
+              msg.data,
+              (data) => socketRef.current?.sendLinkSignal(data),
+              () => {
+                const st = useLeviathan.getState();
+                const purpose =
+                  st.media?.kind === "invite" ? st.media.purpose : "camera";
+                st.setMedia({ kind: "live", purpose });
+              }
+            );
+            break;
+          case "link_closed":
+            closeLink();
+            if (["live", "invite"].includes(s.media?.kind ?? "")) {
+              s.setMedia(null);
+            }
             break;
           case "reply_done":
             if (speechSupported() && "speechSynthesis" in window) {
@@ -243,7 +273,15 @@ export default function Home() {
           <Captions />
           <ThoughtStream />
           <TaskPanel />
-          <MediaLayer />
+          <MediaLayer
+            getLiveStream={getLinkedStream}
+            onDismiss={(kind) => {
+              if (kind === "live" || kind === "invite") {
+                closeLink();
+                socketRef.current?.sendLinkClose();
+              }
+            }}
+          />
           <GestureLayer onToggle={toggleGestures} />
         </>
       ) : (
