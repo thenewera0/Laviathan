@@ -51,8 +51,10 @@ export class VoiceEngine {
   private speaking = false; // TTS is playing
   private synthLevel = 0; // synthetic envelope while speaking
   private pendingUtterance = "";
+  private lastInterim = ""; // newest interim — the safety net on silence
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = true;
+  private recPaused = false; // recognition muted while Leviathan speaks
 
   constructor(private cb: VoiceCallbacks) {}
 
@@ -132,12 +134,17 @@ export class VoiceEngine {
     };
 
     // Chrome halts continuous recognition periodically — resurface it.
+    // While recPaused (Leviathan is speaking), stay silent: otherwise the
+    // mic hears the TTS voice and feeds it back as user speech.
     rec.onend = () => {
-      if (!this.stopped) {
+      if (!this.stopped && !this.recPaused) {
         try {
           rec.start();
         } catch {
-          setTimeout(() => !this.stopped && rec.start(), 400);
+          setTimeout(
+            () => !this.stopped && !this.recPaused && rec.start(),
+            400
+          );
         }
       }
     };
@@ -154,15 +161,11 @@ export class VoiceEngine {
   }
 
   private handleSpeech(interim: string, final: string) {
-    const heard = (interim + " " + final).toLowerCase();
+    // Recognition is paused during TTS; anything that still arrives is
+    // the tail of Leviathan's own voice — drop it.
+    if (this.speaking) return;
 
-    // Barge-in: any speech while Leviathan talks silences it and hands
-    // the floor back to you.
-    if (this.speaking && (interim.trim() || final.trim())) {
-      this.stopSpeaking();
-      this.cb.onBargeIn();
-      this.wakeUp();
-    }
+    const heard = (interim + " " + final).toLowerCase();
 
     if (!this.awake && !this.ptt) {
       if (WAKE_WORDS.some((w) => heard.includes(w))) this.wakeUp();
@@ -170,20 +173,23 @@ export class VoiceEngine {
     }
 
     if (interim.trim()) {
-      this.cb.onInterim(this.stripWake(interim));
+      this.lastInterim = this.stripWake(interim);
+      this.cb.onInterim(this.lastInterim);
       this.bumpSilenceTimer();
     }
     if (final.trim()) {
       this.pendingUtterance += " " + this.stripWake(final);
-      this.bumpSilenceTimer(900); // short grace after a final chunk
+      this.lastInterim = "";
+      this.bumpSilenceTimer(1300); // grace after a final chunk
     }
   }
 
   private wakeUp() {
     this.awake = true;
     this.pendingUtterance = "";
+    this.lastInterim = "";
     this.cb.onWake();
-    this.bumpSilenceTimer(6000); // wake window: speak within 6s
+    this.bumpSilenceTimer(8000); // wake window: speak within 8s
   }
 
   private stripWake(text: string): string {
@@ -194,16 +200,19 @@ export class VoiceEngine {
     return out.trim();
   }
 
-  private bumpSilenceTimer(ms = 1600) {
+  private bumpSilenceTimer(ms = 2100) {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = setTimeout(() => this.finishUtterance(), ms);
   }
 
   private finishUtterance() {
     if (this.ptt) return; // PTT ends on key release, not on silence
-    const text = this.pendingUtterance.trim();
+    // Finals lag interims by a second or more — if silence hit before the
+    // browser finalized, the interim IS the utterance. Never drop words.
+    const text = (this.pendingUtterance + " " + this.lastInterim).trim();
     this.awake = false;
     this.pendingUtterance = "";
+    this.lastInterim = "";
     if (text) this.cb.onFinal(text);
   }
 
@@ -225,8 +234,9 @@ export class VoiceEngine {
     if (!this.ptt) return;
     this.ptt = false;
     this.awake = false;
-    const text = this.pendingUtterance.trim();
+    const text = (this.pendingUtterance + " " + this.lastInterim).trim();
     this.pendingUtterance = "";
+    this.lastInterim = "";
     if (text) this.cb.onFinal(text);
   }
 
@@ -284,6 +294,9 @@ export class VoiceEngine {
     utter.onstart = () => {
       this.speaking = true;
       this.synthLevel = 0.6;
+      // Mute the ears while the mouth works — otherwise the mic hears
+      // Leviathan's own voice and mangles the next utterance.
+      this.pauseRecognition();
       this.cb.onSpeakStart();
     };
     utter.onboundary = (ev) => {
@@ -297,6 +310,7 @@ export class VoiceEngine {
       if (!this.speaking) return;
       this.speaking = false;
       this.synthLevel = 0;
+      this.resumeRecognition();
       this.cb.onSpeakEnd();
     };
     utter.onend = end;
@@ -309,5 +323,29 @@ export class VoiceEngine {
     this.speaking = false;
     this.synthLevel = 0;
     window.speechSynthesis.cancel();
+    this.resumeRecognition();
+  }
+
+  private pauseRecognition() {
+    this.recPaused = true;
+    try {
+      this.recognition?.abort();
+    } catch {
+      /* not running */
+    }
+  }
+
+  private resumeRecognition() {
+    if (!this.recPaused) return;
+    this.recPaused = false;
+    // Brief gap so the tail of the TTS audio isn't captured
+    setTimeout(() => {
+      if (this.stopped || this.recPaused) return;
+      try {
+        this.recognition?.start();
+      } catch {
+        /* already running */
+      }
+    }, 250);
   }
 }

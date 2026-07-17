@@ -16,7 +16,12 @@ import {
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useLeviathan, type EntityState } from "@/lib/store";
-import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shaders";
+import {
+  AURA_FRAGMENT,
+  AURA_VERTEX,
+  FRAGMENT_SHADER,
+  VERTEX_SHADER,
+} from "./shaders";
 
 // Per-state targets; the CPU eases toward these every frame so state
 // changes read as behavior, never as a cut.
@@ -24,10 +29,10 @@ const STATE_PARAMS: Record<
   EntityState,
   { amp: number; freq: number; flowSpeed: number; glow: number; scale: number }
 > = {
-  idle: { amp: 0.16, freq: 1.55, flowSpeed: 0.28, glow: 0.6, scale: 1.0 },
-  listening: { amp: 0.22, freq: 1.95, flowSpeed: 0.55, glow: 1.0, scale: 1.04 },
-  thinking: { amp: 0.18, freq: 2.5, flowSpeed: 1.5, glow: 0.8, scale: 0.98 },
-  speaking: { amp: 0.13, freq: 1.7, flowSpeed: 0.65, glow: 1.15, scale: 1.02 },
+  idle: { amp: 0.19, freq: 1.55, flowSpeed: 0.34, glow: 0.9, scale: 1.0 },
+  listening: { amp: 0.24, freq: 1.95, flowSpeed: 0.6, glow: 1.15, scale: 1.04 },
+  thinking: { amp: 0.2, freq: 2.5, flowSpeed: 1.5, glow: 1.0, scale: 0.98 },
+  speaking: { amp: 0.15, freq: 1.7, flowSpeed: 0.7, glow: 1.3, scale: 1.02 },
   error: { amp: 0.07, freq: 1.2, flowSpeed: 0.1, glow: 0.32, scale: 0.86 },
 };
 
@@ -44,6 +49,7 @@ function damp(current: number, target: number, lambda: number, dt: number) {
 
 function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
   const mesh = useRef<THREE.Mesh>(null!);
+  const aura = useRef<THREE.Mesh>(null!);
   const flow = useRef(0);
   const smoothedAudio = useRef(0);
   const { pointer } = useThree();
@@ -62,6 +68,16 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
       uError: { value: 0 },
     }),
     []
+  );
+
+  // The aura reads the same flow/glow/error signals as the body
+  const auraUniforms = useMemo(
+    () => ({
+      uFlow: uniforms.uFlow,
+      uGlow: uniforms.uGlow,
+      uError: uniforms.uError,
+    }),
+    [uniforms]
   );
 
   useFrame((_, rawDt) => {
@@ -100,6 +116,13 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     const s = p.scale + breathe + pulse;
     mesh.current.scale.setScalar(damp(mesh.current.scale.x, s, 5, dt));
 
+    // The whole mass turns, slowly — a body, not a decal
+    mesh.current.rotation.z += dt * 0.02 * motionScale;
+    if (aura.current) {
+      aura.current.position.copy(mesh.current.position);
+      aura.current.scale.setScalar(mesh.current.scale.x * 1.28);
+    }
+
     // Gaze-follow: it looks at YOU when the webcam sees a face (MediaPipe,
     // on-device); the cursor is the stand-in otherwise.
     const face = useLeviathan.getState().facePos;
@@ -113,13 +136,66 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
   });
 
   return (
-    <mesh ref={mesh}>
-      <icosahedronGeometry args={[1, 64]} />
-      <shaderMaterial
-        vertexShader={VERTEX_SHADER}
-        fragmentShader={FRAGMENT_SHADER}
-        uniforms={uniforms}
-      />
+    <group>
+      <mesh ref={mesh}>
+        <icosahedronGeometry args={[1, 64]} />
+        <shaderMaterial
+          vertexShader={VERTEX_SHADER}
+          fragmentShader={FRAGMENT_SHADER}
+          uniforms={uniforms}
+        />
+      </mesh>
+      <mesh ref={aura}>
+        <icosahedronGeometry args={[1, 24]} />
+        <shaderMaterial
+          vertexShader={AURA_VERTEX}
+          fragmentShader={AURA_FRAGMENT}
+          uniforms={auraUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// A vast, faint pressure-glow behind the entity — presence, not decoration
+function BackGlow() {
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          varying vec2 vUv;
+          void main() {
+            float d = length(vUv - 0.5) * 2.0;
+            float g = pow(smoothstep(1.0, 0.0, d), 2.6);
+            float breathe = 0.85 + 0.15 * sin(uTime * 0.4);
+            vec3 col = mix(vec3(0.012, 0.05, 0.055), vec3(0.03, 0.09, 0.11), g);
+            gl_FragColor = vec4(col * g * breathe, g * 0.8);
+          }`,
+      }),
+    []
+  );
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt;
+  });
+
+  return (
+    <mesh position={[0, 0, -2.5]} material={material}>
+      <planeGeometry args={[11, 11]} />
     </mesh>
   );
 }
@@ -149,6 +225,8 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
       if (arr[i * 3 + 1] > 3.2) arr[i * 3 + 1] = -3.2;
     }
     pos.needsUpdate = true;
+    // The whole field orbits the entity, slowly — a current, not static dust
+    points.current.rotation.y += dt * 0.015;
   });
 
   return (
@@ -186,6 +264,7 @@ export default function Entity() {
       dpr={[1, 2]}
       style={{ position: "absolute", inset: 0 }}
     >
+      <BackGlow />
       <EntityBody reducedMotion={reducedMotion} />
       <MarineSnow reducedMotion={reducedMotion} />
       <EffectComposer>

@@ -83,10 +83,18 @@ varying float vDisp;
 ${SIMPLEX_NOISE}
 
 float surface(vec3 p) {
-  // Two octaves of drifting currents...
-  float n = snoise(p * uFreq + vec3(0.0, uFlow * 0.35, uFlow * 0.1)) * 0.62;
-  n += snoise(p * uFreq * 2.15 - vec3(uFlow * 0.5, 0.0, uFlow * 0.2)) * 0.26;
-  // ...plus a fine ripple that only exists while listening, driven by your voice
+  // Domain warp: currents bending currents — fluid, never rubber-sheet
+  vec3 warp = vec3(
+    snoise(p * 0.9 + vec3(0.0, uFlow * 0.20, 0.0)),
+    snoise(p * 0.9 + vec3(13.7, -uFlow * 0.15, 5.1)),
+    snoise(p * 0.9 + vec3(7.3, 2.9, uFlow * 0.12))
+  );
+  vec3 q = p * uFreq + warp * 0.55 + vec3(0.0, uFlow * 0.30, uFlow * 0.08);
+
+  float n = snoise(q) * 0.58;
+  n += snoise(q * 2.05 - vec3(uFlow * 0.45, 0.0, uFlow * 0.18)) * 0.27;
+  n += snoise(q * 4.3 + vec3(0.0, uFlow * 0.7, 0.0)) * 0.07;
+  // A fine ripple that only exists while listening, driven by your voice
   n += snoise(p * 5.5 + vec3(0.0, uFlow * 2.2, 0.0)) * uAudio * uListen * 0.5;
   // Speaking: a coherent whole-body pulse rather than surface chop
   n += uAudio * uSpeak * 0.35;
@@ -145,34 +153,108 @@ vec3 iridescence(float t) {
   return a + b * cos(6.28318 * (c * t + d));
 }
 
+float fbm(vec3 p) {
+  float s = 0.55 * snoise(p);
+  s += 0.28 * snoise(p * 2.1);
+  s += 0.14 * snoise(p * 4.4);
+  return s;
+}
+
 void main() {
   vec3 n = normalize(vNormal);
   vec3 v = normalize(vViewDir);
   float facing = max(dot(n, v), 0.0);
-  float fresnel = pow(1.0 - facing, 2.4);
+  float fresnel = pow(1.0 - facing, 2.2);
 
-  // Abyssal body: near-black teal, deepening where the surface folds inward
-  vec3 base = mix(vec3(0.008, 0.022, 0.024), vec3(0.020, 0.068, 0.072), facing * 0.6 + vDisp * 1.2);
+  // Abyssal skin, deepening where the surface folds inward
+  vec3 base = mix(vec3(0.010, 0.026, 0.030), vec3(0.024, 0.075, 0.080), facing * 0.5 + vDisp * 1.2);
 
-  // Thin-film sheen rides the fresnel band and drifts slowly
+  // ---- INNER AURORA: the body is lit from within, never a dead void ----
+  // Slow bioluminescent weather drifting under the skin, brightest where
+  // you look straight into the mass.
+  // Sparse luminous weather: mostly abyss-dark body, with drifting
+  // bright currents — light must stay scarce to stay precious.
+  float aur = fbm(n * 2.3 + vec3(0.0, uFlow * 0.45, uFlow * 0.12));
+  float aur2 = fbm(n * 1.2 - vec3(uFlow * 0.2, 0.0, uFlow * 0.3));
+  float currents = smoothstep(0.15, 0.75, aur);      // only the crests glow
+  float innerAmt = pow(facing, 1.7) * (0.10 + 0.90 * currents) * uGlow;
+  vec3 innerCol = mix(
+    vec3(0.04, 0.24, 0.28),                       // deep teal body-light
+    iridescence(aur2 * 0.5 + 0.42 + uFlow * 0.015), // drifting oil-slick hue
+    0.40 + 0.35 * max(aur2, 0.0)
+  );
+  vec3 inner = innerCol * innerAmt * 0.5;
+
+  // ---- luminous tide: a slow wave of light crossing the body (idle life)
+  float tide = pow(0.5 + 0.5 * sin(dot(n, vec3(0.2, 1.0, 0.35)) * 3.5 - uFlow * 1.1), 5.0);
+  inner += vec3(0.10, 0.42, 0.40) * tide * facing * uGlow * 0.35;
+
+  // ---- thin-film sheen rides the fresnel band
   float filmPhase = fresnel * 1.15 + vDisp * 1.6 + uFlow * 0.03;
-  vec3 sheen = iridescence(filmPhase) * fresnel * uGlow;
+  vec3 sheen = iridescence(filmPhase) * fresnel * uGlow * 0.95;
 
-  // Thinking: bioluminescent veins branch beneath the skin
+  // ---- two drifting key lights give the surface sculpt and wet gleam
+  vec3 l1 = normalize(vec3(sin(uFlow * 0.25), 0.65, cos(uFlow * 0.25)));
+  vec3 l2 = normalize(vec3(-0.55, -0.35, 0.75));
+  float spec = pow(max(dot(reflect(-l1, n), v), 0.0), 32.0) * 0.38
+             + pow(max(dot(reflect(-l2, n), v), 0.0), 20.0) * 0.16;
+  vec3 specCol = iridescence(filmPhase + 0.18) * spec * uGlow;
+
+  // ---- bioluminescent veins: faintly alive always, ablaze while thinking
   float veinField = snoise(n * 3.5 + vec3(0.0, uFlow * 0.9, 0.0));
-  float veins = smoothstep(0.28, 0.02, abs(veinField)) * uThink;
+  float veins = smoothstep(0.28, 0.02, abs(veinField)) * (0.16 + uThink);
   vec3 veinGlow = vec3(0.35, 0.95, 0.86) * veins * (0.35 + 0.65 * facing);
 
-  // Speaking: emission swells with the voice
+  // ---- speaking: emission swells with the voice
   float pulse = uAudio * uSpeak;
-  vec3 col = base + sheen * (1.0 + pulse * 1.6) + veinGlow;
-  col += vec3(0.40, 0.90, 0.82) * fresnel * pulse * 0.5;
+  vec3 col = base + inner + sheen * (1.0 + pulse * 1.6) + specCol + veinGlow;
+  col += vec3(0.40, 0.90, 0.82) * (fresnel * 0.5 + facing * 0.25) * pulse;
 
-  // Error: heat leaves the body — desaturate, shift cold
+  // ---- error: heat leaves the body — desaturate, shift cold
   float grey = dot(col, vec3(0.299, 0.587, 0.114));
   vec3 coldCol = mix(vec3(grey), vec3(grey * 0.7, grey * 0.85, grey * 1.25), 0.8);
   col = mix(col, coldCol + vec3(0.02, 0.04, 0.09) * fresnel, uError);
 
   gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// Aura halo: an additive fresnel shell breathing just outside the body
+export const AURA_VERTEX = /* glsl */ `
+varying vec3 vNormal;
+varying vec3 vViewDir;
+void main() {
+  vNormal = normalize(normalMatrix * normal);
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vViewDir = normalize(-mv.xyz);
+  gl_Position = projectionMatrix * mv;
+}
+`;
+
+export const AURA_FRAGMENT = /* glsl */ `
+uniform float uFlow;
+uniform float uGlow;
+uniform float uError;
+varying vec3 vNormal;
+varying vec3 vViewDir;
+
+vec3 iridescence(float t) {
+  vec3 a = vec3(0.32, 0.36, 0.40);
+  vec3 b = vec3(0.42, 0.34, 0.32);
+  vec3 c = vec3(0.90, 1.00, 0.85);
+  vec3 d = vec3(0.55, 0.30, 0.08);
+  return a + b * cos(6.28318 * (c * t + d));
+}
+
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 v = normalize(vViewDir);
+  float rim = pow(1.0 - abs(dot(n, v)), 4.5);
+  float breathe = 0.85 + 0.15 * sin(uFlow * 0.6);
+  // Cold bioluminescent haze, not a planetary ring — teal-dominant, soft
+  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.22, 0.68, 0.64), 0.6);
+  vec3 col = hue * rim * uGlow * 0.30 * breathe;
+  col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
+  gl_FragColor = vec4(col, rim * 0.5);
 }
 `;
