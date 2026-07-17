@@ -1,0 +1,16 @@
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+httpx==0.27.2
+python-dotenv==1.0.1
+
+# Phase 2 — tools
+ddgs                     # keyless web/video search (DuckDuckGo)
+
+# Phase 3 — memory & research
+beautifulsoup4           # page -> readable text
+playwright               # rendered browsing; run: playwright install chromium
+asyncpg                  # Supabase pgvector memory (when SUPABASE_DB_URL set)
+
+# Optional — server-side voice (Phase 1 uses the browser's speech APIs by default).
+# Uncomment to enable local STT via the /stt endpoint:
+# faster-whisper==1.0.3

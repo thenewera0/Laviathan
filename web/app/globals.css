@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #04080a;
+  color: #9fb8b2;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Abyss backdrop: the entity floats in a faint pressure gradient, never flat black */
+body {
+  background:
+    radial-gradient(120vmax 90vmax at 50% 120%, rgba(11, 30, 32, 0.85), transparent 60%),
+    radial-gradient(90vmax 70vmax at 50% -20%, rgba(15, 26, 42, 0.5), transparent 55%),
+    #04080a;
+}
+
+::selection {
+  background: rgba(103, 232, 221, 0.25);
+}
+
+/* Captions surface word by word, like speech condensing */
+@keyframes surface-word {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.caption-word {
+  display: inline-block;
+  animation: surface-word 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.status-live {
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption-word,
+  .status-live {
+    animation: none;
+  }
+}
