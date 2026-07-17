@@ -1,0 +1,25 @@
+# Keeps the free Render backend awake: its free tier spins down after
+# ~15 min idle, which would drop live WebSocket sessions and add a ~50s
+# cold start. This public-repo cron pings /health every 10 minutes.
+#
+# Notes:
+# - GitHub schedules are best-effort; pings can arrive late. Good enough.
+# - GitHub disables cron workflows after 60 days without repo activity —
+#   any commit re-arms it.
+# - Render free tier allows 750 instance-hours/month; one always-awake
+#   service uses ~720, so keep exactly ONE free web service per workspace.
+name: keep-leviathan-awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ping backend health
+        run: |
+          curl -fsS --max-time 30 "https://leviathan-core.onrender.com/health" || \
+          echo "backend did not answer (may be redeploying)"
