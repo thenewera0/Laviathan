@@ -147,6 +147,10 @@ async def _stream_openrouter(
         "messages": _to_openai_messages(messages),
         "stream": True,
         "max_tokens": 700,
+        # Route to the fastest available upstream and let OpenRouter fail
+        # over across its providers so one provider's momentary 429 doesn't
+        # sink the request (DeepSeek is multi-sourced: Novita/DeepInfra/...).
+        "provider": {"sort": "throughput", "allow_fallbacks": True},
     }
     if tools:
         payload["tools"] = [
