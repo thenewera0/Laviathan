@@ -21,6 +21,9 @@ next-env.d.ts
 backend/media/
 backend/data/
 
+# private business/architecture map — NEVER push to the public repo
+knowledge_base/
+
 # misc
 .DS_Store
 *.log

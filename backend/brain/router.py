@@ -37,18 +37,64 @@ async def complete(messages: list[dict]) -> str:
     return "".join(parts).strip()
 
 
+def _provider_chain() -> list[tuple[str, float]]:
+    """Ordered (provider, pre-delay) attempts. Free tiers rate-limit under
+    load, so we retry the primary a couple times, then fail over to the
+    other provider. Both keys present => real cross-provider resilience."""
+    have_or = bool(settings.openrouter_api_key)
+    have_gem = bool(settings.gemini_api_key)
+    chain: list[tuple[str, float]] = []
+    if have_or:
+        chain += [("openrouter", 0.0), ("openrouter", 1.2)]
+    if have_gem:
+        chain += [("gemini", 0.0), ("gemini", 1.5)]
+    if not chain:
+        chain = [("mock", 0.0)]
+    return chain
+
+
+def _stream_provider(
+    name: str, messages: list[dict], tools: list[dict] | None
+) -> AsyncIterator[dict]:
+    if name == "openrouter":
+        return _stream_openrouter(messages, tools)
+    if name == "gemini":
+        return _stream_gemini(messages, tools)
+    return _stream_mock(messages)
+
+
 async def stream_chat(
     messages: list[dict], tools: list[dict] | None = None
 ) -> AsyncIterator[dict]:
-    provider = settings.provider
-    if provider == "openrouter":
-        gen = _stream_openrouter(messages, tools)
-    elif provider == "gemini":
-        gen = _stream_gemini(messages, tools)
-    else:
-        gen = _stream_mock(messages)
-    async for event in gen:
-        yield event
+    """Try each provider attempt in turn. Fail over ONLY before the first
+    token is emitted (mid-stream we are committed). Transient 429/400 from
+    a rate-limited free pool thus degrade to the other provider instead of
+    surfacing as an error to the user."""
+    chain = _provider_chain()
+    last_err: Exception | None = None
+
+    for name, delay in chain:
+        if delay:
+            await asyncio.sleep(delay)
+        gen = _stream_provider(name, messages, tools)
+        try:
+            first = await gen.__anext__()
+        except StopAsyncIteration:
+            last_err = RuntimeError(f"{name} returned an empty response")
+            await gen.aclose()
+            continue
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            last_err = exc
+            await gen.aclose()
+            continue
+
+        # committed to this provider — stream the rest
+        yield first
+        async for event in gen:
+            yield event
+        return
+
+    raise last_err or RuntimeError("no model provider is available")
 
 
 # ---------------------------------------------------------------- OpenRouter
