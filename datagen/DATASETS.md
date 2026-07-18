@@ -30,22 +30,37 @@ Why we don't just clone the speech repos: they're large ASR corpora, not
 Alpaca instruction data — pulling them in would bloat the repo and teach
 nothing about instruction-following.
 
-### Other high-quality open datasets worth folding in (future batches)
+### Verified external instruction datasets (wired into `ingest_external.py`)
 
-These are genuine **instruction/text** datasets (verify names/licences before
-ingest; most are on Hugging Face, not the repos above):
+Checked Jul 2026 — exact IDs, licences, and schemas confirmed on Hugging Face.
+`datagen/ingest_external.py` pulls, filters, reshapes, caps, and dedupes these
+on Kaggle. All three permit commercial use **with attribution** — keep the
+attribution block in your model card.
 
-- **CohereForAI/aya_dataset** — massively multilingual *human-written*
-  instructions incl. many Indian languages. Best single fit for the
-  global + Indian goal.
-- **AI4Bharat Airavata / indic-instruct-data** — Hindi instruction tuning set.
-- **databricks-dolly-15k**, **OpenAssistant/oasst1** — general English quality
-  and multi-turn tone; keep 10–20% mixed in to prevent catastrophic forgetting.
-- **sarvamai** open Indic instruction data.
+| Dataset (HF id) | Licence | Size | Why | Our mapping |
+|---|---|---|---|---|
+| `bigcode/self-oss-instruct-sc2-exec-filter-50k` | ODC-BY | 50.7k | **Coding depth**, execution-validated, open-model synthetic (no closed-model distillation → clean provenance) | `instruction`→instruction, `response`→output |
+| `CohereForAI/aya_dataset` | Apache-2.0 | 202k | **Human-written** multilingual instructions; we keep the 10+ Indian languages → directly serves "reply in the user's language" | `inputs`→input, `targets`→output, mirror instruction |
+| `ai4bharat/indic-align` | CC-BY-4.0 | many configs (Anudesh 36.8k, Dolly_T 15k, WikiHow 20.3k, …) | **Indic instruction/conversation** breadth across 14+ languages | first user/assistant turn of single-turn rows |
 
-Fold each in as a `batchN_*.py` that downloads, filters to high quality,
-reshapes to `{instruction, input, output}`, and returns rows — same as
-`batch2_register.py`.
+Considered but **not** auto-ingested:
+- **Function-calling sets** (`glaiveai/glaive-function-calling-v2` Apache-2.0,
+  `NousResearch/hermes-function-calling-v1` Apache-2.0) — their tool schemas
+  differ from Leviathan's `registry.py` contract. Mixing them risks teaching a
+  *different* tool format. We keep tool-calls native to `build_dataset.py`. Use
+  these only if you first remap them onto Leviathan's exact tool names/args.
+- **UPDESH** (9.5M, 13 Indic langs) and **IndicLLMSuite / IndicAlign-Instruct**
+  (74.8M pairs) — enormous; sample a high-quality slice rather than ingesting
+  whole. Good source for a later mega-batch.
+
+**Attribution block for the model card:**
+```
+Training data includes:
+- bigcode/self-oss-instruct-sc2-exec-filter-50k (ODC-BY)
+- CohereForAI/aya_dataset (Apache-2.0)
+- ai4bharat/indic-align (CC-BY-4.0)
+- AI4Bharat IndicTrans2 (translation augmentation) and indic-numtowords
+```
 
 ## Register-mirroring contract (Batch 2)
 
@@ -63,15 +78,20 @@ million), and verified Indic-script greeting anchors.
 1. **Batch 1 (done)** — grounded core: tool-calls, DB, research, math,
    JSON-IO, code/refactor, CLI/error/ML knowledge, consent/safety. (~2,000)
 2. **Batch 2 (done)** — language & register mirroring. (~250 hand-authored)
-3. **Batch 3** — IndicTrans2 augmentation of batch-2 prose into 20+ Indic
-   languages (`augment_indic.py`, on Kaggle). (~1,500)
-4. **Batch 4** — domain depth for the resort/hospitality + agriculture users:
+3. **Batch 3 (script ready)** — external ingestion via `ingest_external.py`
+   on Kaggle: self-oss-instruct (code) + Aya (Indian-language human
+   instructions) + indic-align. (~10k, capped/balanced)
+4. **Batch 3b (script ready)** — IndicTrans2 augmentation of batch-2 prose
+   into 20+ Indic languages (`augment_indic.py`, on Kaggle). (~1,500)
+5. **Batch 4** — domain depth for the resort/hospitality + agriculture users:
    bookings, guest comms, inventory, crop/mandi/weather advisories.
-5. **Batch 5** — coding depth: real bug-fix diffs, multi-file reasoning,
-   Leviathan-codebase-specific tasks.
-6. **Batch 6** — multi-turn conversations (context carry, follow-ups,
+6. **Batch 5** — coding depth specific to Leviathan's own codebase: bug-fix
+   diffs, multi-file reasoning, the router/tool contract.
+7. **Batch 6** — multi-turn conversations (context carry, follow-ups,
    clarifying questions) rather than single-shot rows.
-7. **Batch 7** — Aya / Dolly / OASST high-quality general instructions,
-   filtered, to keep broad capability and non-Indian global registers.
-8. **Batch 8–10** — safety/refusal breadth, long-form research/report style,
-   and evaluation-driven gap-filling from real test failures.
+8. **Batch 7–10** — safety/refusal breadth, long-form research/report style,
+   non-Indian global registers, and evaluation-driven gap-filling from real
+   test failures.
+
+At full blend (core ~2.1k + Batch 2 + `ingest_external.py` ~10k + `augment_indic.py`
+~1.5k) the training set clears the **10,000+** target with a balanced mix.
