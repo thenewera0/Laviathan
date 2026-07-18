@@ -1448,6 +1448,28 @@ for q, a in NO_TOOL:
     add(SAFE, q, a)
 
 # =====================================================================
+# 13. BATCH PLUGINS — datagen/batches/*.py each expose rows() -> [dict].
+# Lets batches 2..10 drop in without touching this core file. Every row
+# still flows through add(), so global input-dedup applies.
+# =====================================================================
+
+BATCH_DIR = ROOT / "datagen" / "batches"
+if BATCH_DIR.exists():
+    import importlib.util
+
+    for pyf in sorted(BATCH_DIR.glob("batch*.py")):
+        spec = importlib.util.spec_from_file_location(pyf.stem, pyf)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        got = mod.rows()
+        added = sum(
+            add(r["instruction"], r["input"], r["output"]) or True
+            for r in got
+        )
+        print(f"[batch] {pyf.name}: {len(got)} rows offered")
+
+
+# =====================================================================
 # Assemble: seed rows first, generated rows after (shuffled)
 # =====================================================================
 
