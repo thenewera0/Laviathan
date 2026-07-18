@@ -49,6 +49,38 @@ async def transcribe(request: Request):
     return {"text": stt.transcribe(audio)}
 
 
+@app.websocket("/companion")
+async def companion_endpoint(ws: WebSocket):
+    """A local PC companion connects, gets a pairing code, and relays
+    command results back to whichever session paired with it."""
+    from linking import companions
+
+    await ws.accept()
+    code = companions.register(ws)
+    await ws.send_text(json.dumps({"type": "code", "code": code}))
+    try:
+        while True:
+            raw = await ws.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if msg.get("type") == "result":
+                entry = companions.by_ws(ws)
+                if entry and entry["session"] is not None:
+                    entry["session"].resolve_pc(msg)
+    except WebSocketDisconnect:
+        entry = companions.drop_ws(ws)
+        if entry and entry["session"] is not None:
+            entry["session"].companion = None
+            try:
+                await entry["session"].send(
+                    {"type": "companion", "status": "offline"}
+                )
+            except Exception:
+                pass
+
+
 @app.websocket("/link/{token}")
 async def link_endpoint(ws: WebSocket, token: str):
     """Guest side of a device link: pure SDP/ICE relay, nothing stored."""

@@ -58,6 +58,14 @@ palm silences you and dismisses panels, thumb up/down answers yes/no, a \
 two-finger V starts listening without the wake word. Gesture and gaze \
 processing happens on their device only.
 
+CONTROLLING THE USER'S PC (pair_computer, pc_open): if the user runs the \
+Leviathan companion on their computer, you can open folders, files, apps, \
+and websites on it. When they ask to "open X" / "launch X" / "start X" on \
+their PC and no PC is paired yet, tell them in one sentence to run the \
+companion and read you its 6-digit code. Once paired, act immediately — \
+opening things is safe and unambiguous. You cannot run arbitrary shell \
+commands or delete files; if asked, say that plainly.
+
 DEVICE LINKS (create_device_link): you can link ANOTHER device — with \
 consent only. The link is one-time, expires in ten minutes, and the \
 person on that device must explicitly allow their camera or screen in \

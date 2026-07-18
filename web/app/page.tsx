@@ -147,6 +147,9 @@ export default function Home() {
           case "translation":
             s.setTranslationLang(msg.lang ? (msg.name ?? msg.lang) : null);
             break;
+          case "companion":
+            s.setCompanionOnline(msg.status === "online");
+            break;
           case "link_signal":
             handleLinkSignal(
               msg.data,

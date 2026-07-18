@@ -11,6 +11,7 @@ from tools import (
     browse,
     browser_actions,
     code_run,
+    computer,
     device_link,
     image,
     memory_tools,
@@ -215,6 +216,42 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
     {
+        "name": "pair_computer",
+        "description": (
+            "Pair with the user's PC so you can control it. The user runs "
+            "the Leviathan companion on their computer; it prints a "
+            "6-digit code they read to you. Call this with that code once. "
+            "If no PC is paired and the user asks to open something on "
+            "their computer, tell them to start the companion first."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "description": "the 6-digit pairing code"},
+            },
+            "required": ["code"],
+        },
+    },
+    {
+        "name": "pc_open",
+        "description": (
+            "Open something on the user's paired PC: a folder, a file, an "
+            "application, or a website. Examples of target: 'Downloads', "
+            "'notepad', 'C:/Users/Admin/report.pdf', 'spotify', "
+            "'https://gmail.com', 'calculator'. Requires a paired PC."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target": {
+                    "type": "string",
+                    "description": "folder name/path, app name, file path, or url to open",
+                },
+            },
+            "required": ["target"],
+        },
+    },
+    {
         "name": "create_device_link",
         "description": (
             "Mint a ONE-TIME consent link that lets another device share "
@@ -277,6 +314,8 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "see_screen": _see_screen,
     "set_translation": translate.run,
     "create_device_link": device_link.run,
+    "pair_computer": computer.pair_computer,
+    "pc_open": computer.pc_open,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -294,6 +333,8 @@ THOUGHT_LINES = {
     "see_screen": "gazing upon the surface glass",
     "set_translation": "raising a bridge between tongues",
     "create_device_link": "extending a tendril to another shore",
+    "pair_computer": "clasping hands with your machine",
+    "pc_open": "reaching into your machine — {target}",
 }
 
 

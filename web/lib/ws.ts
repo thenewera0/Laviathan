@@ -39,6 +39,7 @@ export type ServerMessage =
   | { type: "link_guest_joined"; purpose: string }
   | { type: "link_signal"; data: any }
   | { type: "link_closed" }
+  | { type: "companion"; status: "online" | "offline" }
   | { type: "error"; message: string }
   | ServerAction;
 

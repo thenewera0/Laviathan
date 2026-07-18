@@ -13,6 +13,7 @@ export default function StatusBar() {
   const entityState = useLeviathan((s) => s.entityState);
   const errorMessage = useLeviathan((s) => s.errorMessage);
   const translationLang = useLeviathan((s) => s.translationLang);
+  const companionOnline = useLeviathan((s) => s.companionOnline);
 
   return (
     <>
@@ -39,6 +40,7 @@ export default function StatusBar() {
         {translationLang && (
           <p className="text-glint/70">⇄ translating → {translationLang}</p>
         )}
+        {companionOnline && <p className="text-lumen/70">▣ PC linked</p>}
       </div>
 
       <div className="pointer-events-none absolute bottom-5 right-5 font-data text-[11px] tracking-wider text-foam/30">

@@ -148,6 +148,27 @@ becomes the priority over setup cost.
 | Replies are canned lines about "add a key" | that's the mock brain — add a key to `backend/.env`, restart uvicorn |
 | Free OpenRouter model errors | free-tier models rate-limit; retry or switch `OPENROUTER_MODEL` |
 
+## Control your PC (companion)
+
+Let Leviathan open folders, files, apps, and websites on your computer by
+voice. Run the companion **on that PC**:
+
+```powershell
+cd companion
+pip install -r requirements.txt
+python leviathan_companion.py
+```
+
+It prints a 6-digit code. Tell Leviathan *"pair with my computer, the
+code is 123456"*, then say things like *"open my Downloads folder"*,
+*"launch Notepad"*, *"open spotify"*, *"open gmail.com"*.
+
+Safety by design: the companion connects **out** to Leviathan (nothing
+reaches into your PC uninvited); it **only opens** things — no shell
+commands, no deleting or modifying files; every action is printed in its
+window; closing the window ends all control instantly. Point it at a
+local backend with `LEVIATHAN_BACKEND=ws://localhost:8000`.
+
 ## Deployment (all free tiers)
 
 | Piece | Where | Notes |

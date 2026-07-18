@@ -7,7 +7,17 @@
 //
 // Requires Chrome or Edge (Web Speech API). Wake phrase: "leviathan".
 
-const WAKE_WORDS = ["leviathan", "leviathon", "leviaton", "hey leviathan"];
+// Recognition mangles rare names — accept the common mishearings too
+const WAKE_WORDS = [
+  "leviathan",
+  "leviathon",
+  "leviaton",
+  "levithan",
+  "laviathan",
+  "levi athan",
+  "levia than",
+  "hey leviathan",
+];
 
 type SpeechRecognitionLike = {
   continuous: boolean;
@@ -168,8 +178,11 @@ export class VoiceEngine {
     const heard = (interim + " " + final).toLowerCase();
 
     if (!this.awake && !this.ptt) {
-      if (WAKE_WORDS.some((w) => heard.includes(w))) this.wakeUp();
-      return;
+      if (!WAKE_WORDS.some((w) => heard.includes(w))) return;
+      this.wakeUp();
+      // DO NOT return: "leviathan tell me X" often arrives as ONE event —
+      // the command rides in the same breath as the name. Fall through so
+      // this event's text (wake word stripped) is captured as the command.
     }
 
     if (interim.trim()) {
@@ -194,10 +207,10 @@ export class VoiceEngine {
 
   private stripWake(text: string): string {
     let out = text;
-    for (const w of ["hey leviathan", "leviathan"]) {
-      out = out.replace(new RegExp(w, "gi"), "");
+    for (const w of [...WAKE_WORDS].sort((a, b) => b.length - a.length)) {
+      out = out.replace(new RegExp(w.replace(/\s+/g, "\\s*"), "gi"), "");
     }
-    return out.trim();
+    return out.replace(/^[\s,.]+/, "").trim();
   }
 
   private bumpSilenceTimer(ms = 2100) {

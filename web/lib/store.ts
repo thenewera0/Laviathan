@@ -56,6 +56,8 @@ interface LeviathanStore {
   facePos: { x: number; y: number } | null;
   /** Live translation target language name, or null */
   translationLang: string | null;
+  /** Whether a PC companion is paired to this session */
+  companionOnline: boolean;
 
   setEntityState: (s: EntityState) => void;
   setAudioLevel: (v: number) => void;
@@ -76,6 +78,7 @@ interface LeviathanStore {
   setLastGesture: (name: string) => void;
   setFacePos: (p: { x: number; y: number } | null) => void;
   setTranslationLang: (l: string | null) => void;
+  setCompanionOnline: (v: boolean) => void;
 }
 
 let wordId = 0;
@@ -99,6 +102,7 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   lastGesture: null,
   facePos: null,
   translationLang: null,
+  companionOnline: false,
 
   setEntityState: (s) => set({ entityState: s }),
   setAudioLevel: (v) => set({ audioLevel: v }),
@@ -130,4 +134,5 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   setLastGesture: (name) => set({ lastGesture: { name, at: Date.now() } }),
   setFacePos: (p) => set({ facePos: p }),
   setTranslationLang: (l) => set({ translationLang: l }),
+  setCompanionOnline: (v) => set({ companionOnline: v }),
 }));

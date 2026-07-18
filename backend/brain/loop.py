@@ -30,6 +30,9 @@ class BrainSession:
         # Live translation mode (Phase 4): language code or None
         self.translate_lang: str | None = None
         self.translate_lang_name: str | None = None
+        # Paired PC companion (Phase 6): registry entry or None
+        self.companion: dict | None = None
+        self._pc_futures: dict[str, asyncio.Future] = {}
 
     async def send(self, payload: dict) -> None:
         await self.ws.send_text(json.dumps(payload))
@@ -79,6 +82,41 @@ class BrainSession:
                     except Exception:
                         pass
                 links.drop(token)
+
+    def resolve_pc(self, msg: dict) -> None:
+        fut = self._pc_futures.pop(msg.get("id", ""), None)
+        if fut and not fut.done():
+            fut.set_result(msg)
+
+    async def pc_exec(self, action: str, target: str) -> dict:
+        """Send one command to the paired companion, await its result."""
+        import uuid
+
+        if self.companion is None:
+            return {
+                "error": "no PC is paired. The user must run the companion "
+                "on their PC and tell you its 6-digit code (pair_computer)."
+            }
+        cmd_id = uuid.uuid4().hex[:10]
+        fut = asyncio.get_running_loop().create_future()
+        self._pc_futures[cmd_id] = fut
+        try:
+            await self.companion["ws"].send_text(
+                json.dumps(
+                    {"type": "cmd", "id": cmd_id, "action": action, "target": target}
+                )
+            )
+        except Exception:
+            self.companion = None
+            self._pc_futures.pop(cmd_id, None)
+            await self.send({"type": "companion", "status": "offline"})
+            return {"error": "the PC companion disconnected — restart it and re-pair"}
+        try:
+            result = await asyncio.wait_for(fut, timeout=25)
+            return {k: v for k, v in result.items() if k in ("ok", "detail")}
+        except asyncio.TimeoutError:
+            self._pc_futures.pop(cmd_id, None)
+            return {"error": "the PC did not answer in time"}
 
     async def request_frame(self, source: str = "camera") -> str:
         """Ask the client for one frame (base64 jpeg): camera or screen."""
