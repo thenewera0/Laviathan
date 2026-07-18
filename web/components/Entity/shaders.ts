@@ -145,12 +145,21 @@ varying float vDisp;
 ${SIMPLEX_NOISE}
 
 // Cosine palette tuned to an oil-slick drift: teal -> violet -> amber
+// Cool thin-film: a cyclic gradient through indigo -> blue -> cyan ->
+// violet. No green, no amber — the light stays deep-sea electric.
 vec3 iridescence(float t) {
-  vec3 a = vec3(0.32, 0.36, 0.40);
-  vec3 b = vec3(0.42, 0.34, 0.32);
-  vec3 c = vec3(0.90, 1.00, 0.85);
-  vec3 d = vec3(0.55, 0.30, 0.08);
-  return a + b * cos(6.28318 * (c * t + d));
+  t = fract(t);
+  vec3 indigo = vec3(0.10, 0.16, 0.55);
+  vec3 blue   = vec3(0.12, 0.40, 0.95);
+  vec3 cyan   = vec3(0.30, 0.82, 1.00);
+  vec3 violet = vec3(0.52, 0.28, 0.92);
+  vec3 col;
+  if (t < 0.33)      col = mix(indigo, blue,   smoothstep(0.0, 0.33, t));
+  else if (t < 0.66) col = mix(blue,   cyan,   smoothstep(0.33, 0.66, t));
+  else               col = mix(cyan,   violet, smoothstep(0.66, 1.0, t));
+  // gently fold violet back to indigo so the cycle is seamless
+  col = mix(col, indigo, smoothstep(0.92, 1.0, t) * 0.6);
+  return col;
 }
 
 float fbm(vec3 p) {
@@ -204,12 +213,12 @@ void main() {
   // ---- bioluminescent veins: faintly alive always, ablaze while thinking
   float veinField = snoise(n * 3.5 + vec3(0.0, uFlow * 0.9, 0.0));
   float veins = smoothstep(0.28, 0.02, abs(veinField)) * (0.16 + uThink);
-  vec3 veinGlow = vec3(0.35, 0.95, 0.86) * veins * (0.35 + 0.65 * facing);
+  vec3 veinGlow = vec3(0.30, 0.72, 1.00) * veins * (0.35 + 0.65 * facing);
 
   // ---- speaking: emission swells with the voice
   float pulse = uAudio * uSpeak;
   vec3 col = base + inner + sheen * (1.0 + pulse * 1.6) + specCol + veinGlow;
-  col += vec3(0.40, 0.90, 0.82) * (fresnel * 0.5 + facing * 0.25) * pulse;
+  col += vec3(0.32, 0.74, 1.00) * (fresnel * 0.5 + facing * 0.25) * pulse;
 
   // ---- error: heat leaves the body — desaturate, shift cold
   float grey = dot(col, vec3(0.299, 0.587, 0.114));
@@ -239,12 +248,21 @@ uniform float uError;
 varying vec3 vNormal;
 varying vec3 vViewDir;
 
+// Cool thin-film: a cyclic gradient through indigo -> blue -> cyan ->
+// violet. No green, no amber — the light stays deep-sea electric.
 vec3 iridescence(float t) {
-  vec3 a = vec3(0.32, 0.36, 0.40);
-  vec3 b = vec3(0.42, 0.34, 0.32);
-  vec3 c = vec3(0.90, 1.00, 0.85);
-  vec3 d = vec3(0.55, 0.30, 0.08);
-  return a + b * cos(6.28318 * (c * t + d));
+  t = fract(t);
+  vec3 indigo = vec3(0.10, 0.16, 0.55);
+  vec3 blue   = vec3(0.12, 0.40, 0.95);
+  vec3 cyan   = vec3(0.30, 0.82, 1.00);
+  vec3 violet = vec3(0.52, 0.28, 0.92);
+  vec3 col;
+  if (t < 0.33)      col = mix(indigo, blue,   smoothstep(0.0, 0.33, t));
+  else if (t < 0.66) col = mix(blue,   cyan,   smoothstep(0.33, 0.66, t));
+  else               col = mix(cyan,   violet, smoothstep(0.66, 1.0, t));
+  // gently fold violet back to indigo so the cycle is seamless
+  col = mix(col, indigo, smoothstep(0.92, 1.0, t) * 0.6);
+  return col;
 }
 
 void main() {
@@ -253,7 +271,7 @@ void main() {
   float rim = pow(1.0 - abs(dot(n, v)), 4.5);
   float breathe = 0.85 + 0.15 * sin(uFlow * 0.6);
   // Cold bioluminescent haze, not a planetary ring — teal-dominant, soft
-  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.20, 0.58, 0.72), 0.6);
+  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.18, 0.45, 0.85), 0.55);
   vec3 col = hue * rim * uGlow * 0.30 * breathe;
   col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
   gl_FragColor = vec4(col, rim * 0.5);

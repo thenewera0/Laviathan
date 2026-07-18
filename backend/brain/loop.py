@@ -88,8 +88,9 @@ class BrainSession:
         if fut and not fut.done():
             fut.set_result(msg)
 
-    async def pc_exec(self, action: str, target: str) -> dict:
-        """Send one command to the paired companion, await its result."""
+    async def pc_exec(self, action: str, target: str, **extra) -> dict:
+        """Send one command to the paired companion, await its result.
+        `extra` may carry content (write_file), dest (move), etc."""
         import uuid
 
         if self.companion is None:
@@ -103,7 +104,8 @@ class BrainSession:
         try:
             await self.companion["ws"].send_text(
                 json.dumps(
-                    {"type": "cmd", "id": cmd_id, "action": action, "target": target}
+                    {"type": "cmd", "id": cmd_id, "action": action,
+                     "target": target, **extra}
                 )
             )
         except Exception:

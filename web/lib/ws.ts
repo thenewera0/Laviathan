@@ -17,6 +17,12 @@ export type ServerAction =
       action: "show_link_invite";
       url: string;
       purpose: string;
+    }
+  | {
+      type: "action";
+      action: "show_code";
+      project: string | null;
+      files: { path: string; content: string }[];
     };
 
 export type ServerMessage =

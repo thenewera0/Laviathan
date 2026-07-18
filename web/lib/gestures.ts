@@ -24,15 +24,21 @@ const FACE_MODEL =
 
 export type GestureName =
   | "Open_Palm"
+  | "Closed_Fist"
   | "Thumb_Up"
   | "Thumb_Down"
-  | "Victory";
+  | "Victory"
+  | "Pointing_Up"
+  | "ILoveYou";
 
 const ACTIONABLE: GestureName[] = [
   "Open_Palm",
+  "Closed_Fist",
   "Thumb_Up",
   "Thumb_Down",
   "Victory",
+  "Pointing_Up",
+  "ILoveYou",
 ];
 
 const CONFIRM_FRAMES = 3; // consecutive detections before firing

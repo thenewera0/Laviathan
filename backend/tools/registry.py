@@ -252,6 +252,98 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
     {
+        "name": "write_project",
+        "description": (
+            "Build a whole app/website/software project on the user's "
+            "paired PC: write ALL its files at once into ~/Leviathan/<name> "
+            "and show the code on screen. Use for 'build me an app/site/"
+            "tool'. Clarify the idea first if vague, then generate real, "
+            "complete, runnable files. Prefer single-page web apps "
+            "(index.html + css + js) unless the user asks otherwise."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "short project folder name, kebab-case"},
+                "files": {
+                    "type": "array",
+                    "description": "every file in the project",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string", "description": "path relative to the project, e.g. 'index.html' or 'src/app.js'"},
+                            "content": {"type": "string", "description": "the full file contents"},
+                        },
+                        "required": ["path", "content"],
+                    },
+                },
+            },
+            "required": ["name", "files"],
+        },
+    },
+    {
+        "name": "write_file",
+        "description": (
+            "Write or overwrite a single file on the paired PC (relative "
+            "paths land in ~/Leviathan). Use to save a snippet or edit one "
+            "file of a project. Shows the code on screen."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "file path"},
+                "content": {"type": "string", "description": "full file contents"},
+            },
+            "required": ["path", "content"],
+        },
+    },
+    {
+        "name": "read_path",
+        "description": (
+            "Read a file's contents (to inspect or FIX code) or list a "
+            "folder on the paired PC. Use before editing so you change the "
+            "real current file."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "file path to read, or folder to list"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "run_command",
+        "description": (
+            "Run a terminal command on the paired PC (e.g. 'npm install', "
+            "'python app.py', 'npm run build'). The companion asks the "
+            "user to confirm before it runs. Use to install deps, build, "
+            "or start a project you wrote."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "the shell command"},
+            },
+            "required": ["command"],
+        },
+    },
+    {
+        "name": "preview_project",
+        "description": (
+            "Open a web project's index.html in the user's browser as a "
+            "live preview. Use after write_project for static/single-page "
+            "web apps."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "the project folder name"},
+            },
+            "required": ["name"],
+        },
+    },
+    {
         "name": "create_device_link",
         "description": (
             "Mint a ONE-TIME consent link that lets another device share "
@@ -316,6 +408,11 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "create_device_link": device_link.run,
     "pair_computer": computer.pair_computer,
     "pc_open": computer.pc_open,
+    "write_project": computer.write_project,
+    "write_file": computer.write_file,
+    "read_path": computer.read_path,
+    "run_command": computer.run_command,
+    "preview_project": computer.preview_project,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -335,6 +432,11 @@ THOUGHT_LINES = {
     "create_device_link": "extending a tendril to another shore",
     "pair_computer": "clasping hands with your machine",
     "pc_open": "reaching into your machine — {target}",
+    "write_project": "forging a new work — {name}",
+    "write_file": "inscribing — {path}",
+    "read_path": "studying — {path}",
+    "run_command": "asking your leave to run — {command}",
+    "preview_project": "raising a preview — {name}",
 }
 
 

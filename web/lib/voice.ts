@@ -65,14 +65,44 @@ export class VoiceEngine {
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = true;
   private recPaused = false; // recognition muted while Leviathan speaks
+  private signatureVoice: SpeechSynthesisVoice | null = null; // pinned once
+  private voiceResolved = false;
 
   constructor(private cb: VoiceCallbacks) {}
 
   async start() {
     this.stopped = false;
+    this.resolveSignatureVoice();
     await this.initMicLevel();
     this.initRecognition();
     this.levelLoop();
+  }
+
+  // Leviathan must sound the SAME every time. Browsers populate the voice
+  // list asynchronously and in provider order, so we resolve one voice
+  // once — deepest available English male — and never re-pick it.
+  private resolveSignatureVoice() {
+    const pick = () => {
+      const voices = window.speechSynthesis?.getVoices() ?? [];
+      if (voices.length === 0) return;
+      const byPref = (re: RegExp) =>
+        voices.find((v) => re.test(`${v.name} ${v.lang}`));
+      this.signatureVoice =
+        byPref(/Google UK English Male/i) ??
+        byPref(/Microsoft (Guy|Ryan|George|Daniel)/i) ??
+        byPref(/\b(Daniel|Arthur|Oliver|George|Ryan|Guy)\b/i) ??
+        byPref(/en-GB/i) ??
+        voices.find((v) => v.lang?.startsWith("en")) ??
+        voices[0] ??
+        null;
+      this.voiceResolved = true;
+    };
+    pick();
+    if (!this.voiceResolved && "speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        if (!this.voiceResolved) pick();
+      };
+    }
   }
 
   stop() {
@@ -282,9 +312,9 @@ export class VoiceEngine {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
 
-    const voices = window.speechSynthesis.getVoices();
     if (lang && !lang.startsWith("en")) {
-      // Translation mode: the voice must match the target tongue
+      // Translation mode only: the voice must match the target tongue
+      const voices = window.speechSynthesis.getVoices();
       const match =
         voices.find((v) => v.lang.toLowerCase().startsWith(lang)) ??
         voices.find((v) => v.lang.toLowerCase().split("-")[0] === lang);
@@ -293,15 +323,12 @@ export class VoiceEngine {
       utter.pitch = 0.9;
       utter.rate = 0.95;
     } else {
-      // Leviathan speaks low and deliberately — pick the deepest sane voice.
-      const preferred =
-        voices.find((v) => /en.*(Daniel|George|Ryan)/i.test(v.name + v.lang)) ??
-        voices.find((v) => /Google UK English Male/i.test(v.name)) ??
-        voices.find((v) => v.lang.startsWith("en") && /male/i.test(v.name)) ??
-        voices.find((v) => v.lang.startsWith("en"));
-      if (preferred) utter.voice = preferred;
-      utter.pitch = 0.75;
-      utter.rate = 0.95;
+      // Leviathan's signature voice — the SAME pinned voice every time,
+      // low and deliberate. Never re-picked mid-session.
+      if (!this.signatureVoice) this.resolveSignatureVoice();
+      if (this.signatureVoice) utter.voice = this.signatureVoice;
+      utter.pitch = 0.72;
+      utter.rate = 0.94;
     }
 
     utter.onstart = () => {

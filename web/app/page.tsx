@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Captions from "@/components/Captions";
+import CodePanel from "@/components/CodePanel";
+import DeviceRoster from "@/components/DeviceRoster";
 import GestureLayer from "@/components/GestureLayer";
 import MediaLayer from "@/components/MediaLayer";
 import StatusBar from "@/components/StatusBar";
@@ -44,16 +46,32 @@ export default function Home() {
       onGesture: (name: GestureName) => {
         const st = useLeviathan.getState();
         st.setLastGesture(name);
-        if (name === "Open_Palm") {
-          engineRef.current?.hush();
-          socketRef.current?.sendInterrupt();
-          st.setMedia(null);
-        } else if (name === "Thumb_Up") {
-          socketRef.current?.sendUserText("yes");
-        } else if (name === "Thumb_Down") {
-          socketRef.current?.sendUserText("no");
-        } else if (name === "Victory") {
-          engineRef.current?.beginListening();
+        switch (name) {
+          case "Open_Palm": // hush + dismiss panels
+            engineRef.current?.hush();
+            socketRef.current?.sendInterrupt();
+            st.setMedia(null);
+            break;
+          case "Closed_Fist": // stop / cancel whatever it's doing
+            engineRef.current?.hush();
+            socketRef.current?.sendInterrupt();
+            break;
+          case "Thumb_Up":
+            socketRef.current?.sendUserText("yes");
+            break;
+          case "Thumb_Down":
+            socketRef.current?.sendUserText("no");
+            break;
+          case "Victory": // start listening, no wake word
+            engineRef.current?.beginListening();
+            break;
+          case "Pointing_Up": // "go on / continue"
+            socketRef.current?.sendUserText("continue");
+            break;
+          case "ILoveYou": // "thank you, that's all"
+            engineRef.current?.hush();
+            socketRef.current?.sendUserText("thank you, that is all for now");
+            break;
         }
       },
       onFace: (p) => useLeviathan.getState().setFacePos(p),
@@ -118,6 +136,8 @@ export default function Home() {
                 title: msg.title,
                 markdown: msg.markdown,
               });
+            } else if (msg.action === "show_code") {
+              s.setCodeProject({ project: msg.project, files: msg.files });
             } else if (msg.action === "show_link_invite") {
               s.setMedia({
                 kind: "invite",
@@ -273,9 +293,11 @@ export default function Home() {
       {surfaced ? (
         <>
           <StatusBar />
+          <DeviceRoster />
           <Captions />
           <ThoughtStream />
           <TaskPanel />
+          <CodePanel />
           <MediaLayer
             getLiveStream={getLinkedStream}
             onDismiss={(kind) => {

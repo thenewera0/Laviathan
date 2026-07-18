@@ -8,9 +8,12 @@ import { useLeviathan } from "@/lib/store";
 
 const GLYPHS: Record<string, string> = {
   Open_Palm: "✋ hush",
+  Closed_Fist: "✊ stop",
   Thumb_Up: "👍 yes",
   Thumb_Down: "👎 no",
   Victory: "✌ listening",
+  Pointing_Up: "☝ continue",
+  ILoveYou: "🤟 that's all",
 };
 
 export default function GestureLayer({
@@ -41,9 +44,9 @@ export default function GestureLayer({
           ✋ gestures {gesturesOn ? "on" : "off"}
         </button>
         {gesturesOn && (
-          <p className="max-w-[240px] font-data text-[10px] leading-4 text-foam/30">
-            palm=hush · 👍=yes · 👎=no · V=listen — hands read on-device,
-            nothing leaves this browser
+          <p className="max-w-[260px] font-data text-[10px] leading-4 text-foam/30">
+            ✋ hush · ✊ stop · 👍 yes · 👎 no · ✌ listen · ☝ continue · 🤟
+            done — hands read on-device, nothing leaves this browser
           </p>
         )}
       </div>
