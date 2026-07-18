@@ -238,7 +238,9 @@ TOOL_SCHEMAS: list[dict] = [
             "Open something on the user's paired PC: a folder, a file, an "
             "application, or a website. Examples of target: 'Downloads', "
             "'notepad', 'C:/Users/Admin/report.pdf', 'spotify', "
-            "'https://gmail.com', 'calculator'. Requires a paired PC."
+            "'https://gmail.com', 'calculator'. Requires a paired PC. If "
+            "several PCs are paired, set 'device' to a name to target one, "
+            "or omit it to open on ALL of them at once."
         ),
         "parameters": {
             "type": "object",
@@ -246,6 +248,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "target": {
                     "type": "string",
                     "description": "folder name/path, app name, file path, or url to open",
+                },
+                "device": {
+                    "type": "string",
+                    "description": "optional device name; omit to target all paired PCs",
                 },
             },
             "required": ["target"],
@@ -276,6 +282,10 @@ TOOL_SCHEMAS: list[dict] = [
                         },
                         "required": ["path", "content"],
                     },
+                },
+                "device": {
+                    "type": "string",
+                    "description": "optional device name; omit to write on all paired PCs",
                 },
             },
             "required": ["name", "files"],
@@ -318,12 +328,17 @@ TOOL_SCHEMAS: list[dict] = [
             "Run a terminal command on the paired PC (e.g. 'npm install', "
             "'python app.py', 'npm run build'). The companion asks the "
             "user to confirm before it runs. Use to install deps, build, "
-            "or start a project you wrote."
+            "or start a project you wrote. With several PCs paired, set "
+            "'device' to target one, or omit to run on ALL at once."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "command": {"type": "string", "description": "the shell command"},
+                "device": {
+                    "type": "string",
+                    "description": "optional device name; omit to run on all paired PCs",
+                },
             },
             "required": ["command"],
         },

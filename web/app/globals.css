@@ -18,13 +18,110 @@ body {
 /* Abyss backdrop: the entity floats in a faint pressure gradient, never flat black */
 body {
   background:
-    radial-gradient(120vmax 90vmax at 50% 120%, rgba(11, 30, 32, 0.85), transparent 60%),
-    radial-gradient(90vmax 70vmax at 50% -20%, rgba(15, 26, 42, 0.5), transparent 55%),
-    #04080a;
+    radial-gradient(120vmax 90vmax at 50% 120%, rgba(10, 26, 40, 0.85), transparent 60%),
+    radial-gradient(90vmax 70vmax at 50% -20%, rgba(14, 24, 48, 0.55), transparent 55%),
+    #04070c;
 }
 
 ::selection {
   background: rgba(103, 232, 221, 0.25);
+}
+
+/* ---- HUD design system --------------------------------------------- */
+
+/* faint instrument grid — atmosphere, not decoration */
+.hud-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(103, 232, 221, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 232, 221, 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
+}
+
+/* premium glass surface shared by every panel */
+.glass-panel {
+  background: linear-gradient(
+    160deg,
+    rgba(10, 22, 30, 0.86),
+    rgba(6, 12, 20, 0.9)
+  );
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-clip: padding-box;
+  box-shadow:
+    0 24px 70px -20px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(103, 232, 221, 0.08);
+  position: relative;
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+/* gradient hairline border via a masked pseudo-frame */
+.glass-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(103, 232, 221, 0.4),
+    rgba(143, 123, 240, 0.18) 40%,
+    transparent 70%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* panels rise and focus in */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.panel-enter {
+  animation: panel-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* instrument readouts fade up on mount */
+@keyframes hud-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hud-enter {
+  animation: hud-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* corner brackets grow in when Leviathan surfaces */
+@keyframes bracket-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+.hud-bracket {
+  animation: bracket-in 1.4s ease-out 0.2s both;
 }
 
 /* Captions surface word by word, like speech condensing */
@@ -62,7 +159,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .caption-word,
-  .status-live {
+  .status-live,
+  .panel-enter,
+  .hud-enter,
+  .hud-bracket {
     animation: none;
   }
 }

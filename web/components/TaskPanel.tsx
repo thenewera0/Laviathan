@@ -19,11 +19,11 @@ export default function TaskPanel() {
   if (tasks.length === 0) return null;
 
   return (
-    <div className="absolute left-5 top-16 w-72 max-w-[80vw] space-y-2">
+    <div className="absolute bottom-24 left-8 w-72 max-w-[80vw] space-y-2">
       {tasks.map((t) => (
         <div
           key={t.id}
-          className="rounded-sm border border-foam/10 bg-abyss/70 px-3 py-2 backdrop-blur-md"
+          className="glass-panel panel-enter px-3 py-2"
         >
           <div className="flex items-start justify-between gap-2">
             <p className="font-data text-[10px] uppercase tracking-[0.25em] text-foam/40">

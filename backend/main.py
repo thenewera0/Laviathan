@@ -65,18 +65,24 @@ async def companion_endpoint(ws: WebSocket):
                 msg = json.loads(raw)
             except json.JSONDecodeError:
                 continue
-            if msg.get("type") == "result":
+            if msg.get("type") == "hello":
+                entry = companions.by_ws(ws)
+                if entry:
+                    entry["name"] = str(msg.get("name") or "PC")
+            elif msg.get("type") == "result":
                 entry = companions.by_ws(ws)
                 if entry and entry["session"] is not None:
                     entry["session"].resolve_pc(msg)
     except WebSocketDisconnect:
         entry = companions.drop_ws(ws)
         if entry and entry["session"] is not None:
-            entry["session"].companion = None
+            session = entry["session"]
+            # remove this device from the session's roster
+            for dname, dentry in list(session.devices.items()):
+                if dentry is entry:
+                    session.devices.pop(dname, None)
             try:
-                await entry["session"].send(
-                    {"type": "companion", "status": "offline"}
-                )
+                await session._broadcast_devices()
             except Exception:
                 pass
 

@@ -245,6 +245,8 @@ async def run() -> None:
     print(f"\nConnecting to {COMPANION_URL} ...\n")
 
     async with websockets.connect(COMPANION_URL, max_size=2**22) as ws:
+        # announce this machine's name so Leviathan can target it by name
+        await ws.send(json.dumps({"type": "hello", "name": platform.node() or "PC"}))
         async for raw in ws:
             try:
                 msg = json.loads(raw)

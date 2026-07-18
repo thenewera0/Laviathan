@@ -58,6 +58,8 @@ interface LeviathanStore {
   translationLang: string | null;
   /** Whether a PC companion is paired to this session */
   companionOnline: boolean;
+  /** Names of every paired PC */
+  pcDevices: string[];
   /** Code the builder wrote — shown in the IDE panel */
   codeProject: { project: string | null; files: { path: string; content: string }[] } | null;
 
@@ -81,6 +83,7 @@ interface LeviathanStore {
   setFacePos: (p: { x: number; y: number } | null) => void;
   setTranslationLang: (l: string | null) => void;
   setCompanionOnline: (v: boolean) => void;
+  setPcDevices: (d: string[]) => void;
   setCodeProject: (
     p: { project: string | null; files: { path: string; content: string }[] } | null
   ) => void;
@@ -108,6 +111,7 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   facePos: null,
   translationLang: null,
   companionOnline: false,
+  pcDevices: [],
   codeProject: null,
 
   setEntityState: (s) => set({ entityState: s }),
@@ -141,5 +145,6 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   setFacePos: (p) => set({ facePos: p }),
   setTranslationLang: (l) => set({ translationLang: l }),
   setCompanionOnline: (v) => set({ companionOnline: v }),
+  setPcDevices: (d) => set({ pcDevices: d, companionOnline: d.length > 0 }),
   setCodeProject: (p) => set({ codeProject: p }),
 }));

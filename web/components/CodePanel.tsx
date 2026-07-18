@@ -28,7 +28,7 @@ export default function CodePanel() {
   };
 
   return (
-    <div className="absolute bottom-16 left-1/2 z-20 flex h-[62vh] w-[min(920px,92vw)] -translate-x-1/2 flex-col overflow-hidden rounded-md border border-lumen/20 bg-abyss/92 shadow-[0_0_60px_rgba(103,232,221,0.10)] backdrop-blur-xl">
+    <div className="glass-panel panel-enter absolute bottom-16 left-1/2 z-20 flex h-[62vh] w-[min(920px,92vw)] -translate-x-1/2 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-foam/10 px-4 py-2">
         <p className="font-data text-[11px] uppercase tracking-[0.25em] text-lumen/70">
           ▤ {project ? `project · ${project}` : "code"}

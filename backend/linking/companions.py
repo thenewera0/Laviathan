@@ -13,7 +13,7 @@ COMPANIONS: dict[str, dict] = {}
 
 def register(ws) -> str:
     code = str(secrets.randbelow(900000) + 100000)  # speakable: 6 digits
-    COMPANIONS[code] = {"ws": ws, "session": None}
+    COMPANIONS[code] = {"ws": ws, "session": None, "name": "PC"}
     return code
 
 

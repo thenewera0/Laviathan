@@ -1,33 +1,42 @@
 "use client";
 
-// Which devices are connected to this session, at a glance. This browser
-// is always here; the PC joins when the companion pairs; a shared device
-// joins when a consent link goes live.
+// Live roster of everything joined to this session — this console always,
+// each paired PC by its real hostname, and any consent-linked device.
+// Every row reflects an actual connection.
 
 import { useLeviathan } from "@/lib/store";
 
 export default function DeviceRoster() {
-  const companionOnline = useLeviathan((s) => s.companionOnline);
+  const pcDevices = useLeviathan((s) => s.pcDevices);
   const media = useLeviathan((s) => s.media);
   const linkLive = media?.kind === "live";
 
-  const devices = [
-    { icon: "◉", label: "this console", on: true },
-    { icon: "▣", label: "your PC", on: companionOnline },
-    { icon: "◈", label: "linked device", on: linkLive },
-  ].filter((d) => d.on);
+  const rows = [
+    { icon: "◉", label: "this console", tone: "text-lumen/70" },
+    ...pcDevices.map((name) => ({
+      icon: "▣",
+      label: name,
+      tone: "text-lumen/70",
+    })),
+    ...(linkLive
+      ? [{ icon: "◈", label: "linked device", tone: "text-glint/70" }]
+      : []),
+  ];
 
   return (
-    <div className="pointer-events-none absolute left-5 top-24 space-y-1">
-      <p className="font-data text-[10px] uppercase tracking-[0.3em] text-foam/25">
-        connected · {devices.length}
-      </p>
-      {devices.map((d) => (
+    <div className="hud-enter pointer-events-none absolute left-8 top-28 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <span className="font-data text-[9px] uppercase tracking-[0.35em] text-foam/25">
+          mesh
+        </span>
+        <span className="font-data text-[10px] text-foam/40">{rows.length}</span>
+      </div>
+      {rows.map((r) => (
         <p
-          key={d.label}
-          className="font-data text-[11px] tracking-wider text-foam/55"
+          key={r.label}
+          className="font-data text-[11px] tracking-wide text-foam/60"
         >
-          <span className="text-lumen/70">{d.icon}</span> {d.label}
+          <span className={r.tone}>{r.icon}</span> {r.label}
         </p>
       ))}
     </div>

@@ -71,7 +71,7 @@ export default function MediaLayer({
 
   return (
     <div
-      className={`absolute right-5 top-16 overflow-hidden rounded-sm border border-foam/10 bg-abyss/80 shadow-[0_0_40px_rgba(103,232,221,0.07)] backdrop-blur-md ${
+      className={`glass-panel panel-enter absolute right-8 top-24 z-10 overflow-hidden ${
         wide ? "w-[30rem] max-w-[92vw]" : "w-80 max-w-[85vw]"
       }`}
     >

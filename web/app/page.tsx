@@ -6,6 +6,7 @@ import Captions from "@/components/Captions";
 import CodePanel from "@/components/CodePanel";
 import DeviceRoster from "@/components/DeviceRoster";
 import GestureLayer from "@/components/GestureLayer";
+import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
 import StatusBar from "@/components/StatusBar";
 import TaskPanel from "@/components/TaskPanel";
@@ -168,7 +169,7 @@ export default function Home() {
             s.setTranslationLang(msg.lang ? (msg.name ?? msg.lang) : null);
             break;
           case "companion":
-            s.setCompanionOnline(msg.status === "online");
+            s.setPcDevices(msg.devices ?? (msg.status === "online" ? ["PC"] : []));
             break;
           case "link_signal":
             handleLinkSignal(
@@ -292,6 +293,7 @@ export default function Home() {
 
       {surfaced ? (
         <>
+          <HudFrame />
           <StatusBar />
           <DeviceRoster />
           <Captions />
@@ -312,15 +314,20 @@ export default function Home() {
       ) : (
         <button
           onClick={surface}
-          className="group absolute inset-0 flex flex-col items-center justify-center gap-6 outline-none"
+          className="group absolute inset-0 flex flex-col items-center justify-center gap-7 outline-none"
           aria-label="Summon Leviathan — enables microphone and audio"
         >
-          <span className="font-voice text-4xl font-light tracking-[0.45em] text-foam/80 transition-colors duration-700 group-hover:text-lumen md:text-5xl">
-            LEVIATHAN
-          </span>
-          <span className="font-data text-[11px] uppercase tracking-[0.4em] text-foam/30 transition-colors duration-700 group-hover:text-foam/60 group-focus-visible:text-lumen">
-            click to surface
-          </span>
+          <span className="pointer-events-none absolute h-64 w-64 rounded-full border border-lumen/10 [animation:pulse-dot_4s_ease-in-out_infinite] md:h-80 md:w-80" />
+          <span className="pointer-events-none absolute h-40 w-40 rounded-full border border-iris/10" />
+          <div className="relative flex flex-col items-center gap-3">
+            <span className="font-voice text-5xl font-light tracking-[0.5em] text-foam/85 transition-colors duration-700 group-hover:text-lumen md:text-6xl">
+              LEVIATHAN
+            </span>
+            <span className="h-px w-24 bg-gradient-to-r from-transparent via-lumen/40 to-transparent" />
+            <span className="font-data text-[10px] uppercase tracking-[0.5em] text-foam/30 transition-colors duration-700 group-hover:text-lumen">
+              click to surface
+            </span>
+          </div>
         </button>
       )}
     </main>

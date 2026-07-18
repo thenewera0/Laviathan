@@ -30,8 +30,8 @@ class BrainSession:
         # Live translation mode (Phase 4): language code or None
         self.translate_lang: str | None = None
         self.translate_lang_name: str | None = None
-        # Paired PC companion (Phase 6): registry entry or None
-        self.companion: dict | None = None
+        # Paired PC companions (Phase 6): name -> registry entry
+        self.devices: dict[str, dict] = {}
         self._pc_futures: dict[str, asyncio.Future] = {}
 
     async def send(self, payload: dict) -> None:
@@ -88,37 +88,82 @@ class BrainSession:
         if fut and not fut.done():
             fut.set_result(msg)
 
-    async def pc_exec(self, action: str, target: str, **extra) -> dict:
-        """Send one command to the paired companion, await its result.
-        `extra` may carry content (write_file), dest (move), etc."""
+    def device_names(self) -> list[str]:
+        return list(self.devices.keys())
+
+    def _select_devices(self, device: str | None) -> list[tuple[str, dict]] | dict:
+        """Resolve a device selector to targets, or an error dict."""
+        if not self.devices:
+            return {
+                "error": "no PC is paired. The user runs the companion on "
+                "each computer and reads you its 6-digit code (pair_computer)."
+            }
+        if device in (None, "", "all", "everywhere", "all devices", "everyone"):
+            return list(self.devices.items())
+        key = device.strip().lower()
+        # exact, then fuzzy contains
+        for name, entry in self.devices.items():
+            if name == key:
+                return [(name, entry)]
+        matches = [(n, e) for n, e in self.devices.items() if key in n or n in key]
+        if matches:
+            return matches
+        return {
+            "error": f"no paired device matches '{device}'. Paired: "
+            + ", ".join(self.devices) + ". Omit device to target all."
+        }
+
+    async def _send_one(self, name: str, entry: dict, action: str,
+                        target: str, extra: dict) -> dict:
         import uuid
 
-        if self.companion is None:
-            return {
-                "error": "no PC is paired. The user must run the companion "
-                "on their PC and tell you its 6-digit code (pair_computer)."
-            }
         cmd_id = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
         self._pc_futures[cmd_id] = fut
         try:
-            await self.companion["ws"].send_text(
-                json.dumps(
-                    {"type": "cmd", "id": cmd_id, "action": action,
-                     "target": target, **extra}
-                )
-            )
+            await entry["ws"].send_text(json.dumps(
+                {"type": "cmd", "id": cmd_id, "action": action,
+                 "target": target, **extra}))
         except Exception:
-            self.companion = None
+            self.devices.pop(name, None)
             self._pc_futures.pop(cmd_id, None)
-            await self.send({"type": "companion", "status": "offline"})
-            return {"error": "the PC companion disconnected — restart it and re-pair"}
+            await self._broadcast_devices()
+            return {"error": f"device '{name}' disconnected"}
         try:
-            result = await asyncio.wait_for(fut, timeout=25)
+            result = await asyncio.wait_for(fut, timeout=30)
             return {k: v for k, v in result.items() if k in ("ok", "detail")}
         except asyncio.TimeoutError:
             self._pc_futures.pop(cmd_id, None)
-            return {"error": "the PC did not answer in time"}
+            return {"error": f"device '{name}' did not answer in time"}
+
+    async def pc_exec(self, action: str, target: str,
+                      device: str | None = None, **extra) -> dict:
+        """Run a command on one paired device, or fan out to all.
+        `extra` carries content (write_file), dest (move), etc."""
+        selected = self._select_devices(device)
+        if isinstance(selected, dict):  # error
+            return selected
+
+        if len(selected) == 1:
+            name, entry = selected[0]
+            res = await self._send_one(name, entry, action, target, extra)
+            res["device"] = name
+            return res
+
+        # fan out concurrently
+        results = await asyncio.gather(*[
+            self._send_one(name, entry, action, target, extra)
+            for name, entry in selected
+        ])
+        return {"fanned_out_to": [n for n, _ in selected],
+                "results": {n: r for (n, _), r in zip(selected, results)}}
+
+    async def _broadcast_devices(self) -> None:
+        await self.send({
+            "type": "companion",
+            "status": "online" if self.devices else "offline",
+            "devices": self.device_names(),
+        })
 
     async def request_frame(self, source: str = "camera") -> str:
         """Ask the client for one frame (base64 jpeg): camera or screen."""
