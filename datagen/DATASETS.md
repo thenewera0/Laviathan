@@ -33,9 +33,24 @@ nothing about instruction-following.
 ### Verified external instruction datasets (wired into `ingest_external.py`)
 
 Checked Jul 2026 — exact IDs, licences, and schemas confirmed on Hugging Face.
-`datagen/ingest_external.py` pulls, filters, reshapes, caps, and dedupes these
-on Kaggle. All three permit commercial use **with attribution** — keep the
-attribution block in your model card.
+`datagen/ingest_external.py` pulls these on Kaggle, runs a **QC pass** on every
+candidate, then **stratified-samples** to an **enforced blend** (not just caps).
+All three permit commercial use **with attribution** — keep the attribution
+block in your model card.
+
+**QC pass** (per candidate): length bounds; drop echoes (input == output),
+refusal/boilerplate openers, replacement-char `�` rows, and repetitive
+degenerate output; require balanced code fences for code; require
+**script-consistency** for language rows (e.g. a row labelled Tamil whose
+answer is actually Latin or Devanagari is dropped — catches mislabeled/empty
+data); dedupe by both input key and normalized output (cross-source).
+
+**Enforced blend** (`BLEND` in the script): each source has a *target* count,
+and rows are drawn **round-robin across strata** — aya by language,
+indic-align by config, code by length band — so no single language/config/band
+dominates. A drained stratum redistributes to the others; a source that can't
+meet its target reports the **shortfall** instead of being silently backfilled
+(which would break the ratio). The script prints a realized-composition report.
 
 | Dataset (HF id) | Licence | Size | Why | Our mapping |
 |---|---|---|---|---|
@@ -80,7 +95,7 @@ million), and verified Indic-script greeting anchors.
 2. **Batch 2 (done)** — language & register mirroring. (~250 hand-authored)
 3. **Batch 3 (script ready)** — external ingestion via `ingest_external.py`
    on Kaggle: self-oss-instruct (code) + Aya (Indian-language human
-   instructions) + indic-align. (~10k, capped/balanced)
+   instructions) + indic-align. (~10k, QC'd + stratified to an enforced blend)
 4. **Batch 3b (script ready)** — IndicTrans2 augmentation of batch-2 prose
    into 20+ Indic languages (`augment_indic.py`, on Kaggle). (~1,500)
 5. **Batch 4** — domain depth for the resort/hospitality + agriculture users:
