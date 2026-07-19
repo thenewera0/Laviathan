@@ -14,18 +14,35 @@ const WAKE_WORDS = [
   "leviaton",
   "levithan",
   "laviathan",
+  "leviatan",
+  "leviathin",
   "levi athan",
   "levia than",
   "hey leviathan",
+  "okay leviathan",
 ];
+
+// Fuzzy wake match: ASR rarely nails "leviathan", so also accept its
+// distinctive phoneme clusters and near-spellings. Requires the "…viath…"
+// core so it catches "leviathin", "the viathan", "love eeathan" — but NOT
+// common words like level/lever/leverage. Hands-free, but not trigger-happy.
+const WAKE_FUZZY =
+  /\b(le?v[iy]a?th|l[ae]v[iy]ath)\w*|\w*(viath|iathan|eviath|iathon|vaithan|eeathan)\w*/i;
+
+function isWake(heard: string): boolean {
+  const h = heard.toLowerCase();
+  return WAKE_WORDS.some((w) => h.includes(w)) || WAKE_FUZZY.test(h);
+}
 
 type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives: number;
   start(): void;
   stop(): void;
   abort(): void;
+  onstart: (() => void) | null;
   onresult: ((ev: any) => void) | null;
   onend: (() => void) | null;
   onerror: ((ev: any) => void) | null;
@@ -65,7 +82,10 @@ export class VoiceEngine {
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = true;
   private recPaused = false; // recognition muted while Leviathan speaks
+  private recRunning = false; // is SpeechRecognition actually live right now
+  private watchdog: ReturnType<typeof setInterval> | null = null;
   private signatureVoice: SpeechSynthesisVoice | null = null; // pinned once
+  private signatureNeural = false; // is the pinned voice a neural voice
   private voiceResolved = false;
 
   constructor(private cb: VoiceCallbacks) {}
@@ -78,23 +98,38 @@ export class VoiceEngine {
     this.levelLoop();
   }
 
-  // Leviathan must sound the SAME every time. Browsers populate the voice
-  // list asynchronously and in provider order, so we resolve one voice
-  // once — deepest available English male — and never re-pick it.
+  // Leviathan must sound the SAME every time, and sound REAL — not a flat
+  // synth. We resolve one voice once, strongly preferring the neural
+  // "Natural"/"Online" voices (Edge/Chrome on Windows ship these; they are
+  // near-human), and never re-pick it. `signatureNeural` then tunes prosody.
   private resolveSignatureVoice() {
     const pick = () => {
       const voices = window.speechSynthesis?.getVoices() ?? [];
       if (voices.length === 0) return;
-      const byPref = (re: RegExp) =>
-        voices.find((v) => re.test(`${v.name} ${v.lang}`));
+      const en = voices.filter((v) => /^en/i.test(v.lang));
+      const pool = en.length ? en : voices;
+      const by = (re: RegExp) => pool.find((v) => re.test(v.name));
+
       this.signatureVoice =
-        byPref(/Google UK English Male/i) ??
-        byPref(/Microsoft (Guy|Ryan|George|Daniel)/i) ??
-        byPref(/\b(Daniel|Arthur|Oliver|George|Ryan|Guy)\b/i) ??
-        byPref(/en-GB/i) ??
-        voices.find((v) => v.lang?.startsWith("en")) ??
+        // 1) Microsoft neural male voices — deep, composed, authoritative
+        by(/Microsoft (Guy|Andrew|Christopher|Roger|Eric|Steffan).*(Online|Natural)/i) ??
+        by(/(Guy|Andrew|Christopher|Roger|Steffan).*Natural/i) ??
+        // 2) any male "Natural"/"Online" neural voice
+        pool.find((v) => /Natural|Online/i.test(v.name) && /male|guy|andrew|christopher|roger|eric|steffan|brian|davis/i.test(v.name)) ??
+        // 3) Google's fuller male voice
+        by(/Google UK English Male/i) ??
+        by(/Google US English/i) ??
+        // 4) classic local male voices
+        by(/Microsoft (David|Mark|George|Ryan)/i) ??
+        by(/\b(Daniel|Arthur|Oliver|George|Ryan|Guy|Alex)\b/i) ??
+        // 5) anything English
+        pool[0] ??
         voices[0] ??
         null;
+      this.signatureNeural = !!(
+        this.signatureVoice &&
+        /Natural|Online|Google/i.test(this.signatureVoice.name)
+      );
       this.voiceResolved = true;
     };
     pick();
@@ -108,6 +143,8 @@ export class VoiceEngine {
   stop() {
     this.stopped = true;
     cancelAnimationFrame(this.rafId);
+    if (this.watchdog) clearInterval(this.watchdog);
+    this.watchdog = null;
     this.recognition?.abort();
     window.speechSynthesis?.cancel();
   }
@@ -161,54 +198,79 @@ export class VoiceEngine {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
+    rec.maxAlternatives = 3; // scan alternatives for the wake word
+
+    rec.onstart = () => {
+      this.recRunning = true;
+    };
 
     rec.onresult = (ev: any) => {
       let interim = "";
       let final = "";
+      let altPool = ""; // all alternatives, for forgiving wake detection
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const t = ev.results[i][0].transcript;
-        if (ev.results[i].isFinal) final += t;
+        const res = ev.results[i];
+        const t = res[0].transcript;
+        if (res.isFinal) final += t;
         else interim += t;
+        for (let a = 0; a < res.length; a++) altPool += " " + res[a].transcript;
       }
-      this.handleSpeech(interim, final);
+      this.handleSpeech(interim, final, altPool);
     };
 
     // Chrome halts continuous recognition periodically — resurface it.
     // While recPaused (Leviathan is speaking), stay silent: otherwise the
     // mic hears the TTS voice and feeds it back as user speech.
     rec.onend = () => {
-      if (!this.stopped && !this.recPaused) {
-        try {
-          rec.start();
-        } catch {
-          setTimeout(
-            () => !this.stopped && !this.recPaused && rec.start(),
-            400
-          );
-        }
-      }
+      this.recRunning = false;
+      if (!this.stopped && !this.recPaused) this.startRecognition();
     };
-    rec.onerror = () => {
-      /* onend will restart */
+    rec.onerror = (ev: any) => {
+      this.recRunning = false;
+      // 'no-speech'/'aborted'/'network' are recoverable — the watchdog and
+      // onend restart. 'not-allowed' means the mic was denied: surface it.
+      if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") {
+        this.cb.onMicReady(false);
+      }
     };
 
     this.recognition = rec;
+    this.startRecognition();
+    this.startWatchdog();
+  }
+
+  // A single, guarded start — never double-starts (that throws in Chrome).
+  private startRecognition() {
+    if (this.stopped || this.recPaused || this.recRunning || !this.recognition)
+      return;
     try {
-      rec.start();
+      this.recognition.start();
     } catch {
-      /* already started */
+      /* already starting; onstart/watchdog will reconcile */
     }
   }
 
-  private handleSpeech(interim: string, final: string) {
+  // Self-healing: continuous recognition silently dies (tab throttling, a
+  // dropped onend, a swallowed error). Every 2.5s, if it should be running
+  // but isn't, restart it. THIS is what keeps the wake word alive after
+  // Leviathan speaks — the single-shot resume used to fail and never retry.
+  private startWatchdog() {
+    if (this.watchdog) return;
+    this.watchdog = setInterval(() => {
+      if (!this.stopped && !this.recPaused && !this.recRunning) {
+        this.startRecognition();
+      }
+    }, 2500);
+  }
+
+  private handleSpeech(interim: string, final: string, altPool = "") {
     // Recognition is paused during TTS; anything that still arrives is
     // the tail of Leviathan's own voice — drop it.
     if (this.speaking) return;
 
-    const heard = (interim + " " + final).toLowerCase();
-
     if (!this.awake && !this.ptt) {
-      if (!WAKE_WORDS.some((w) => heard.includes(w))) return;
+      // Check the top transcript AND every alternative for the wake word.
+      if (!isWake(interim + " " + final + " " + altPool)) return;
       this.wakeUp();
       // DO NOT return: "leviathan tell me X" often arrives as ONE event —
       // the command rides in the same breath as the name. Fall through so
@@ -323,12 +385,20 @@ export class VoiceEngine {
       utter.pitch = 0.9;
       utter.rate = 0.95;
     } else {
-      // Leviathan's signature voice — the SAME pinned voice every time,
-      // low and deliberate. Never re-picked mid-session.
+      // Leviathan's signature voice — the SAME pinned voice every time.
       if (!this.signatureVoice) this.resolveSignatureVoice();
       if (this.signatureVoice) utter.voice = this.signatureVoice;
-      utter.pitch = 0.72;
-      utter.rate = 0.94;
+      if (this.signatureNeural) {
+        // Neural voices already sound human — pushing pitch/rate hard makes
+        // them robotic again. Keep near-natural, just a touch lower and
+        // slower for gravitas: an authoritative, composed super-mind.
+        utter.pitch = 0.92;
+        utter.rate = 0.96;
+      } else {
+        // Flat local synth — a deeper, slower delivery masks the machine.
+        utter.pitch = 0.78;
+        utter.rate = 0.95;
+      }
     }
 
     utter.onstart = () => {
@@ -378,14 +448,9 @@ export class VoiceEngine {
   private resumeRecognition() {
     if (!this.recPaused) return;
     this.recPaused = false;
-    // Brief gap so the tail of the TTS audio isn't captured
-    setTimeout(() => {
-      if (this.stopped || this.recPaused) return;
-      try {
-        this.recognition?.start();
-      } catch {
-        /* already running */
-      }
-    }, 250);
+    // Brief gap so the tail of the TTS audio isn't captured. The watchdog
+    // is the real safety net — even if this exact restart misses, the
+    // 2.5s loop brings the mic back, so the wake word never dies.
+    setTimeout(() => this.startRecognition(), 300);
   }
 }
