@@ -176,8 +176,9 @@ void main() {
   float fresnel = pow(1.0 - facing, 2.2);
 
   // Blackish lead-silver skin: dark gunmetal deepening in the folds, lifting
-  // to a cool brushed-lead sheen where it faces you.
-  vec3 base = mix(vec3(0.020, 0.022, 0.030), vec3(0.090, 0.100, 0.130), facing * 0.5 + vDisp * 1.2);
+  // to a cool brushed-lead sheen where it faces you. Kept deep so colour reads
+  // as rich blue-violet, not washed lavender.
+  vec3 base = mix(vec3(0.013, 0.015, 0.026), vec3(0.052, 0.062, 0.105), facing * 0.5 + vDisp * 1.2);
 
   // ---- INNER AURORA: the body is lit from within, never a dead void ----
   // Slow bioluminescent weather drifting under the skin, brightest where
@@ -209,7 +210,7 @@ void main() {
   float spec = pow(max(dot(reflect(-l1, n), v), 0.0), 32.0) * 0.38
              + pow(max(dot(reflect(-l2, n), v), 0.0), 20.0) * 0.16;
   // metallic lead gleam: iridescent film tinted toward brushed silver
-  vec3 specCol = mix(iridescence(filmPhase + 0.18), vec3(0.72, 0.76, 0.86), 0.5) * spec * uGlow;
+  vec3 specCol = mix(iridescence(filmPhase + 0.18), vec3(0.72, 0.76, 0.86), 0.32) * spec * uGlow;
 
   // ---- bioluminescent veins: faintly alive always, ablaze while thinking
   float veinField = snoise(n * 3.5 + vec3(0.0, uFlow * 0.9, 0.0));
@@ -226,9 +227,9 @@ void main() {
   float heat = pow(0.5 + 0.5 * sin(facing * 9.0 - uFlow * 2.0), 2.2);
   float haze = fbm(n * 3.2 + vec3(0.0, uFlow * 0.7, uFlow * 0.25));
   vec3 heatCol = iridescence(filmPhase * 0.6 + heat * 0.22 + haze * 0.10 + uFlow * 0.03);
-  col += heatCol * heat * pow(facing, 1.3) * uGlow * 0.16;
+  col += heatCol * heat * pow(facing, 1.3) * uGlow * 0.10;
   vec3 mirageHue = iridescence(uFlow * 0.05) * (0.4 + 0.6 * facing);
-  col = mix(col, mirageHue, 0.05 * (0.5 + 0.5 * sin(uFlow * 0.3)));
+  col = mix(col, mirageHue, 0.025 * (0.5 + 0.5 * sin(uFlow * 0.3)));
 
   // ---- error: heat leaves the body — desaturate, shift cold
   float grey = dot(col, vec3(0.299, 0.587, 0.114));
@@ -285,5 +286,49 @@ void main() {
   vec3 col = hue * rim * uGlow * 0.30 * breathe;
   col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
   gl_FragColor = vec4(col, rim * 0.5);
+}
+`;
+
+// Floor pedestal stage: a bright core with concentric light rings, read as an
+// ellipse in perspective. Seats the entity in the scene (Reference Image 1).
+export const PEDESTAL_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+export const PEDESTAL_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uAudio;
+varying vec2 vUv;
+
+void main() {
+  float dist = length(vUv - 0.5) * 2.0;              // 0 center .. 1 edge
+
+  // white-blue core light pooling at the pedestal centre
+  float core = pow(smoothstep(0.42, 0.0, dist), 3.0);
+
+  // concentric graduation rings
+  float rings = 0.0;
+  rings += smoothstep(0.020, 0.0, abs(dist - 0.34));
+  rings += smoothstep(0.020, 0.0, abs(dist - 0.56)) * 0.85;
+  rings += smoothstep(0.026, 0.0, abs(dist - 0.80)) * 0.6;
+
+  float sweep = 0.5 + 0.5 * sin(dist * 26.0 - uTime * 2.0);
+  vec3 white  = vec3(0.85, 0.92, 1.00);
+  vec3 blue   = vec3(0.30, 0.55, 1.00);
+  vec3 violet = vec3(0.52, 0.34, 1.00);
+
+  vec3 col = white * core * 2.2
+           + mix(blue, violet, sweep) * rings * (1.1 + uAudio * 1.2);
+
+  // faint radial floor wash so the stage doesn't end at a hard edge
+  col += blue * 0.05 * smoothstep(1.0, 0.2, dist);
+
+  float alpha = clamp(core * 1.3 + rings * 0.9 + 0.06, 0.0, 1.0)
+              * smoothstep(1.08, 0.35, dist);
+  gl_FragColor = vec4(col, alpha);
 }
 `;

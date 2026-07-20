@@ -20,8 +20,18 @@ import {
   AURA_FRAGMENT,
   AURA_VERTEX,
   FRAGMENT_SHADER,
+  PEDESTAL_FRAGMENT,
+  PEDESTAL_VERTEX,
   VERTEX_SHADER,
 } from "./shaders";
+
+// ---- Scene framing (safe to tweak) --------------------------------------
+const ORB_POS: [number, number, number] = [0, 0.4, 0];   // lift the orb up
+const ORB_SCALE = 0.82;                                   // contain its size
+const CAM_POS: [number, number, number] = [0, 0.9, 5.0];  // pull back + above
+const CAM_LOOK: [number, number, number] = [0, -0.25, 0]; // tilt down onto floor
+const PEDESTAL_POS: [number, number, number] = [0, -1.15, 0];
+// -------------------------------------------------------------------------
 
 // Per-state targets; the CPU eases toward these every frame so state
 // changes read as behavior, never as a cut.
@@ -249,6 +259,32 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
   );
 }
 
+// Floor pedestal light-stage beneath the entity (Reference Image 1)
+function FloorPedestal({ reducedMotion }: { reducedMotion: boolean }) {
+  const uniforms = useMemo(
+    () => ({ uTime: { value: 0 }, uAudio: { value: 0 } }),
+    []
+  );
+  useFrame((_, dt) => {
+    uniforms.uTime.value += (reducedMotion ? 0.15 : 1) * dt;
+    const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
+    uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
+  });
+  return (
+    <mesh position={PEDESTAL_POS} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[5.5, 5.5]} />
+      <shaderMaterial
+        vertexShader={PEDESTAL_VERTEX}
+        fragmentShader={PEDESTAL_FRAGMENT}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
 export default function Entity() {
   const reducedMotion = useMemo(
     () =>
@@ -259,13 +295,17 @@ export default function Entity() {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 3.4], fov: 42 }}
+      camera={{ position: CAM_POS, fov: 40 }}
+      onCreated={({ camera }) => camera.lookAt(...CAM_LOOK)}
       gl={{ antialias: true, alpha: true }}
       dpr={[1, 2]}
       style={{ position: "absolute", inset: 0 }}
     >
       <BackGlow />
-      <EntityBody reducedMotion={reducedMotion} />
+      <group position={ORB_POS} scale={ORB_SCALE}>
+        <EntityBody reducedMotion={reducedMotion} />
+      </group>
+      <FloorPedestal reducedMotion={reducedMotion} />
       <MarineSnow reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
