@@ -1498,8 +1498,13 @@ for i, line in enumerate(OUT.read_text(encoding="utf-8").splitlines(), 1):
         json.loads(out)
         json_ok += 1
     elif out.startswith(("def ", "async def", "import ", "from ", "class ", "@")):
-        ast.parse(out)
-        py_ok += 1
+        # TS imports and code+rationale rows share these prefixes but are not
+        # Python — parse when it IS Python, otherwise count as text/TS/SQL.
+        try:
+            ast.parse(out)
+            py_ok += 1
+        except SyntaxError:
+            other += 1
     else:
         other += 1
 
