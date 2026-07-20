@@ -23,12 +23,14 @@ export default function CommandInput({
   return (
     <div className="pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
       <form onSubmit={handleSubmit} className="relative flex items-center">
+        {/* soft aura behind the pill */}
+        <div className="pointer-events-none absolute -inset-1 rounded-full bg-[#8f7bf0]/10 blur-xl" />
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Speak or type your command"
-          className="w-full rounded-full border border-indigo-500/20 bg-black/60 px-6 py-3.5 pr-14 font-data text-sm tracking-wide text-white/90 placeholder-white/35 backdrop-blur-xl outline-none transition-all duration-300 focus:border-cyan-400/50 focus:bg-black/80 focus:ring-1 focus:ring-cyan-400/30"
+          className="relative w-full rounded-full border border-[#8f7bf0]/25 bg-black/60 px-6 py-4 pr-14 font-data text-sm tracking-wide text-foam/90 placeholder-foam/35 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl outline-none transition-all duration-300 focus:border-[#8f7bf0]/60 focus:bg-black/80 focus:ring-2 focus:ring-[#8f7bf0]/25"
         />
 
         {/* Mic & Submit button */}
@@ -36,10 +38,10 @@ export default function CommandInput({
           <button
             type="button"
             onClick={onMicClick}
-            className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
               micActive
-                ? "bg-cyan-500 text-white animate-pulse"
-                : "text-white/50 hover:bg-white/10 hover:text-white"
+                ? "animate-pulse bg-[#8f7bf0] text-white shadow-[0_0_16px_2px_rgba(139,124,240,0.7)]"
+                : "text-foam/50 hover:bg-white/10 hover:text-white"
             }`}
             aria-label="Activate Microphone"
           >

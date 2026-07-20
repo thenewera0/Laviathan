@@ -304,6 +304,8 @@ export default function Home() {
 
       {surfaced ? (
         <>
+          {/* Ambient violet/blue bloom seating the orb in the scene */}
+          <div className="orb-halo" />
           {/* Dashboard HUD & Frame */}
           <HudFrame />
           <Header />
@@ -340,14 +342,14 @@ export default function Home() {
           className="group absolute inset-0 flex flex-col items-center justify-center gap-7 outline-none"
           aria-label="Summon Leviathan — enables microphone and audio"
         >
-          <span className="pointer-events-none absolute h-64 w-64 rounded-full border border-cyan-400/20 [animation:pulse-dot_4s_ease-in-out_infinite] md:h-80 md:w-80" />
-          <span className="pointer-events-none absolute h-40 w-40 rounded-full border border-purple-500/20" />
+          <span className="pointer-events-none absolute h-64 w-64 rounded-full border border-[#8f7bf0]/25 [animation:pulse-dot_4s_ease-in-out_infinite] md:h-80 md:w-80" />
+          <span className="pointer-events-none absolute h-40 w-40 rounded-full border border-[#60a5fa]/20" />
           <div className="relative flex flex-col items-center gap-3">
-            <span className="font-voice text-5xl font-light tracking-[0.5em] text-white/90 transition-colors duration-700 group-hover:text-cyan-300 md:text-6xl">
+            <span className="font-voice text-5xl font-light tracking-[0.5em] text-foam/90 transition-colors duration-700 group-hover:text-[#c4b9ff] md:text-6xl">
               LEVIATHAN
             </span>
-            <span className="h-px w-24 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-            <span className="font-data text-[10px] uppercase tracking-[0.5em] text-white/40 transition-colors duration-700 group-hover:text-cyan-300">
+            <span className="h-px w-24 bg-gradient-to-r from-transparent via-[#8f7bf0]/50 to-transparent" />
+            <span className="font-data text-[10px] uppercase tracking-[0.5em] text-foam/40 transition-colors duration-700 group-hover:text-[#c4b9ff]">
               click to surface dashboard & super core
             </span>
           </div>

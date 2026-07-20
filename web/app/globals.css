@@ -24,7 +24,19 @@ body {
 }
 
 ::selection {
-  background: rgba(103, 232, 221, 0.25);
+  background: rgba(139, 124, 240, 0.28);
+}
+
+/* Ambient halo seating the orb in the scene — violet/blue pressure bloom */
+.orb-halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 50% 46%, rgba(120, 110, 240, 0.10), transparent 62%),
+    radial-gradient(26vmax 26vmax at 50% 46%, rgba(80, 130, 255, 0.08), transparent 60%);
+  mask-image: radial-gradient(circle at 50% 46%, black 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 46%, black 20%, transparent 75%);
 }
 
 /* ---- HUD design system --------------------------------------------- */
@@ -35,8 +47,8 @@ body {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(103, 232, 221, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 232, 221, 0.028) 1px, transparent 1px);
+    linear-gradient(rgba(120, 130, 245, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 130, 245, 0.03) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
   -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
@@ -50,13 +62,14 @@ body {
     rgba(6, 12, 20, 0.9)
   );
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 16px;
   background-clip: padding-box;
   box-shadow:
-    0 24px 70px -20px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 rgba(103, 232, 221, 0.08);
+    0 30px 80px -24px rgba(0, 0, 0, 0.8),
+    0 0 40px -18px rgba(120, 110, 240, 0.35),
+    inset 0 1px 0 rgba(139, 124, 240, 0.1);
   position: relative;
-  backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(20px) saturate(1.15);
 }
 /* gradient hairline border via a masked pseudo-frame */
 .glass-panel::before {
@@ -67,9 +80,9 @@ body {
   padding: 1px;
   background: linear-gradient(
     160deg,
-    rgba(103, 232, 221, 0.4),
-    rgba(143, 123, 240, 0.18) 40%,
-    transparent 70%
+    rgba(139, 124, 240, 0.5),
+    rgba(96, 165, 250, 0.22) 42%,
+    transparent 72%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,

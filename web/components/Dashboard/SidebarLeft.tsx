@@ -87,28 +87,33 @@ export default function SidebarLeft({
     },
   ];
 
+  const isError = entityState === "error";
+
   return (
     <aside className="pointer-events-auto absolute left-6 top-24 bottom-6 z-20 flex w-56 flex-col justify-between select-none">
       {/* Navigation Section */}
-      <div className="flex flex-col gap-6">
-        <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/35 uppercase">
-          CORE INTERFACE
+      <div className="flex flex-col gap-5">
+        <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-foam/35 uppercase">
+          Core Interface
         </span>
 
-        <nav className="flex flex-col gap-1.5">
+        <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-sm font-data text-xs tracking-[0.2em] transition-all duration-300 ${
+                className={`group relative flex items-center gap-3.5 rounded-lg px-3.5 py-2.5 font-data text-xs tracking-[0.18em] transition-all duration-300 ${
                   isActive
-                    ? "bg-[#64ffda]/10 text-[#64ffda] border-l-2 border-[#64ffda]"
-                    : "text-white/45 hover:bg-white/5 hover:text-white/80"
+                    ? "bg-gradient-to-r from-[#8f7bf0]/18 to-transparent text-[#c4b9ff]"
+                    : "text-foam/45 hover:bg-white/[0.04] hover:text-foam/85"
                 }`}
               >
-                <span className={isActive ? "text-[#64ffda]" : "text-white/40"}>
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-[#8f7bf0] shadow-[0_0_10px_2px_rgba(139,124,240,0.7)]" />
+                )}
+                <span className={isActive ? "text-[#8f7bf0]" : "text-foam/40 group-hover:text-foam/70"}>
                   {item.icon}
                 </span>
                 <span>{item.id}</span>
@@ -119,45 +124,42 @@ export default function SidebarLeft({
       </div>
 
       {/* Bottom Section: Entity Status & Clock */}
-      <div className="flex flex-col gap-6">
-        {/* ENTITY STATUS Panel */}
+      <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2.5">
-          <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/35 uppercase">
-            ENTITY STATUS
+          <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-foam/35 uppercase">
+            Entity Status
           </span>
 
-          <div className="bg-[#0a192f]/40 border border-[#64ffda]/20 rounded-sm flex items-center gap-3.5 p-3.5">
-            {/* Status Ring */}
+          <div className="glass-panel flex items-center gap-3.5 p-3.5">
             <div className="relative flex h-8 w-8 items-center justify-center">
-              <span className={`absolute inset-0 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-[#64ffda]'} opacity-30 animate-ping`} />
-              <span className={`h-6 w-6 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-[#64ffda]'} flex items-center justify-center`}>
-                <span className={`h-2 w-2 rounded-full ${entityState === 'error' ? 'bg-red-500' : 'bg-[#64ffda]'}`} />
+              <span className={`status-live absolute inset-0 rounded-full border ${isError ? "border-rose-500" : "border-[#8f7bf0]"} opacity-40`} />
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#8f7bf0]"}`}>
+                <span className={`h-2 w-2 rounded-full ${isError ? "bg-rose-500" : "bg-[#8f7bf0]"} shadow-[0_0_8px_2px_rgba(139,124,240,0.7)]`} />
               </span>
             </div>
 
             <div className="flex flex-col">
-              <span className="font-data text-xs font-semibold tracking-wider text-white/90">
+              <span className="font-data text-xs font-semibold tracking-wider text-foam/90">
                 LEVIATHAN CORE
               </span>
-              <span className={`font-data text-[10px] tracking-wider uppercase ${entityState === 'error' ? 'text-red-500' : 'text-[#64ffda]'}`}>
-                {entityState === 'error' ? 'SYSTEM ERROR' : 'ONLINE'}
+              <span className={`font-data text-[10px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#a99cf5]"}`}>
+                {isError ? "System Error" : "Online"}
               </span>
-              <span className="font-data text-[9px] tracking-wide text-white/40">
-                {connected ? 'All systems operational' : 'Standby mode'}
+              <span className="font-data text-[9px] tracking-wide text-foam/40">
+                {connected ? "All systems operational" : "Standby mode"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Live Clock & Date */}
-        <div className="flex flex-col gap-1 font-data text-[11px] tracking-widest text-white/40">
+        <div className="flex flex-col gap-1 border-t border-white/[0.06] pt-4 font-data text-[11px] tracking-widest text-foam/40">
           <div className="flex items-center gap-2">
-            <span className="text-white/25">TIME</span>
-            <span className="text-white/80 font-mono">{timeStr || "19:45:32"}</span>
+            <span className="w-9 text-foam/25">TIME</span>
+            <span className="font-mono text-foam/80">{timeStr || "19:45:32"}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-white/25">DATE</span>
-            <span className="text-white/80">{dateStr || "20 May 2025"}</span>
+            <span className="w-9 text-foam/25">DATE</span>
+            <span className="text-foam/80">{dateStr || "20 May 2025"}</span>
           </div>
         </div>
       </div>

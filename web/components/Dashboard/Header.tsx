@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useLeviathan } from "@/lib/store";
 
 export default function Header({ onOpenSettings }: { onOpenSettings?: () => void }) {
@@ -41,16 +40,16 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
       </div>
 
       {/* Center Header Greeting & Live Status */}
-      <div className="flex flex-col items-center gap-1">
-        <h1 className="font-voice text-xl font-light tracking-wide text-white/90">
+      <div className="flex flex-col items-center gap-1.5">
+        <h1 className="font-voice text-2xl font-light tracking-wide text-foam/95">
           {getGreeting()}, Akash
         </h1>
-        <div className="flex items-center gap-2 font-data text-xs text-indigo-300/80">
+        <div className="flex items-center gap-2 font-data text-xs text-[#a99cf5]/90">
           {/* Animated sound wave icon */}
-          <div className="flex items-center gap-0.5 h-3">
-            <span className="w-0.5 h-2.5 bg-cyan-400 rounded-full animate-pulse" />
-            <span className="w-0.5 h-3 bg-purple-400 rounded-full animate-pulse delay-75" />
-            <span className="w-0.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-150" />
+          <div className="flex h-3 items-center gap-0.5">
+            <span className="h-2.5 w-0.5 animate-pulse rounded-full bg-[#60a5fa]" />
+            <span className="h-3 w-0.5 animate-pulse rounded-full bg-[#8f7bf0] delay-75" />
+            <span className="h-1.5 w-0.5 animate-pulse rounded-full bg-[#a855f7] delay-150" />
           </div>
           <span className="max-w-md truncate">{currentSpeech}</span>
         </div>
@@ -58,17 +57,16 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
 
       {/* Top Right Controls (Voice Mode badge & Settings) */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-indigo-500/30 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
-          {/* Sound wave icon */}
-          <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex items-center gap-2 rounded-full border border-[#8f7bf0]/30 bg-black/40 px-3.5 py-1.5 shadow-[0_0_20px_-6px_rgba(139,124,240,0.6)] backdrop-blur-md">
+          <svg className="h-3.5 w-3.5 text-[#8f7bf0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
           </svg>
-          <span className="font-data text-[11px] font-medium tracking-widest text-white/80 uppercase">
-            VOICE MODE
+          <span className="font-data text-[11px] font-medium uppercase tracking-widest text-foam/80">
+            Voice Mode
           </span>
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#8f7bf0] opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#8f7bf0]" />
           </span>
         </div>
 
