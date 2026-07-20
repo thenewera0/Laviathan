@@ -1,9 +1,8 @@
 "use client";
 
-// The Leviathan entity — a living volume whose form IS its state.
-// Idle: slow drifting currents. Listening: it leans toward you and ripples
-// on your voice. Thinking: bioluminescent veins branch beneath the skin.
-// Speaking: the whole body pulses with the voice. Error: it recoils, cold.
+// The Leviathan Super Core — 3D Void Core (Reference Image 1) & Floor Stage (Reference Image 2)
+// Combines central singularity, concentric gyroscopic rings, dual accretion arms (Blue/Purple & Gold/Amber),
+// vertical illuminated axis crosshair, dark orbiting celestial spheres, and floor pedestal stage.
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
@@ -17,39 +16,317 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useLeviathan, type EntityState } from "@/lib/store";
 import {
-  AURA_FRAGMENT,
-  AURA_VERTEX,
-  FRAGMENT_SHADER,
-  VERTEX_SHADER,
+  ACCRETION_FRAGMENT,
+  ACCRETION_VERTEX,
+  AXIS_FRAGMENT,
+  AXIS_VERTEX,
+  CORE_FRAGMENT,
+  CORE_VERTEX,
+  PEDESTAL_FRAGMENT,
+  PEDESTAL_VERTEX,
+  RING_FRAGMENT,
+  RING_VERTEX,
 } from "./shaders";
 
-// Per-state targets; the CPU eases toward these every frame so state
-// changes read as behavior, never as a cut.
 const STATE_PARAMS: Record<
   EntityState,
   { amp: number; freq: number; flowSpeed: number; glow: number; scale: number }
 > = {
   idle: { amp: 0.19, freq: 1.55, flowSpeed: 0.34, glow: 0.9, scale: 1.0 },
-  listening: { amp: 0.24, freq: 1.95, flowSpeed: 0.6, glow: 1.15, scale: 1.04 },
-  thinking: { amp: 0.2, freq: 2.5, flowSpeed: 1.5, glow: 1.0, scale: 0.98 },
-  speaking: { amp: 0.15, freq: 1.7, flowSpeed: 0.7, glow: 1.3, scale: 1.02 },
-  error: { amp: 0.07, freq: 1.2, flowSpeed: 0.1, glow: 0.32, scale: 0.86 },
+  listening: { amp: 0.24, freq: 1.95, flowSpeed: 0.6, glow: 1.2, scale: 1.05 },
+  thinking: { amp: 0.2, freq: 2.5, flowSpeed: 1.6, glow: 1.1, scale: 0.98 },
+  speaking: { amp: 0.15, freq: 1.7, flowSpeed: 0.8, glow: 1.35, scale: 1.03 },
+  error: { amp: 0.07, freq: 1.2, flowSpeed: 0.1, glow: 0.3, scale: 0.85 },
 };
-
-const WEIGHT_KEYS: Array<[EntityState, string]> = [
-  ["listening", "uListen"],
-  ["thinking", "uThink"],
-  ["speaking", "uSpeak"],
-  ["error", "uError"],
-];
 
 function damp(current: number, target: number, lambda: number, dt: number) {
   return THREE.MathUtils.damp(current, target, lambda, dt);
 }
 
-function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
+// --- CENTRAL SINGULARITY CORE ---
+function CentralSingularityCore({
+  uniforms,
+}: {
+  uniforms: Record<string, { value: number }>;
+}) {
   const mesh = useRef<THREE.Mesh>(null!);
-  const aura = useRef<THREE.Mesh>(null!);
+
+  useFrame((_, dt) => {
+    if (!mesh.current) return;
+    mesh.current.rotation.y += dt * 0.15;
+    mesh.current.rotation.z += dt * 0.05;
+  });
+
+  return (
+    <mesh ref={mesh} scale={0.72}>
+      <sphereGeometry args={[1, 64, 64]} />
+      <shaderMaterial
+        vertexShader={CORE_VERTEX}
+        fragmentShader={CORE_FRAGMENT}
+        uniforms={uniforms}
+        transparent
+      />
+    </mesh>
+  );
+}
+
+// --- CONCENTRIC GYROSCOPIC GIMBAL RINGS ---
+function GyroscopicRings({
+  uniforms,
+}: {
+  uniforms: Record<string, { value: number }>;
+}) {
+  const ringGroup = useRef<THREE.Group>(null!);
+
+  useFrame((_, dt) => {
+    if (!ringGroup.current) return;
+    const children = ringGroup.current.children;
+    if (children[0]) children[0].rotation.z += dt * 0.2;
+    if (children[1]) children[1].rotation.x += dt * 0.15;
+    if (children[2]) children[2].rotation.y += dt * 0.25;
+    if (children[3]) children[3].rotation.z -= dt * 0.18;
+  });
+
+  const ringConfigs: Array<{
+    args: [number, number, number, number];
+    colorType: number;
+    rot: [number, number, number];
+  }> = [
+    { args: [0.95, 0.012, 16, 100], colorType: 0, rot: [0.8, 0.2, 0] },
+    { args: [1.25, 0.016, 16, 120], colorType: 2, rot: [-0.6, 0.4, 0.5] },
+    { args: [1.55, 0.02, 16, 140], colorType: 1, rot: [0.4, -0.7, -0.3] },
+    { args: [1.85, 0.014, 16, 160], colorType: 0, rot: [-0.3, 0.8, 0.2] },
+  ];
+
+  return (
+    <group ref={ringGroup}>
+      {ringConfigs.map((cfg, idx) => (
+        <mesh
+          key={idx}
+          rotation={cfg.rot as [number, number, number]}
+        >
+          <torusGeometry args={cfg.args} />
+          <shaderMaterial
+            vertexShader={RING_VERTEX}
+            fragmentShader={RING_FRAGMENT}
+            uniforms={{
+              ...uniforms,
+              uRingColorType: { value: cfg.colorType },
+            }}
+            transparent
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// --- DUAL COSMIC ACCRETION ENERGY ARMS (BLUE/VIOLET vs GOLD/AMBER) ---
+function DualAccretionArms({
+  uniforms,
+}: {
+  uniforms: Record<string, { value: number }>;
+}) {
+  const armsGroup = useRef<THREE.Group>(null!);
+
+  useFrame((_, dt) => {
+    if (!armsGroup.current) return;
+    armsGroup.current.rotation.z += dt * 0.12;
+    armsGroup.current.rotation.y += dt * 0.08;
+  });
+
+  return (
+    <group ref={armsGroup} rotation={[0.6, -0.3, 0.4]}>
+      {/* Left/Top Electric Cyan/Blue & Purple Arm */}
+      <mesh position={[-0.4, 0.2, 0]} rotation={[0, 0, 0.2]}>
+        <torusGeometry args={[1.4, 0.18, 16, 80, Math.PI * 1.2]} />
+        <shaderMaterial
+          vertexShader={ACCRETION_VERTEX}
+          fragmentShader={ACCRETION_FRAGMENT}
+          uniforms={{ ...uniforms, uArmType: { value: 0 } }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Right/Bottom Warm Amber & Gold Arm */}
+      <mesh position={[0.4, -0.2, 0]} rotation={[0, 0, Math.PI + 0.2]}>
+        <torusGeometry args={[1.4, 0.18, 16, 80, Math.PI * 1.2]} />
+        <shaderMaterial
+          vertexShader={ACCRETION_VERTEX}
+          fragmentShader={ACCRETION_FRAGMENT}
+          uniforms={{ ...uniforms, uArmType: { value: 1 } }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// --- VERTICAL ILLUMINATED AXIS BEAM & TERMINAL NODES ---
+function VerticalAxisCrosshair({
+  uniforms,
+}: {
+  uniforms: Record<string, { value: number }>;
+}) {
+  return (
+    <group>
+      {/* Vertical Cyan/Blue Laser Cylinder */}
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 4.8, 16]} />
+        <shaderMaterial
+          vertexShader={AXIS_VERTEX}
+          fragmentShader={AXIS_FRAGMENT}
+          uniforms={uniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Top Terminal Ring Node (O) */}
+      <group position={[0, 2.4, 0]}>
+        <mesh>
+          <ringGeometry args={[0.05, 0.08, 32]} />
+          <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[0.025, 16, 16]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      </group>
+
+      {/* Bottom Terminal Ring Node (O) */}
+      <group position={[0, -2.4, 0]}>
+        <mesh>
+          <ringGeometry args={[0.05, 0.08, 32]} />
+          <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[0.025, 16, 16]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// --- ORBITING DARK SPHERES (CELESTIAL BODIES) ---
+function OrbitingDarkSpheres() {
+  const group = useRef<THREE.Group>(null!);
+
+  useFrame((_, dt) => {
+    if (group.current) {
+      group.current.rotation.y += dt * 0.18;
+      group.current.rotation.x += dt * 0.06;
+    }
+  });
+
+  const spheres = [
+    { pos: [1.1, 0.3, 0.4] as [number, number, number], r: 0.06 },
+    { pos: [-1.3, -0.4, 0.2] as [number, number, number], r: 0.08 },
+    { pos: [0.5, -1.0, -0.6] as [number, number, number], r: 0.07 },
+    { pos: [-0.8, 0.9, -0.5] as [number, number, number], r: 0.05 },
+    { pos: [1.6, -0.2, 0.7] as [number, number, number], r: 0.065 },
+    { pos: [-1.5, 0.5, 0.8] as [number, number, number], r: 0.075 },
+  ];
+
+  return (
+    <group ref={group}>
+      {spheres.map((s, i) => (
+        <mesh key={i} position={s.pos}>
+          <sphereGeometry args={[s.r, 24, 24]} />
+          <meshStandardMaterial
+            color="#05070a"
+            roughness={0.2}
+            metalness={0.9}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// --- FLOOR PEDESTAL STAGE (Reference Image 2) ---
+function FloorPedestalStage({
+  uniforms,
+}: {
+  uniforms: Record<string, { value: number }>;
+}) {
+  return (
+    <group position={[0, -2.3, 0]}>
+      {/* Radial floor ring shader plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[7.0, 7.0]} />
+        <shaderMaterial
+          vertexShader={PEDESTAL_VERTEX}
+          fragmentShader={PEDESTAL_FRAGMENT}
+          uniforms={uniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* 3D Base Rings */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+        <ringGeometry args={[1.2, 1.25, 64]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
+        <ringGeometry args={[2.0, 2.06, 64]} />
+        <meshBasicMaterial color="#818cf8" transparent opacity={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
+// --- COSMIC VOID STARFIELD & DUST PARTICLES ---
+function CosmicVoidDust({ reducedMotion }: { reducedMotion: boolean }) {
+  const points = useRef<THREE.Points>(null!);
+  const count = 480;
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 12;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 8;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 6 - 1;
+    }
+    return arr;
+  }, []);
+
+  useFrame((_, dt) => {
+    if (reducedMotion || !points.current) return;
+    points.current.rotation.y += dt * 0.02;
+    points.current.rotation.z += dt * 0.005;
+  });
+
+  return (
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.018}
+        color="#38bdf8"
+        transparent
+        opacity={0.45}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+// --- CORE COMPONENT CONTAINER ---
+function SuperCoreBody({ reducedMotion }: { reducedMotion: boolean }) {
+  const mainGroup = useRef<THREE.Group>(null!);
   const flow = useRef(0);
   const smoothedAudio = useRef(0);
   const { pointer } = useThree();
@@ -70,182 +347,52 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     []
   );
 
-  // The aura reads the same flow/glow/error signals as the body
-  const auraUniforms = useMemo(
-    () => ({
-      uFlow: uniforms.uFlow,
-      uGlow: uniforms.uGlow,
-      uError: uniforms.uError,
-    }),
-    [uniforms]
-  );
-
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
-    const { entityState, audioLevel } = useLeviathan.getState();
+    const { entityState, audioLevel, facePos } = useLeviathan.getState();
     const p = STATE_PARAMS[entityState];
-    const u = uniforms;
 
-    // Flow time accumulates at a state-dependent rate: thinking races,
-    // error nearly freezes. Reduced motion slows everything to a drift.
     const motionScale = reducedMotion ? 0.15 : 1;
     flow.current += dt * p.flowSpeed * motionScale;
-    u.uTime.value += dt;
-    u.uFlow.value = flow.current;
+    uniforms.uTime.value += dt;
+    uniforms.uFlow.value = flow.current;
 
-    // Audio envelope: fast attack, slow release — ripples land, then fade
-    const target = reducedMotion ? 0 : audioLevel;
+    const targetAudio = reducedMotion ? 0 : audioLevel;
     smoothedAudio.current =
-      target > smoothedAudio.current
-        ? damp(smoothedAudio.current, target, 22, dt)
-        : damp(smoothedAudio.current, target, 6, dt);
-    u.uAudio.value = smoothedAudio.current;
+      targetAudio > smoothedAudio.current
+        ? damp(smoothedAudio.current, targetAudio, 22, dt)
+        : damp(smoothedAudio.current, targetAudio, 6, dt);
+    uniforms.uAudio.value = smoothedAudio.current;
 
-    u.uAmp.value = damp(u.uAmp.value, p.amp, 3.5, dt);
-    u.uFreq.value = damp(u.uFreq.value, p.freq, 3.5, dt);
-    u.uGlow.value = damp(u.uGlow.value, p.glow, 4, dt);
+    uniforms.uAmp.value = damp(uniforms.uAmp.value, p.amp, 3.5, dt);
+    uniforms.uFreq.value = damp(uniforms.uFreq.value, p.freq, 3.5, dt);
+    uniforms.uGlow.value = damp(uniforms.uGlow.value, p.glow, 4, dt);
 
-    for (const [state, key] of WEIGHT_KEYS) {
-      const uni = (u as Record<string, { value: number }>)[key];
-      uni.value = damp(uni.value, entityState === state ? 1 : 0, 4.5, dt);
+    uniforms.uListen.value = damp(uniforms.uListen.value, entityState === "listening" ? 1 : 0, 4.5, dt);
+    uniforms.uThink.value = damp(uniforms.uThink.value, entityState === "thinking" ? 1 : 0, 4.5, dt);
+    uniforms.uSpeak.value = damp(uniforms.uSpeak.value, entityState === "speaking" ? 1 : 0, 4.5, dt);
+    uniforms.uError.value = damp(uniforms.uError.value, entityState === "error" ? 1 : 0, 4.5, dt);
+
+    if (mainGroup.current) {
+      const fx = facePos ? facePos.x : pointer.x;
+      const fy = facePos ? facePos.y : pointer.y;
+      const lean = (uniforms.uListen.value * 0.35 + 0.06) * (facePos ? 1.4 : 1);
+      mainGroup.current.position.x = damp(mainGroup.current.position.x, fx * lean, 3, dt);
+      mainGroup.current.position.y = damp(mainGroup.current.position.y, fy * lean * 0.5, 3, dt);
+      mainGroup.current.rotation.y = damp(mainGroup.current.rotation.y, fx * 0.2, 2.5, dt);
+      mainGroup.current.rotation.x = damp(mainGroup.current.rotation.x, -fy * 0.15, 2.5, dt);
     }
-
-    // Breathing scale + speech pulse
-    const breathe = reducedMotion ? 0 : Math.sin(u.uTime.value * 0.55) * 0.014;
-    const pulse = smoothedAudio.current * u.uSpeak.value * 0.055;
-    const s = p.scale + breathe + pulse;
-    mesh.current.scale.setScalar(damp(mesh.current.scale.x, s, 5, dt));
-
-    // The whole mass turns, slowly — a body, not a decal
-    mesh.current.rotation.z += dt * 0.02 * motionScale;
-    if (aura.current) {
-      aura.current.position.copy(mesh.current.position);
-      aura.current.scale.setScalar(mesh.current.scale.x * 1.28);
-    }
-
-    // Gaze-follow: it looks at YOU when the webcam sees a face (MediaPipe,
-    // on-device); the cursor is the stand-in otherwise.
-    const face = useLeviathan.getState().facePos;
-    const fx = face ? face.x : pointer.x;
-    const fy = face ? face.y : pointer.y;
-    const lean = (u.uListen.value * 0.35 + 0.06) * (face ? 1.4 : 1);
-    mesh.current.position.x = damp(mesh.current.position.x, fx * lean, 3, dt);
-    mesh.current.position.y = damp(mesh.current.position.y, fy * lean * 0.7, 3, dt);
-    mesh.current.rotation.y = damp(mesh.current.rotation.y, fx * 0.25, 2.5, dt);
-    mesh.current.rotation.x = damp(mesh.current.rotation.x, -fy * 0.18, 2.5, dt);
   });
 
   return (
-    <group>
-      <mesh ref={mesh}>
-        <icosahedronGeometry args={[1, 64]} />
-        <shaderMaterial
-          vertexShader={VERTEX_SHADER}
-          fragmentShader={FRAGMENT_SHADER}
-          uniforms={uniforms}
-        />
-      </mesh>
-      <mesh ref={aura}>
-        <icosahedronGeometry args={[1, 24]} />
-        <shaderMaterial
-          vertexShader={AURA_VERTEX}
-          fragmentShader={AURA_FRAGMENT}
-          uniforms={auraUniforms}
-          transparent
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+    <group ref={mainGroup}>
+      <CentralSingularityCore uniforms={uniforms} />
+      <GyroscopicRings uniforms={uniforms} />
+      <DualAccretionArms uniforms={uniforms} />
+      <VerticalAxisCrosshair uniforms={uniforms} />
+      <OrbitingDarkSpheres />
+      <FloorPedestalStage uniforms={uniforms} />
     </group>
-  );
-}
-
-// A vast, faint pressure-glow behind the entity — presence, not decoration
-function BackGlow() {
-  const material = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        uniforms: { uTime: { value: 0 } },
-        vertexShader: /* glsl */ `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }`,
-        fragmentShader: /* glsl */ `
-          uniform float uTime;
-          varying vec2 vUv;
-          void main() {
-            float d = length(vUv - 0.5) * 2.0;
-            float g = pow(smoothstep(1.0, 0.0, d), 3.4);
-            float breathe = 0.85 + 0.15 * sin(uTime * 0.4);
-            vec3 col = mix(vec3(0.014, 0.012, 0.038), vec3(0.040, 0.026, 0.090), g);
-            gl_FragColor = vec4(col * g * breathe, g * 0.55);
-          }`,
-      }),
-    []
-  );
-
-  useFrame((_, dt) => {
-    material.uniforms.uTime.value += dt;
-  });
-
-  return (
-    <mesh position={[0, 0, -4.0]} material={material}>
-      <planeGeometry args={[9, 9]} />
-    </mesh>
-  );
-}
-
-// Marine snow: faint particulate drifting up past the entity, selling depth
-function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
-  const points = useRef<THREE.Points>(null!);
-  const count = 320;
-
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 9;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 6;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 4 - 1;
-    }
-    return arr;
-  }, []);
-
-  useFrame((_, dt) => {
-    if (reducedMotion) return;
-    const pos = points.current.geometry.attributes.position;
-    const arr = pos.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      arr[i * 3 + 1] += dt * 0.05 * (0.5 + ((i * 37) % 10) / 10);
-      arr[i * 3] += Math.sin(arr[i * 3 + 1] * 0.8 + i) * dt * 0.01;
-      if (arr[i * 3 + 1] > 3.2) arr[i * 3 + 1] = -3.2;
-    }
-    pos.needsUpdate = true;
-    // The whole field orbits the entity, slowly — a current, not static dust
-    points.current.rotation.y += dt * 0.015;
-  });
-
-  return (
-    <points ref={points}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.015}
-        color="#67e8dd"
-        transparent
-        opacity={0.35}
-        sizeAttenuation
-        depthWrite={false}
-      />
-    </points>
   );
 }
 
@@ -259,28 +406,33 @@ export default function Entity() {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 3.4], fov: 42 }}
+      camera={{ position: [0, 0, 3.8], fov: 42 }}
       gl={{ antialias: true, alpha: true }}
       dpr={[1, 2]}
-      style={{ position: "absolute", inset: 0 }}
+      style={{ position: "absolute", inset: 0, zIndex: 0 }}
     >
-      <BackGlow />
-      <EntityBody reducedMotion={reducedMotion} />
-      <MarineSnow reducedMotion={reducedMotion} />
+      <ambientLight intensity={0.4} />
+      <pointLight position={[0, 0, 0]} intensity={2.5} color="#c084fc" />
+      <pointLight position={[-2, 1, 2]} intensity={1.5} color="#38bdf8" />
+      <pointLight position={[2, -1, 2]} intensity={1.5} color="#f59e0b" />
+
+      <SuperCoreBody reducedMotion={reducedMotion} />
+      <CosmicVoidDust reducedMotion={reducedMotion} />
+
       <EffectComposer>
         <Bloom
-          intensity={0.85}
-          luminanceThreshold={0.12}
-          luminanceSmoothing={0.6}
+          intensity={1.1}
+          luminanceThreshold={0.15}
+          luminanceSmoothing={0.5}
           mipmapBlur
         />
         <ChromaticAberration
-          offset={new THREE.Vector2(0.0007, 0.0004)}
+          offset={new THREE.Vector2(0.0008, 0.0005)}
           radialModulation={false}
           modulationOffset={0}
         />
-        <Noise opacity={0.02} />
-        <Vignette eskil={false} offset={0.18} darkness={0.72} />
+        <Noise opacity={0.015} />
+        <Vignette eskil={false} offset={0.15} darkness={0.7} />
       </EffectComposer>
     </Canvas>
   );

@@ -4,11 +4,17 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Captions from "@/components/Captions";
 import CodePanel from "@/components/CodePanel";
+
+import CommandInput from "@/components/Dashboard/CommandInput";
+import Header from "@/components/Dashboard/Header";
+import QuickActions from "@/components/Dashboard/QuickActions";
+import SidebarLeft from "@/components/Dashboard/SidebarLeft";
+import SidebarRight from "@/components/Dashboard/SidebarRight";
+
 import DeviceRoster from "@/components/DeviceRoster";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
-import StatusBar from "@/components/StatusBar";
 import TaskPanel from "@/components/TaskPanel";
 import ThoughtStream from "@/components/ThoughtStream";
 import { captureFrame, captureScreen } from "@/lib/camera";
@@ -27,9 +33,9 @@ const Entity = dynamic(() => import("@/components/Entity/Entity"), {
 });
 
 export default function Home() {
-  // Browsers require a user gesture before mic + audio — the first click
-  // is the summoning.
   const [surfaced, setSurfaced] = useState(false);
+  const [activeTab, setActiveTab] = useState("VOICE COMMAND");
+
   const socketRef = useRef<LeviathanSocket | null>(null);
   const engineRef = useRef<VoiceEngine | null>(null);
   const gesturesRef = useRef<GestureEngine | null>(null);
@@ -48,12 +54,12 @@ export default function Home() {
         const st = useLeviathan.getState();
         st.setLastGesture(name);
         switch (name) {
-          case "Open_Palm": // hush + dismiss panels
+          case "Open_Palm":
             engineRef.current?.hush();
             socketRef.current?.sendInterrupt();
             st.setMedia(null);
             break;
-          case "Closed_Fist": // stop / cancel whatever it's doing
+          case "Closed_Fist":
             engineRef.current?.hush();
             socketRef.current?.sendInterrupt();
             break;
@@ -63,13 +69,13 @@ export default function Home() {
           case "Thumb_Down":
             socketRef.current?.sendUserText("no");
             break;
-          case "Victory": // start listening, no wake word
+          case "Victory":
             engineRef.current?.beginListening();
             break;
-          case "Pointing_Up": // "go on / continue"
+          case "Pointing_Up":
             socketRef.current?.sendUserText("continue");
             break;
-          case "ILoveYou": // "thank you, that's all"
+          case "ILoveYou":
             engineRef.current?.hush();
             socketRef.current?.sendUserText("thank you, that is all for now");
             break;
@@ -124,7 +130,6 @@ export default function Home() {
             });
             break;
           case "announce":
-            // Background work surfacing on its own — voice it
             s.clearCaptions();
             engineRef.current?.speak(msg.text);
             break;
@@ -154,8 +159,6 @@ export default function Home() {
                 url: msg.url,
               });
             } else if (msg.action === "open_url") {
-              // Popup blockers eat non-gesture window.open — the link
-              // card is the reliable path, the tab a best effort.
               s.setMedia({ kind: "link", url: msg.url, reason: msg.reason });
               window.open(msg.url, "_blank", "noopener");
             }
@@ -192,13 +195,10 @@ export default function Home() {
           case "reply_done":
             if (speechSupported() && "speechSynthesis" in window) {
               engineRef.current?.speak(msg.text, msg.lang);
-              // Non-English voices often skip word-boundary events, so
-              // captions surface at once in translation mode
               if (msg.lang && !msg.lang.startsWith("en")) {
                 msg.text.split(/\s+/).forEach((w) => s.pushCaptionWord(w));
               }
             } else {
-              // No TTS available: reveal the words directly
               s.setEntityState("speaking");
               msg.text.split(/\s+/).forEach((w) => s.pushCaptionWord(w));
               setTimeout(() => s.setEntityState("idle"), 2500);
@@ -260,13 +260,13 @@ export default function Home() {
   useEffect(() => {
     if (!surfaced) return;
     const down = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat) {
+      if (e.code === "Space" && !e.repeat && document.activeElement?.tagName !== "INPUT") {
         e.preventDefault();
         engineRef.current?.pttDown();
       }
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+      if (e.code === "Space" && document.activeElement?.tagName !== "INPUT") {
         e.preventDefault();
         engineRef.current?.pttUp();
       }
@@ -287,14 +287,37 @@ export default function Home() {
     };
   }, []);
 
+  const handleSendText = (text: string) => {
+    if (!surfaced) surface();
+    socketRef.current?.sendUserText(text);
+  };
+
+  const handleMicTrigger = () => {
+    if (!surfaced) surface();
+    engineRef.current?.beginListening();
+  };
+
   return (
-    <main className="relative h-dvh w-full select-none overflow-hidden">
+    <main className="relative h-dvh w-full select-none overflow-hidden bg-[#04070c]">
+      {/* 3D Void Super Core */}
       {surfaced && <Entity />}
 
       {surfaced ? (
         <>
+          {/* Dashboard HUD & Frame */}
           <HudFrame />
-          <StatusBar />
+          <Header />
+          <SidebarLeft activeTab={activeTab} onSelectTab={setActiveTab} />
+          <SidebarRight />
+
+          {/* Central Command Input & Quick Actions */}
+          <CommandInput
+            onSubmitText={handleSendText}
+            onMicClick={handleMicTrigger}
+          />
+          <QuickActions onAction={handleSendText} />
+
+          {/* Overlays & Panels */}
           <DeviceRoster />
           <Captions />
           <ThoughtStream />
@@ -317,15 +340,15 @@ export default function Home() {
           className="group absolute inset-0 flex flex-col items-center justify-center gap-7 outline-none"
           aria-label="Summon Leviathan — enables microphone and audio"
         >
-          <span className="pointer-events-none absolute h-64 w-64 rounded-full border border-lumen/10 [animation:pulse-dot_4s_ease-in-out_infinite] md:h-80 md:w-80" />
-          <span className="pointer-events-none absolute h-40 w-40 rounded-full border border-iris/10" />
+          <span className="pointer-events-none absolute h-64 w-64 rounded-full border border-cyan-400/20 [animation:pulse-dot_4s_ease-in-out_infinite] md:h-80 md:w-80" />
+          <span className="pointer-events-none absolute h-40 w-40 rounded-full border border-purple-500/20" />
           <div className="relative flex flex-col items-center gap-3">
-            <span className="font-voice text-5xl font-light tracking-[0.5em] text-foam/85 transition-colors duration-700 group-hover:text-lumen md:text-6xl">
+            <span className="font-voice text-5xl font-light tracking-[0.5em] text-white/90 transition-colors duration-700 group-hover:text-cyan-300 md:text-6xl">
               LEVIATHAN
             </span>
-            <span className="h-px w-24 bg-gradient-to-r from-transparent via-lumen/40 to-transparent" />
-            <span className="font-data text-[10px] uppercase tracking-[0.5em] text-foam/30 transition-colors duration-700 group-hover:text-lumen">
-              click to surface
+            <span className="h-px w-24 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+            <span className="font-data text-[10px] uppercase tracking-[0.5em] text-white/40 transition-colors duration-700 group-hover:text-cyan-300">
+              click to surface dashboard & super core
             </span>
           </div>
         </button>
