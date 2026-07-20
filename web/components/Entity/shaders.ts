@@ -1,8 +1,9 @@
-// GLSL shaders for the Leviathan Super Core — a living glowing-particle sphere.
-// Thousands of points on a sphere: a calm dotted grid across the face that
-// erupts into travelling WAVES at the silhouette (Leviathan's signature
-// motion), coloured blue (top) -> magenta (sides) -> red/gold (bottom), and
-// driven by voice/state. Plus the floor pedestal ring stage (dashboard).
+// GLSL Shaders for Leviathan 3D Void Core (Reference Image 1)
+// - Central Singularity Core (white/magenta glowing heart)
+// - Gyroscopic / Gimbal Concentric Rings with tick marks & markers
+// - Dual Swirling Cosmic Accretion Arms (Electric Blue/Violet vs Amber/Gold)
+// - Vertical Axis Beam & Terminal Nodes
+// - Floor Pedestal Ring Stage
 
 export const SIMPLEX_NOISE = /* glsl */ `
 vec4 permute(vec4 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -66,113 +67,269 @@ float snoise(vec3 v){
 }
 `;
 
-// --- GLOWING PARTICLE SPHERE (waves) ---
-export const SPHERE_VERTEX = /* glsl */ `
+// --- SINGULARITY CORE SHADER ---
+export const CORE_VERTEX = /* glsl */ `
+uniform float uTime;
 uniform float uFlow;
 uniform float uAmp;
+uniform float uFreq;
 uniform float uAudio;
 uniform float uListen;
-uniform float uThink;
 uniform float uSpeak;
 uniform float uError;
-uniform float uGlow;
-uniform float uSize;
 
-varying vec3 vColor;
-varying float vBright;
+varying vec3 vNormal;
+varying vec3 vViewDir;
+varying vec3 vPosition;
+varying float vDisp;
+
+${SIMPLEX_NOISE}
+
+float surface(vec3 p) {
+  vec3 q = p * uFreq + vec3(0.0, uFlow * 0.4, uFlow * 0.2);
+  float n = snoise(q) * 0.35;
+  n += snoise(q * 2.5 - vec3(uFlow * 0.5, 0.0, 0.0)) * 0.15;
+  n += uAudio * uListen * 0.35 + uAudio * uSpeak * 0.25;
+  return n * uAmp * (1.0 - uError * 0.5);
+}
+
+void main() {
+  vNormal = normalize(normalMatrix * normal);
+  vPosition = position;
+  float disp = surface(position);
+  vDisp = disp;
+  vec3 p = position + normal * disp;
+  vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+  vViewDir = normalize(-mvPosition.xyz);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`;
+
+export const CORE_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uFlow;
+uniform float uGlow;
+uniform float uAudio;
+uniform float uThink;
+uniform float uSpeak;
+uniform float uListen;
+uniform float uError;
+
+varying vec3 vNormal;
+varying vec3 vViewDir;
+varying vec3 vPosition;
+varying float vDisp;
 
 ${SIMPLEX_NOISE}
 
 void main() {
-  vec3 dir = normalize(position);
-  float lat = dir.y;
-  float lon = atan(dir.z, dir.x);
-  float t = uFlow;
+  vec3 n = normalize(vNormal);
+  vec3 v = normalize(vViewDir);
+  float facing = max(dot(n, v), 0.0);
+  float fresnel = pow(1.0 - facing, 2.5);
 
-  // Rim factor: 0 on the face, 1 at the silhouette (where waves erupt)
-  vec3 worldPos = (modelMatrix * vec4(position, 1.0)).xyz;
-  vec3 worldDir = normalize(mat3(modelMatrix) * dir);
-  vec3 viewDirW = normalize(cameraPosition - worldPos);
-  float rim = 1.0 - abs(dot(worldDir, viewDirW));
+  // Dark singularity heart (Absolute Black Hole)
+  vec3 col = vec3(0.01, 0.01, 0.02);
 
-  // Travelling waves over the sphere surface
-  float w1 = sin(lat * 8.0 - t * 2.5);
-  float w2 = sin(lon * 4.0 + t * 1.8);
-  float w3 = snoise(dir * 3.0 + vec3(0.0, t * 0.7, 0.0));
-  float wave = w1 * 0.4 + w2 * 0.3 + w3 * 0.55;
+  // Intense event horizon corona rim
+  vec3 coronaCyan = vec3(0.1, 0.5, 1.0);
+  vec3 coronaPurple = vec3(0.6, 0.2, 1.0);
+  vec3 coronaMix = mix(coronaCyan, coronaPurple, uThink * 0.5 + uAudio * 0.5);
+  
+  col += coronaMix * fresnel * (1.2 + uGlow * 1.5 + uSpeak * 1.0);
 
-  // Audio/state amplitude; crests fly out at the rim like the reference
-  float amp = uAmp * 0.55 + uAudio * 0.6 + uSpeak * 0.15;
-  float disp = wave * amp * (0.3 + rim * 1.7) * (1.0 - uError * 0.6);
+  // Surface energy veins (Subtle creeping energy)
+  float veinNoise = snoise(vPosition * 8.0 - vec3(0.0, uFlow * 1.5, 0.0));
+  float veins = smoothstep(0.2, 0.0, abs(veinNoise)) * fresnel;
+  col += vec3(0.2, 0.7, 1.0) * veins * (0.2 + uThink * 1.0);
 
-  vec3 p = position * (1.0 + disp);
+  // Cold error state desaturation
+  float grey = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(col, vec3(grey * 0.4, grey * 0.6, grey * 1.2), uError * 0.85);
 
-  vec4 mv = modelViewMatrix * vec4(p, 1.0);
-  float crest = smoothstep(-0.2, 0.9, wave);
-  gl_PointSize = uSize * (0.55 + rim * 1.3 + crest * 0.4) / max(-mv.z, 0.1);
-  gl_Position = projectionMatrix * mv;
-
-  // Colour gradient: blue (top) -> magenta (sides) -> red/gold (bottom)
-  vec3 topC = vec3(0.30, 0.60, 1.00);
-  vec3 midC = vec3(0.72, 0.20, 0.85);
-  vec3 botC = vec3(1.00, 0.35, 0.20);
-  float yy = dir.y * 0.5 + 0.5;
-  vec3 c = yy > 0.5 ? mix(midC, topC, (yy - 0.5) * 2.0) : mix(botC, midC, yy * 2.0);
-  vec3 gold = vec3(1.0, 0.75, 0.25);
-  c = mix(c, gold, smoothstep(0.35, 0.0, yy) * crest * 0.6); // warm sparks at base
-
-  vBright = 0.45 + rim * 1.1 + crest * 0.5 + uGlow * 0.25 + uThink * 0.2;
-  vColor = c;
-
-  if (uError > 0.5) {
-    float g = dot(c, vec3(0.299, 0.587, 0.114));
-    vColor = mix(c, vec3(g * 0.4, g * 0.55, g), uError * 0.8);
-  }
+  gl_FragColor = vec4(col, 0.98);
 }
 `;
 
-export const SPHERE_FRAGMENT = /* glsl */ `
-varying vec3 vColor;
-varying float vBright;
-
-void main() {
-  vec2 uv = gl_PointCoord - 0.5;
-  float d = length(uv);
-  if (d > 0.5) discard;
-  float a = smoothstep(0.5, 0.04, d);
-  vec3 col = vColor * vBright;
-  gl_FragColor = vec4(col, a);
-}
-`;
-
-// --- FLOOR PEDESTAL STAGE ---
-export const PEDESTAL_VERTEX = /* glsl */ `
+// --- GYRO RINGS SHADER ---
+export const RING_VERTEX = /* glsl */ `
+varying vec3 vNormal;
 varying vec2 vUv;
+varying vec3 vLocalPos;
+
 void main() {
+  vNormal = normalize(normalMatrix * normal);
   vUv = uv;
+  vLocalPos = position;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
-export const PEDESTAL_FRAGMENT = /* glsl */ `
+export const RING_FRAGMENT = /* glsl */ `
+uniform float uTime;
 uniform float uFlow;
+uniform float uRingColorType; // 0: Cyan/Blue, 1: Gold/Amber, 2: Dark Metallic
 uniform float uAudio;
+
+varying vec3 vNormal;
+varying vec2 vUv;
+varying vec3 vLocalPos;
+
+void main() {
+  float ang = atan(vLocalPos.y, vLocalPos.x);
+  
+  // Tick mark graduations around circumference
+  float ticks = abs(sin(ang * 48.0));
+  float tickMask = smoothstep(0.92, 0.99, ticks);
+
+  // Sub-ticks
+  float subTicks = abs(sin(ang * 240.0));
+  float subTickMask = smoothstep(0.95, 0.99, subTicks) * 0.4;
+
+  // Pulse along the ring
+  float pulse = sin(ang * 4.0 - uFlow * 2.5) * 0.5 + 0.5;
+  pulse = pow(pulse, 4.0); // Sharper pulse
+
+  vec3 baseColor = vec3(0.01, 0.01, 0.02); // Darker metallic base
+  vec3 tickColor = vec3(0.1, 0.6, 1.0);
+
+  if (uRingColorType > 0.5 && uRingColorType < 1.5) {
+    // Gold/Amber ring accents
+    tickColor = vec3(1.0, 0.6, 0.1);
+  } else if (uRingColorType >= 1.5) {
+    // Purple/Cyan ring accents
+    tickColor = vec3(0.6, 0.2, 1.0);
+  }
+
+  vec3 col = baseColor + tickColor * (tickMask + subTickMask + pulse * 0.6) * (1.0 + uAudio * 1.0);
+  float alpha = 0.8 + (tickMask + subTickMask) * 0.2;
+
+  gl_FragColor = vec4(col, alpha);
+}
+`;
+
+// --- ACCRETION ARM SHADER ---
+export const ACCRETION_VERTEX = /* glsl */ `
+uniform float uTime;
+uniform float uFlow;
+varying vec3 vPosition;
+varying vec2 vUv;
+
+${SIMPLEX_NOISE}
+
+void main() {
+  vUv = uv;
+  vec3 p = position;
+  
+  // Spiral displacement
+  float noiseVal = snoise(p * 1.5 + vec3(uFlow * 0.5, uFlow * 0.3, 0.0));
+  p += normal * noiseVal * 0.15;
+
+  vPosition = p;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+}
+`;
+
+export const ACCRETION_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uFlow;
+uniform float uArmType; // 0: Blue/Purple, 1: Gold/Amber
+uniform float uAudio;
+
+varying vec3 vPosition;
+varying vec2 vUv;
+
+${SIMPLEX_NOISE}
+
+void main() {
+  float n = snoise(vPosition * 4.0 + vec3(0.0, uFlow * 1.5, uFlow * 0.5));
+  float alpha = smoothstep(-0.1, 0.4, n) * smoothstep(1.0, 0.0, abs(vUv.y - 0.5) * 3.0);
+  
+  // Make the dust strands look more particle-like by multiplying by high frequency noise
+  float fineDust = snoise(vPosition * 20.0 + uFlow * 3.0);
+  alpha *= smoothstep(0.1, 0.9, fineDust * 0.5 + 0.5) * 1.5;
+
+  vec3 colorBlueViolet = mix(vec3(0.1, 0.6, 1.0), vec3(0.6, 0.1, 1.0), sin(vPosition.x * 2.0 + uFlow) * 0.5 + 0.5);
+  vec3 colorGoldAmber = mix(vec3(1.0, 0.8, 0.1), vec3(1.0, 0.3, 0.0), sin(vPosition.x * 2.0 + uFlow) * 0.5 + 0.5);
+
+  vec3 col = (uArmType < 0.5) ? colorBlueViolet : colorGoldAmber;
+  col *= (1.5 + n * 0.8 + uAudio * 1.5);
+
+  gl_FragColor = vec4(col, alpha);
+}
+`;
+
+// --- VERTICAL AXIS SHADER ---
+export const AXIS_VERTEX = /* glsl */ `
+varying vec3 vPosition;
 varying vec2 vUv;
 
 void main() {
+  vUv = uv;
+  vPosition = position;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+export const AXIS_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uFlow;
+uniform float uAudio;
+varying vec3 vPosition;
+varying vec2 vUv;
+
+void main() {
+  // Pulsing energy wave up and down the axis cylinder/line
+  float wave = sin(vPosition.y * 8.0 - uFlow * 5.0) * 0.5 + 0.5;
+  vec3 cyanColor = vec3(0.35, 0.85, 1.0);
+  vec3 coreWhite = vec3(0.95, 0.98, 1.0);
+
+  vec3 col = mix(cyanColor, coreWhite, wave) * (1.2 + uAudio * 1.0);
+  float edge = smoothstep(0.5, 0.0, abs(vUv.x - 0.5));
+
+  gl_FragColor = vec4(col, edge * 0.9);
+}
+`;
+
+// --- FLOOR PEDESTAL STAGE SHADER ---
+export const PEDESTAL_VERTEX = /* glsl */ `
+varying vec2 vUv;
+varying vec3 vWorldPos;
+
+void main() {
+  vUv = uv;
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vWorldPos = worldPos.xyz;
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
+}
+`;
+
+export const PEDESTAL_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uFlow;
+uniform float uAudio;
+varying vec2 vUv;
+varying vec3 vWorldPos;
+
+void main() {
   float dist = length(vUv - vec2(0.5));
+  
+  // Concentric ring lights on the floor pedestal stage
   float ring1 = smoothstep(0.01, 0.0, abs(dist - 0.15));
   float ring2 = smoothstep(0.012, 0.0, abs(dist - 0.30));
   float ring3 = smoothstep(0.015, 0.0, abs(dist - 0.45));
+
   float radialGlow = smoothstep(0.5, 0.0, dist);
   float wave = sin(dist * 40.0 - uFlow * 3.0) * 0.5 + 0.5;
 
   vec3 cyanGlow = vec3(0.15, 0.65, 0.95);
   vec3 blueGlow = vec3(0.4, 0.25, 0.95);
+
   vec3 col = mix(cyanGlow, blueGlow, wave) * (ring1 * 2.5 + ring2 * 2.0 + ring3 * 1.5 + radialGlow * 0.3);
   col *= (1.0 + uAudio * 1.0);
 
-  float alpha = (ring1 + ring2 + ring3) * 0.7 + radialGlow * 0.2;
+  float alpha = (ring1 + ring2 + ring3) * 0.8 + radialGlow * 0.25;
+
   gl_FragColor = vec4(col, alpha);
 }
 `;
