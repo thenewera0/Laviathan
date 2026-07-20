@@ -102,13 +102,13 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-lg font-data text-xs tracking-wider transition-all duration-300 ${
+                className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-sm font-data text-xs tracking-[0.2em] transition-all duration-300 ${
                   isActive
-                    ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/10 text-cyan-300 font-medium border-l-2 border-cyan-400"
+                    ? "bg-[#64ffda]/10 text-[#64ffda] border-l-2 border-[#64ffda]"
                     : "text-white/45 hover:bg-white/5 hover:text-white/80"
                 }`}
               >
-                <span className={isActive ? "text-cyan-400" : "text-white/40"}>
+                <span className={isActive ? "text-[#64ffda]" : "text-white/40"}>
                   {item.icon}
                 </span>
                 <span>{item.id}</span>
@@ -126,12 +126,12 @@ export default function SidebarLeft({
             ENTITY STATUS
           </span>
 
-          <div className="glass-panel flex items-center gap-3.5 p-3.5">
+          <div className="bg-[#0a192f]/40 border border-[#64ffda]/20 rounded-sm flex items-center gap-3.5 p-3.5">
             {/* Status Ring */}
             <div className="relative flex h-8 w-8 items-center justify-center">
-              <span className={`absolute inset-0 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-cyan-400'} opacity-30 animate-ping`} />
-              <span className={`h-6 w-6 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-cyan-400'} flex items-center justify-center`}>
-                <span className={`h-2 w-2 rounded-full ${entityState === 'error' ? 'bg-red-500' : 'bg-cyan-400'}`} />
+              <span className={`absolute inset-0 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-[#64ffda]'} opacity-30 animate-ping`} />
+              <span className={`h-6 w-6 rounded-full border-2 ${entityState === 'error' ? 'border-red-500' : 'border-[#64ffda]'} flex items-center justify-center`}>
+                <span className={`h-2 w-2 rounded-full ${entityState === 'error' ? 'bg-red-500' : 'bg-[#64ffda]'}`} />
               </span>
             </div>
 
@@ -139,7 +139,7 @@ export default function SidebarLeft({
               <span className="font-data text-xs font-semibold tracking-wider text-white/90">
                 LEVIATHAN CORE
               </span>
-              <span className="font-data text-[10px] tracking-wider text-cyan-400 uppercase">
+              <span className={`font-data text-[10px] tracking-wider uppercase ${entityState === 'error' ? 'text-red-500' : 'text-[#64ffda]'}`}>
                 {entityState === 'error' ? 'SYSTEM ERROR' : 'ONLINE'}
               </span>
               <span className="font-data text-[9px] tracking-wide text-white/40">

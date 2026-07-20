@@ -92,10 +92,10 @@ function GyroscopicRings({
     colorType: number;
     rot: [number, number, number];
   }> = [
-    { args: [0.95, 0.012, 16, 100], colorType: 0, rot: [0.8, 0.2, 0] },
-    { args: [1.25, 0.016, 16, 120], colorType: 2, rot: [-0.6, 0.4, 0.5] },
-    { args: [1.55, 0.02, 16, 140], colorType: 1, rot: [0.4, -0.7, -0.3] },
-    { args: [1.85, 0.014, 16, 160], colorType: 0, rot: [-0.3, 0.8, 0.2] },
+    { args: [0.95, 0.003, 16, 120], colorType: 0, rot: [0.8, 0.2, 0] },
+    { args: [1.25, 0.004, 16, 120], colorType: 2, rot: [-0.6, 0.4, 0.5] },
+    { args: [1.55, 0.005, 16, 120], colorType: 1, rot: [0.4, -0.7, -0.3] },
+    { args: [1.85, 0.003, 16, 120], colorType: 0, rot: [-0.3, 0.8, 0.2] },
   ];
 
   return (
@@ -411,19 +411,20 @@ export default function Entity() {
       dpr={[1, 2]}
       style={{ position: "absolute", inset: 0, zIndex: 0 }}
     >
-      <ambientLight intensity={0.4} />
-      <pointLight position={[0, 0, 0]} intensity={2.5} color="#c084fc" />
-      <pointLight position={[-2, 1, 2]} intensity={1.5} color="#38bdf8" />
-      <pointLight position={[2, -1, 2]} intensity={1.5} color="#f59e0b" />
+      <ambientLight intensity={0.05} />
+      {/* Subtle rim lighting instead of washing out the center */}
+      <directionalLight position={[-2, 2, 2]} intensity={1.5} color="#38bdf8" />
+      <directionalLight position={[2, -2, -2]} intensity={1.0} color="#f59e0b" />
+      <directionalLight position={[0, 0, 5]} intensity={0.5} color="#60a5fa" />
 
       <SuperCoreBody reducedMotion={reducedMotion} />
       <CosmicVoidDust reducedMotion={reducedMotion} />
 
       <EffectComposer>
         <Bloom
-          intensity={1.1}
-          luminanceThreshold={0.15}
-          luminanceSmoothing={0.5}
+          intensity={1.2}
+          luminanceThreshold={0.5}
+          luminanceSmoothing={0.3}
           mipmapBlur
         />
         <ChromaticAberration

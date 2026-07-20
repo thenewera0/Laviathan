@@ -132,7 +132,7 @@ export default function SidebarRight() {
   return (
     <aside className="pointer-events-auto absolute right-6 top-24 bottom-6 z-20 flex w-80 flex-col gap-5 select-none">
       {/* ACTIVE OPERATIONS PANEL */}
-      <div className="glass-panel flex flex-col gap-3.5 p-4 flex-1 overflow-hidden">
+      <div className="bg-[#0a192f]/40 border border-[#64ffda]/20 rounded-sm flex flex-col gap-3.5 p-4 flex-1 overflow-hidden">
         <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/40 uppercase">
           ACTIVE OPERATIONS
         </span>
@@ -156,7 +156,7 @@ export default function SidebarRight() {
           ).map((op) => (
             <div key={op.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/5">
               <div className="flex items-center gap-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/5 border border-white/10">
+                <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-[#64ffda]/10 border border-[#64ffda]/20 text-[#64ffda]">
                   {op.icon}
                 </div>
                 <div className="flex flex-col">
@@ -177,10 +177,12 @@ export default function SidebarRight() {
       </div>
 
       {/* REAL-TIME LISTENING PANEL */}
-      <div className="glass-panel flex flex-col gap-2 p-4">
-        <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/40 uppercase">
-          REAL-TIME LISTENING
-        </span>
+      <div className="bg-[#0a192f]/40 border border-[#64ffda]/20 rounded-sm flex flex-col gap-2 p-4">
+        <div className="flex items-center justify-between">
+          <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/40 uppercase">
+            AUDIO WAVEFORM
+          </span>
+        </div>
 
         {/* Spectrum Canvas */}
         <div className="relative h-16 w-full overflow-hidden rounded-lg bg-black/40 border border-white/5 flex items-center justify-center">
@@ -192,8 +194,8 @@ export default function SidebarRight() {
         </span>
       </div>
 
-      {/* CORE VITALS PANEL */}
-      <div className="glass-panel flex flex-col gap-3 p-4">
+    {/* CORE VITALS PANEL */}
+      <div className="bg-[#0a192f]/40 border border-[#64ffda]/20 rounded-sm flex flex-col gap-3 p-4">
         <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-white/40 uppercase">
           CORE VITALS
         </span>
@@ -201,36 +203,36 @@ export default function SidebarRight() {
         <div className="grid grid-cols-4 gap-2">
           {/* CPU */}
           <div className="flex flex-col gap-1 text-center">
-            <span className="font-data text-[9px] text-white/30 uppercase">CPU</span>
+            <span className="font-data text-[9px] text-white/30 uppercase tracking-widest">CPU</span>
             <span className="font-data text-sm font-semibold text-white/90">23%</span>
-            <svg className="w-full h-5 text-purple-400" viewBox="0 0 50 15">
+            <svg className="w-full h-5 text-[#a855f7]" viewBox="0 0 50 15">
               <path d="M0,10 Q12,2 25,12 T50,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </div>
 
           {/* MEMORY */}
           <div className="flex flex-col gap-1 text-center">
-            <span className="font-data text-[9px] text-white/30 uppercase">MEMORY</span>
+            <span className="font-data text-[9px] text-white/30 uppercase tracking-widest">MEM</span>
             <span className="font-data text-sm font-semibold text-white/90">66%</span>
-            <svg className="w-full h-5 text-indigo-400" viewBox="0 0 50 15">
+            <svg className="w-full h-5 text-[#818cf8]" viewBox="0 0 50 15">
               <path d="M0,12 Q15,4 30,10 T50,5" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </div>
 
           {/* NETWORK */}
           <div className="flex flex-col gap-1 text-center">
-            <span className="font-data text-[9px] text-white/30 uppercase">NETWORK</span>
+            <span className="font-data text-[9px] text-white/30 uppercase tracking-widest">NET</span>
             <span className="font-data text-sm font-semibold text-white/90">42%</span>
-            <svg className="w-full h-5 text-cyan-400" viewBox="0 0 50 15">
+            <svg className="w-full h-5 text-[#64ffda]" viewBox="0 0 50 15">
               <path d="M0,8 Q10,14 25,4 T50,11" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </div>
 
           {/* TEMP */}
           <div className="flex flex-col gap-1 text-center">
-            <span className="font-data text-[9px] text-white/30 uppercase">TEMP</span>
+            <span className="font-data text-[9px] text-white/30 uppercase tracking-widest">TMP</span>
             <span className="font-data text-sm font-semibold text-white/90">42°C</span>
-            <svg className="w-full h-5 text-amber-400" viewBox="0 0 50 15">
+            <svg className="w-full h-5 text-[#f59e0b]" viewBox="0 0 50 15">
               <path d="M0,11 Q15,3 32,12 T50,7" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </div>
