@@ -6,6 +6,7 @@
 // instantly. The link token works once and expires.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { iceServers } from "@/lib/rtc";
 
 const WS_BASE =
   process.env.NEXT_PUBLIC_LEVIATHAN_WS ?? "ws://localhost:8000/ws";
@@ -15,6 +16,7 @@ type Stage = "idle" | "connecting" | "choose" | "sharing" | "ended" | "invalid";
 export default function LinkPage() {
   const [stage, setStage] = useState<Stage>("idle");
   const [purpose, setPurpose] = useState("camera");
+  const [conn, setConn] = useState(""); // live connection state, shown to user
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -66,10 +68,18 @@ export default function LinkPage() {
           : await navigator.mediaDevices.getDisplayMedia({ video: true });
       streamRef.current = stream;
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
+      const pc = new RTCPeerConnection({ iceServers: iceServers() });
       pcRef.current = pc;
+      // Surface the real connection state so a failed link is never silent.
+      pc.oniceconnectionstatechange = () => {
+        const st = pc.iceConnectionState;
+        if (st === "checking") setConn("connecting to the other device…");
+        else if (st === "connected" || st === "completed")
+          setConn("connected — live");
+        else if (st === "failed")
+          setConn("could not reach the other device (network blocked it)");
+        else if (st === "disconnected") setConn("connection dropped");
+      };
       stream.getTracks().forEach((t) => {
         pc.addTrack(t, stream);
         t.onended = () => stopSharing(); // browser "stop sharing" bar
@@ -156,6 +166,11 @@ export default function LinkPage() {
           <p className="font-data text-[12px] tracking-[0.3em] text-glint status-live">
             ● SHARING LIVE
           </p>
+          {conn && (
+            <p className="max-w-xs font-data text-[11px] leading-4 text-foam/45">
+              {conn}
+            </p>
+          )}
           <button
             onClick={() => stopSharing()}
             className="border border-cold/50 px-6 py-2 font-data text-[12px] tracking-wider text-cold transition-colors hover:bg-cold/10 focus-visible:bg-cold/10"

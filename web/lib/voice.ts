@@ -87,6 +87,13 @@ export class VoiceEngine {
   private signatureVoice: SpeechSynthesisVoice | null = null; // pinned once
   private signatureNeural = false; // is the pinned voice a neural voice
   private voiceResolved = false;
+  // Neural TTS (Gemini) playback
+  private ttsCtx: AudioContext | null = null;
+  private ttsAnalyser: AnalyserNode | null = null;
+  private ttsData: Uint8Array | null = null;
+  private ttsSource: AudioBufferSourceNode | null = null;
+  private ttsCaptionTimer: ReturnType<typeof setInterval> | null = null;
+  private neuralOk = true; // flips false if the endpoint keeps failing
 
   constructor(private cb: VoiceCallbacks) {}
 
@@ -145,6 +152,12 @@ export class VoiceEngine {
     cancelAnimationFrame(this.rafId);
     if (this.watchdog) clearInterval(this.watchdog);
     this.watchdog = null;
+    if (this.ttsCaptionTimer) clearInterval(this.ttsCaptionTimer);
+    try {
+      this.ttsSource?.stop();
+    } catch {
+      /* already stopped */
+    }
     this.recognition?.abort();
     window.speechSynthesis?.cancel();
   }
@@ -169,9 +182,17 @@ export class VoiceEngine {
   private levelLoop = () => {
     if (this.stopped) return;
     let level = 0;
-    if (this.speaking) {
-      // speechSynthesis exposes no amplitude — a decaying envelope,
-      // re-struck on each word boundary, stands in for the voice.
+    if (this.speaking && this.ttsAnalyser && this.ttsData) {
+      // Neural voice: the entity pulses to Leviathan's ACTUAL waveform.
+      this.ttsAnalyser.getByteTimeDomainData(this.ttsData);
+      let sum = 0;
+      for (let i = 0; i < this.ttsData.length; i++) {
+        const d = (this.ttsData[i] - 128) / 128;
+        sum += d * d;
+      }
+      level = Math.min(1, Math.sqrt(sum / this.ttsData.length) * 5);
+    } else if (this.speaking) {
+      // Browser TTS exposes no amplitude — a decaying envelope stands in.
       this.synthLevel *= 0.92;
       level = this.synthLevel + Math.random() * 0.04 * this.synthLevel;
     } else if (this.analyser && this.levelData) {
@@ -366,7 +387,115 @@ export class VoiceEngine {
 
   // ---- spoken replies ----
 
+  private ttsUrl(): string {
+    const ws =
+      process.env.NEXT_PUBLIC_LEVIATHAN_WS ?? "ws://localhost:8000/ws";
+    return ws.replace(/^ws/, "http").replace(/\/ws$/, "") + "/tts";
+  }
+
+  // Leviathan's real voice: fetch neural audio from the backend and play it,
+  // driving the entity from the ACTUAL waveform. Returns false on any
+  // failure so the caller can fall back to browser TTS.
+  private async speakNeural(text: string): Promise<boolean> {
+    if (!this.neuralOk) return false;
+    let buf: ArrayBuffer;
+    try {
+      const res = await fetch(this.ttsUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) {
+        if (res.status === 503) this.neuralOk = false; // TTS disabled server-side
+        return false;
+      }
+      buf = await res.arrayBuffer();
+    } catch {
+      return false;
+    }
+    if (this.stopped) return true;
+
+    try {
+      const ctx = this.ttsCtx ?? new AudioContext();
+      this.ttsCtx = ctx;
+      if (ctx.state === "suspended") await ctx.resume();
+      const audio = await ctx.decodeAudioData(buf.slice(0));
+
+      const source = ctx.createBufferSource();
+      source.buffer = audio;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      this.ttsAnalyser = analyser;
+      this.ttsData = new Uint8Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+      this.ttsSource = source;
+
+      this.speaking = true;
+      this.pauseRecognition();
+      this.cb.onSpeakStart();
+      this.startCaptionReveal(text, audio.duration);
+
+      const done = () => this.endNeural();
+      source.onended = done;
+      source.start();
+      return true;
+    } catch {
+      this.endNeural();
+      return false;
+    }
+  }
+
+  private startCaptionReveal(text: string, duration: number) {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return;
+    const step = Math.max(120, (duration * 1000) / words.length);
+    let i = 0;
+    this.ttsCaptionTimer = setInterval(() => {
+      if (i >= words.length) {
+        if (this.ttsCaptionTimer) clearInterval(this.ttsCaptionTimer);
+        this.ttsCaptionTimer = null;
+        return;
+      }
+      this.cb.onSpokenWord(words[i++]);
+    }, step);
+  }
+
+  private endNeural() {
+    if (this.ttsCaptionTimer) clearInterval(this.ttsCaptionTimer);
+    this.ttsCaptionTimer = null;
+    this.ttsAnalyser = null;
+    this.ttsData = null;
+    try {
+      this.ttsSource?.stop();
+    } catch {
+      /* already stopped */
+    }
+    this.ttsSource = null;
+    if (!this.speaking) return;
+    this.speaking = false;
+    this.resumeRecognition();
+    this.cb.onSpeakEnd();
+  }
+
   speak(text: string, lang?: string) {
+    if (!text.trim()) {
+      this.cb.onSpeakEnd();
+      return;
+    }
+    // Non-English (translation mode) uses browser voices matched to the
+    // target tongue. English uses Leviathan's neural voice, with browser
+    // TTS as the fallback.
+    if (lang && !lang.startsWith("en")) {
+      this.speakBrowser(text, lang);
+      return;
+    }
+    this.speakNeural(text).then((ok) => {
+      if (!ok) this.speakBrowser(text);
+    });
+  }
+
+  private speakBrowser(text: string, lang?: string) {
     if (!("speechSynthesis" in window) || !text.trim()) {
       this.cb.onSpeakEnd();
       return;
@@ -430,10 +559,23 @@ export class VoiceEngine {
   }
 
   private stopSpeaking() {
+    const wasSpeaking = this.speaking;
     this.speaking = false;
     this.synthLevel = 0;
-    window.speechSynthesis.cancel();
-    this.resumeRecognition();
+    // stop neural playback
+    if (this.ttsCaptionTimer) clearInterval(this.ttsCaptionTimer);
+    this.ttsCaptionTimer = null;
+    this.ttsAnalyser = null;
+    this.ttsData = null;
+    try {
+      this.ttsSource?.stop();
+    } catch {
+      /* already stopped */
+    }
+    this.ttsSource = null;
+    // stop browser TTS
+    window.speechSynthesis?.cancel();
+    if (wasSpeaking) this.resumeRecognition();
   }
 
   private pauseRecognition() {

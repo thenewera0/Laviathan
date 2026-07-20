@@ -34,6 +34,10 @@ class Settings:
     docker_image: str = os.getenv("LEVIATHAN_DOCKER_IMAGE", "python:3.11-slim")
     code_timeout: int = int(os.getenv("LEVIATHAN_CODE_TIMEOUT", "20"))
 
+    # Neural TTS voice (Gemini prebuilt voices — Charon is deep/authoritative;
+    # others: Alnilam, Enceladus, Iapetus, Orus, Rasalgethi, Kore, Fenrir)
+    tts_voice: str = os.getenv("LEVIATHAN_TTS_VOICE", "Charon")
+
     # Server-side STT (optional; requires faster-whisper in requirements.txt)
     server_stt: bool = os.getenv("LEVIATHAN_SERVER_STT", "0") == "1"
     whisper_model: str = os.getenv("WHISPER_MODEL", "base")

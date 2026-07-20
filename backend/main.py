@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from brain.loop import BrainSession
 from config import settings
-from voice import stt
+from voice import neural_tts, stt
 
 app = FastAPI(title="Leviathan Core", version="0.2.0")
 
@@ -38,7 +38,23 @@ async def health():
         "provider": settings.provider,
         "model": settings.active_model,
         "server_stt": stt.available(),
+        "neural_tts": neural_tts.available(),
     }
+
+
+@app.post("/tts")
+async def tts(request: Request):
+    """Neural voice: text -> WAV audio (Gemini). 503 -> client uses browser TTS."""
+    from fastapi import Response
+
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        return Response(status_code=400)
+    wav = await neural_tts.synthesize(text, body.get("voice"))
+    if not wav:
+        return Response(status_code=503)
+    return Response(content=wav, media_type="audio/wav")
 
 
 @app.post("/stt")

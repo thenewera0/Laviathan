@@ -2,6 +2,8 @@
 // through the backend, and exposes the live stream once tracks arrive.
 // Media flows peer-to-peer; the backend only ever sees the handshake.
 
+import { iceServers } from "./rtc";
+
 let pc: RTCPeerConnection | null = null;
 let stream: MediaStream | null = null;
 
@@ -16,9 +18,7 @@ export async function handleLinkSignal(
 ) {
   if (data?.sdp?.type === "offer") {
     closeLink();
-    pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
+    pc = new RTCPeerConnection({ iceServers: iceServers() });
     pc.onicecandidate = (ev) => {
       if (ev.candidate) sendSignal({ candidate: ev.candidate.toJSON() });
     };
