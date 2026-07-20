@@ -136,6 +136,7 @@ uniform float uGlow;     // rim/iridescence intensity (state-blended)
 uniform float uAudio;
 uniform float uThink;    // state weights
 uniform float uSpeak;
+uniform float uListen;
 uniform float uError;
 
 varying vec3 vNormal;
@@ -175,50 +176,50 @@ void main() {
   float facing = max(dot(n, v), 0.0);
   float fresnel = pow(1.0 - facing, 2.2);
 
-  // Abyssal skin, deepening where the surface folds inward — blue-leaning
-  // teal, never olive
-  vec3 base = mix(vec3(0.007, 0.020, 0.034), vec3(0.014, 0.060, 0.088), facing * 0.5 + vDisp * 1.2);
+  // ---- ALIEN CHROME SKIN: black silver-lead, metallic, desaturated ----
+  // A crude living metal — mostly void-black, catching cold silver light
+  // where the surface turns to you.
+  vec3 metalDark = vec3(0.018, 0.020, 0.028);
+  vec3 metalLit  = vec3(0.15, 0.16, 0.20);       // dark silver-lead, crude
+  float sculpt = clamp(facing * 0.6 + vDisp * 1.5, 0.0, 1.0);
+  vec3 base = mix(metalDark, metalLit, sculpt);
 
-  // ---- INNER AURORA: the body is lit from within, never a dead void ----
-  // Slow bioluminescent weather drifting under the skin, brightest where
-  // you look straight into the mass.
-  // Sparse luminous weather: mostly abyss-dark body, with drifting
-  // bright currents — light must stay scarce to stay precious.
-  float aur = fbm(n * 2.3 + vec3(0.0, uFlow * 0.45, uFlow * 0.12));
-  float aur2 = fbm(n * 1.2 - vec3(uFlow * 0.2, 0.0, uFlow * 0.3));
-  float currents = smoothstep(0.15, 0.75, aur);      // only the crests glow
-  float innerAmt = pow(facing, 1.7) * (0.10 + 0.90 * currents) * uGlow;
-  vec3 innerCol = mix(
-    vec3(0.03, 0.19, 0.32),                       // deep cyan-blue body-light
-    iridescence(aur2 * 0.5 + 0.42 + uFlow * 0.015), // drifting oil-slick hue
-    0.40 + 0.35 * max(aur2, 0.0)
-  );
-  vec3 inner = innerCol * innerAmt * 0.5;
+  // hard silver spec — a lead/mercury gleam on the ridges, not everywhere
+  vec3 l1 = normalize(vec3(sin(uFlow * 0.25), 0.72, cos(uFlow * 0.25)));
+  vec3 l2 = normalize(vec3(-0.6, -0.32, 0.78));
+  float spec = pow(max(dot(reflect(-l1, n), v), 0.0), 70.0) * 0.55
+             + pow(max(dot(reflect(-l2, n), v), 0.0), 34.0) * 0.22;
+  vec3 specCol = vec3(0.62, 0.68, 0.85) * spec;
 
-  // ---- luminous tide: a slow wave of light crossing the body (idle life)
-  float tide = pow(0.5 + 0.5 * sin(dot(n, vec3(0.2, 1.0, 0.35)) * 3.5 - uFlow * 1.1), 5.0);
-  inner += vec3(0.08, 0.34, 0.46) * tide * facing * uGlow * 0.35;
+  float rim = pow(1.0 - facing, 3.0);            // keeps the silhouette black
 
-  // ---- thin-film sheen rides the fresnel band
-  float filmPhase = fresnel * 1.15 + vDisp * 1.6 + uFlow * 0.03;
-  vec3 sheen = iridescence(filmPhase) * fresnel * uGlow * 0.95;
+  // ---- THE BLACK-HOLE CORE: blue/violet light from the centre ----
+  // A tight pool of light where you look straight in, wrapped in spiralling
+  // accretion arms — the mass churns and drags light behind it (past into
+  // future). Faintly alive at rest; blazes when it speaks, thinks, listens.
+  float energy = (0.32 + 2.6 * (uSpeak * (0.45 + uAudio) + uThink * 0.8
+                 + uListen * 0.3)) * uGlow;
+  float ang = atan(n.y, n.x);
+  float spiral = 0.5 + 0.5 * sin(ang * 3.0 - uFlow * 1.6 + (1.0 - facing) * 7.0);
+  float churn = 0.55 + 0.45 * fbm(n * 2.2 + vec3(0.0, uFlow * 0.7, 0.0));
+  // TIGHT heart — only the dead-centre glows; the body stays dark metal.
+  float coreMask = pow(facing, 7.5);
+  vec3 coreHue = mix(vec3(0.16, 0.42, 1.5), vec3(0.80, 0.18, 1.6),
+                     0.5 + 0.5 * sin(uFlow * 0.5 + vDisp * 4.0));
+  vec3 blackhole = coreHue * coreMask * churn * (0.55 + 0.65 * spiral) * energy;
 
-  // ---- two drifting key lights give the surface sculpt and wet gleam
-  vec3 l1 = normalize(vec3(sin(uFlow * 0.25), 0.65, cos(uFlow * 0.25)));
-  vec3 l2 = normalize(vec3(-0.55, -0.35, 0.75));
-  float spec = pow(max(dot(reflect(-l1, n), v), 0.0), 32.0) * 0.38
-             + pow(max(dot(reflect(-l2, n), v), 0.0), 20.0) * 0.16;
-  vec3 specCol = iridescence(filmPhase + 0.18) * spec * uGlow;
+  // event-horizon band: a thin bright ring around the pupil
+  float ring = smoothstep(0.78, 0.9, facing) * (1.0 - smoothstep(0.9, 0.99, facing));
+  blackhole += mix(vec3(0.25, 0.45, 1.0), vec3(0.6, 0.2, 1.0), spiral)
+             * ring * energy * 0.5;
 
-  // ---- bioluminescent veins: faintly alive always, ablaze while thinking
+  // veins of light beneath the chrome, ablaze while thinking
   float veinField = snoise(n * 3.5 + vec3(0.0, uFlow * 0.9, 0.0));
-  float veins = smoothstep(0.28, 0.02, abs(veinField)) * (0.16 + uThink);
-  vec3 veinGlow = vec3(0.30, 0.72, 1.00) * veins * (0.35 + 0.65 * facing);
+  float veins = smoothstep(0.22, 0.02, abs(veinField)) * (0.04 + uThink * 0.9 + uSpeak * 0.4);
+  vec3 veinGlow = mix(vec3(0.2, 0.42, 1.0), vec3(0.5, 0.2, 1.0), spiral) * veins * facing;
 
-  // ---- speaking: emission swells with the voice
-  float pulse = uAudio * uSpeak;
-  vec3 col = base + inner + sheen * (1.0 + pulse * 1.6) + specCol + veinGlow;
-  col += vec3(0.32, 0.74, 1.00) * (fresnel * 0.5 + facing * 0.25) * pulse;
+  vec3 col = base + specCol + blackhole + veinGlow;
+  col += vec3(0.05, 0.08, 0.16) * rim;           // cool edge, never pure cutout
 
   // ---- error: heat leaves the body — desaturate, shift cold
   float grey = dot(col, vec3(0.299, 0.587, 0.114));
@@ -268,12 +269,13 @@ vec3 iridescence(float t) {
 void main() {
   vec3 n = normalize(vNormal);
   vec3 v = normalize(vViewDir);
-  float rim = pow(1.0 - abs(dot(n, v)), 4.5);
-  float breathe = 0.85 + 0.15 * sin(uFlow * 0.6);
-  // Cold bioluminescent haze, not a planetary ring — teal-dominant, soft
-  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.18, 0.45, 0.85), 0.55);
-  vec3 col = hue * rim * uGlow * 0.30 * breathe;
-  col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
-  gl_FragColor = vec4(col, rim * 0.5);
+  float rim = pow(1.0 - abs(dot(n, v)), 4.0);
+  float breathe = 0.82 + 0.18 * sin(uFlow * 0.6);
+  // Event-horizon haze — blue bleeding into violet, no teal
+  vec3 hue = mix(vec3(0.12, 0.30, 0.95), vec3(0.45, 0.16, 0.95),
+                 0.5 + 0.5 * sin(uFlow * 0.4));
+  vec3 col = hue * rim * uGlow * 0.34 * breathe;
+  col = mix(col, vec3(0.10, 0.12, 0.24) * rim, uError);
+  gl_FragColor = vec4(col, rim * 0.55);
 }
 `;

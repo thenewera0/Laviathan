@@ -180,10 +180,10 @@ function BackGlow() {
           varying vec2 vUv;
           void main() {
             float d = length(vUv - 0.5) * 2.0;
-            float g = pow(smoothstep(1.0, 0.0, d), 2.6);
+            float g = pow(smoothstep(1.0, 0.0, d), 3.4);
             float breathe = 0.85 + 0.15 * sin(uTime * 0.4);
-            vec3 col = mix(vec3(0.010, 0.042, 0.062), vec3(0.022, 0.072, 0.115), g);
-            gl_FragColor = vec4(col * g * breathe, g * 0.8);
+            vec3 col = mix(vec3(0.014, 0.012, 0.038), vec3(0.040, 0.026, 0.090), g);
+            gl_FragColor = vec4(col * g * breathe, g * 0.55);
           }`,
       }),
     []
@@ -194,8 +194,8 @@ function BackGlow() {
   });
 
   return (
-    <mesh position={[0, 0, -2.5]} material={material}>
-      <planeGeometry args={[11, 11]} />
+    <mesh position={[0, 0, -4.0]} material={material}>
+      <planeGeometry args={[9, 9]} />
     </mesh>
   );
 }
