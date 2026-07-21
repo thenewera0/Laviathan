@@ -19,11 +19,17 @@ export default function LinkPage() {
   const [purpose, setPurpose] = useState("camera");
   const [conn, setConn] = useState(""); // live connection state, shown to user
   const [shareError, setShareError] = useState(""); // never fail silently
+  const [canScreen, setCanScreen] = useState(false); // mobile has no screen capture
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    // Screen capture only exists on desktop browsers; phones can't do it.
+    setCanScreen(
+      typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices?.getDisplayMedia
+    );
     const token = window.location.hash.slice(1);
     if (!token) {
       setStage("invalid");
@@ -69,6 +75,18 @@ export default function LinkPage() {
 
   const share = useCallback(async (kind: "camera" | "screen") => {
     setShareError("");
+    if (kind === "screen" && !navigator.mediaDevices?.getDisplayMedia) {
+      setShareError(
+        "screen sharing isn't supported on this browser — use the camera instead"
+      );
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setShareError(
+        "this browser can't share media — open the link in Chrome or Safari"
+      );
+      return;
+    }
     try {
       const stream =
         kind === "camera"
@@ -127,6 +145,12 @@ export default function LinkPage() {
         setShareError("no camera found on this device");
       } else if (name === "NotReadableError") {
         setShareError("the camera is busy in another app — close it and try again");
+      } else if (name === "NotSupportedError" || err instanceof TypeError) {
+        setShareError(
+          kind === "screen"
+            ? "screen sharing isn't supported on this device — use the camera instead"
+            : "this browser blocks media on insecure pages — the link must be https"
+        );
       } else {
         setShareError("could not start sharing — reload this page and try again");
       }
@@ -176,22 +200,30 @@ export default function LinkPage() {
             Someone asked to see through this device. Nothing is shared until
             you choose — and you can stop at any moment.
           </p>
-          <div className="flex gap-4">
-            {(purpose === "camera" || purpose === "any") && (
+          <div className="flex flex-col gap-4 sm:flex-row">
+            {/* Camera works everywhere, including phones — always offered. */}
+            <button
+              onClick={() => share("camera")}
+              className="border border-lumen/30 px-5 py-3 font-data text-[12px] tracking-wider text-lumen transition-colors hover:bg-lumen/10 focus-visible:bg-lumen/10"
+            >
+              share camera + mic
+            </button>
+            {/* Screen capture only on desktop browsers. */}
+            {canScreen && (
               <button
-                onClick={() => share("camera")}
-                className="border border-lumen/30 px-5 py-2 font-data text-[12px] tracking-wider text-lumen transition-colors hover:bg-lumen/10 focus-visible:bg-lumen/10"
+                onClick={() => share("screen")}
+                className="border border-foam/20 px-5 py-3 font-data text-[12px] tracking-wider text-foam/70 transition-colors hover:bg-foam/10 focus-visible:bg-foam/10"
               >
-                share camera + mic
+                share screen
               </button>
             )}
-            <button
-              onClick={() => share("screen")}
-              className="border border-foam/20 px-5 py-2 font-data text-[12px] tracking-wider text-foam/70 transition-colors hover:bg-foam/10 focus-visible:bg-foam/10"
-            >
-              share screen
-            </button>
           </div>
+          {!canScreen && purpose === "screen" && (
+            <p className="max-w-sm font-data text-[11px] leading-5 text-foam/40">
+              This device can&apos;t share its screen (phones don&apos;t
+              support that) — sharing the camera instead lets Leviathan see.
+            </p>
+          )}
           {shareError && (
             <p className="max-w-sm font-data text-[11px] leading-5 text-glint">
               {shareError}

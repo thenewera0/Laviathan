@@ -376,7 +376,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "purpose": {
                     "type": "string",
                     "enum": ["camera", "screen"],
-                    "description": "what the other device will be asked to share",
+                    "description": "what the other device will be asked to "
+                    "share. Use 'camera' for a phone or tablet — mobile "
+                    "browsers CANNOT share their screen. Use 'screen' only "
+                    "for a desktop/laptop. Default to 'camera' when unsure.",
                 },
             },
             "required": [],
