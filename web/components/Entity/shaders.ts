@@ -227,7 +227,10 @@ void main() {
   float heat = pow(0.5 + 0.5 * sin(facing * 9.0 - uFlow * 2.0), 2.2);
   float haze = fbm(n * 3.2 + vec3(0.0, uFlow * 0.7, uFlow * 0.25));
   vec3 heatCol = iridescence(filmPhase * 0.6 + heat * 0.22 + haze * 0.10 + uFlow * 0.03);
-  col += heatCol * heat * pow(facing, 1.3) * uGlow * 0.10;
+  col += heatCol * heat * pow(facing, 1.3) * uGlow * 0.18;
+  // Sun-like radiant heat: hot blue-white energy pumping out from the core
+  float radiate = pow(0.5 + 0.5 * sin(facing * 7.0 - uFlow * 2.6), 3.0) * pow(facing, 1.5);
+  col += vec3(0.45, 0.72, 1.05) * radiate * (0.16 + uSpeak * 0.2 + uAudio * 0.25);
   vec3 mirageHue = iridescence(uFlow * 0.05) * (0.4 + 0.6 * facing);
   col = mix(col, mirageHue, 0.025 * (0.5 + 0.5 * sin(uFlow * 0.3)));
 
@@ -279,13 +282,23 @@ vec3 iridescence(float t) {
 void main() {
   vec3 n = normalize(vNormal);
   vec3 v = normalize(vViewDir);
-  float rim = pow(1.0 - abs(dot(n, v)), 4.5);
-  float breathe = 0.85 + 0.15 * sin(uFlow * 0.6);
-  // Cold bioluminescent haze, not a planetary ring — teal-dominant, soft
-  vec3 hue = mix(iridescence(rim * 0.9 + uFlow * 0.02), vec3(0.18, 0.40, 0.94), 0.55);
-  vec3 col = hue * rim * uGlow * 0.30 * breathe;
+  float rim = pow(1.0 - abs(dot(n, v)), 3.6);
+
+  // radiant heat waves rippling out through the corona
+  float wave = 0.5 + 0.5 * sin(rim * 9.0 - uFlow * 3.2);
+  // solar prominences / ejections — lumpy tongues of light that flare and fade
+  float f = sin(vNormal.x * 11.0 + uFlow * 1.3)
+          * sin(vNormal.y * 10.0 - uFlow * 1.1)
+          * sin(vNormal.z * 12.0 + uFlow * 0.7);
+  float eject = pow(max(f, 0.0), 3.0);
+
+  vec3 hot = vec3(0.42, 0.70, 1.05);            // hot blue-white heat
+  vec3 col = hot * rim * uGlow * (0.4 + 0.5 * wave);
+  col += vec3(0.70, 0.86, 1.10) * eject * rim * (1.1 + uGlow);  // ejections flare out
   col = mix(col, vec3(0.10, 0.16, 0.28) * rim, uError);
-  gl_FragColor = vec4(col, rim * 0.5);
+
+  float a = rim * (0.5 + eject * 0.7);
+  gl_FragColor = vec4(col, a);
 }
 `;
 
@@ -330,5 +343,90 @@ void main() {
   float alpha = clamp(core * 1.3 + rings * 0.9 + 0.06, 0.0, 1.0)
               * smoothstep(1.08, 0.35, dist);
   gl_FragColor = vec4(col, alpha);
+}
+`;
+
+// Spiral galaxy dust — dense log-spiral arms with a blazing blue life-core.
+// The particle field (in Entity.tsx) sits on top for star density; this is
+// the glowing gas the stars swim in.
+export const GALAXY_VERTEX = /* glsl */ `
+varying vec3 vLocalPos;
+void main() {
+  vLocalPos = position;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+export const GALAXY_FRAGMENT = /* glsl */ `
+uniform float uFlow;
+uniform float uAudio;
+varying vec3 vLocalPos;
+
+${SIMPLEX_NOISE}
+
+const float RGAL = 3.6;
+
+void main() {
+  vec2 p = vLocalPos.xy;
+  float r = length(p);
+  float R = r / RGAL;
+  if (R > 1.0) discard;
+  float ang = atan(p.y, p.x);
+  float spin = uFlow * 0.12;
+
+  // two interleaved log-spiral arms -> dense, galactic
+  float phase = 2.5 * ang - 4.0 * log(r + 0.2) - spin;
+  float arms = pow(0.5 + 0.5 * cos(phase), 2.0)
+             + 0.6 * pow(0.5 + 0.5 * cos(phase + 2.094), 2.0);
+
+  // multi-scale dust grain for real, non-uniform density
+  float g1 = snoise(vec3(p * 2.2, spin * 0.5));
+  float g2 = snoise(vec3(p * 7.0, spin));
+  float grain = (0.5 + 0.5 * g1) * (0.55 + 0.45 * (0.5 + 0.5 * g2));
+
+  float rad = smoothstep(1.0, 0.14, R);
+  float density = arms * grain * rad;
+
+  // colour: blazing blue-white core -> cyan -> deep-blue arms, sparse warm flecks
+  vec3 arm  = vec3(0.08, 0.30, 0.85);
+  vec3 mid  = vec3(0.16, 0.55, 1.00);
+  vec3 core = vec3(0.62, 0.86, 1.00);
+  vec3 warm = vec3(0.95, 0.62, 0.30);
+  vec3 col = mix(arm, mid, smoothstep(0.85, 0.2, R));
+  col = mix(col, core, smoothstep(0.16, 0.0, R));
+  col += warm * pow(max(g2, 0.0), 2.0) * 0.14 * smoothstep(0.9, 0.3, R);
+
+  // blazing life-core
+  float coreGlow = pow(smoothstep(0.26, 0.0, R), 2.6);
+  col += vec3(0.5, 0.82, 1.05) * coreGlow * (2.2 + uAudio * 1.0);
+
+  float alpha = clamp(density * 1.5 + coreGlow, 0.0, 1.0);
+  gl_FragColor = vec4(col, alpha);
+}
+`;
+
+// Upward light column — the core's energy pouring up into the entity above.
+export const BEAM_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+export const BEAM_FRAGMENT = /* glsl */ `
+uniform float uFlow;
+uniform float uAudio;
+varying vec2 vUv;
+
+void main() {
+  float x = abs(vUv.x - 0.5) * 2.0;   // 0 center .. 1 edge
+  float up = vUv.y;                   // 0 base (core) .. 1 top (orb)
+  float horiz = pow(smoothstep(1.0, 0.0, x), 1.6);
+  float vert = mix(1.0, 0.15, up) * smoothstep(0.0, 0.12, up);
+  float flick = 0.82 + 0.18 * sin(uFlow * 3.0 + up * 7.0);
+  vec3 col = mix(vec3(0.80, 0.92, 1.05), vec3(0.35, 0.66, 1.05), up);
+  float a = horiz * vert * flick * (0.7 + uAudio * 0.5);
+  gl_FragColor = vec4(col, a);
 }
 `;

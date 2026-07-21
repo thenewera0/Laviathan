@@ -19,9 +19,11 @@ import { useLeviathan, type EntityState } from "@/lib/store";
 import {
   AURA_FRAGMENT,
   AURA_VERTEX,
+  BEAM_FRAGMENT,
+  BEAM_VERTEX,
   FRAGMENT_SHADER,
-  PEDESTAL_FRAGMENT,
-  PEDESTAL_VERTEX,
+  GALAXY_FRAGMENT,
+  GALAXY_VERTEX,
   VERTEX_SHADER,
 } from "./shaders";
 
@@ -130,7 +132,7 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     mesh.current.rotation.z += dt * 0.02 * motionScale;
     if (aura.current) {
       aura.current.position.copy(mesh.current.position);
-      aura.current.scale.setScalar(mesh.current.scale.x * 1.28);
+      aura.current.scale.setScalar(mesh.current.scale.x * 1.36);
     }
 
     // Gaze-follow: it looks at YOU when the webcam sees a face (MediaPipe,
@@ -259,29 +261,106 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
   );
 }
 
-// Floor pedestal light-stage beneath the entity (Reference Image 1)
-function FloorPedestal({ reducedMotion }: { reducedMotion: boolean }) {
+// A dense, spinning spiral galaxy beneath the entity — thousands of stars on
+// log-spiral arms, a blazing blue life-core, and a column of light pouring up
+// into the orb, which drinks its power.
+const RGAL = 3.6;
+
+function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
+  const spin = useRef<THREE.Group>(null!);
   const uniforms = useMemo(
-    () => ({ uTime: { value: 0 }, uAudio: { value: 0 } }),
+    () => ({ uFlow: { value: 0 }, uAudio: { value: 0 } }),
     []
   );
+
+  const { positions, colors } = useMemo(() => {
+    const N = 12000;
+    const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
+    for (let i = 0; i < N; i++) {
+      const r = Math.pow(Math.random(), 0.5) * RGAL;
+      const arm = i % 3;
+      const armAngle = (arm * 2 * Math.PI) / 3;
+      const spread = randn() * 0.5 * (0.35 + r / RGAL);
+      const theta = armAngle + 3.0 * Math.log(r + 0.2) + spread;
+      pos[i * 3] = r * Math.cos(theta);
+      pos[i * 3 + 1] = r * Math.sin(theta);
+      pos[i * 3 + 2] = randn() * 0.03; // thin disc
+      const f = r / RGAL;
+      let c: [number, number, number];
+      if (r < 0.55) c = [0.72, 0.86, 1.0]; // core white-blue
+      else if (Math.random() < 0.05) c = [0.95, 0.66, 0.34]; // sparse warm star
+      else c = [0.2 - f * 0.14, 0.6 - f * 0.36, 1.0 - f * 0.28]; // cyan -> deep blue
+      col[i * 3] = c[0];
+      col[i * 3 + 1] = c[1];
+      col[i * 3 + 2] = c[2];
+    }
+    return { positions: pos, colors: col };
+  }, []);
+
   useFrame((_, dt) => {
-    uniforms.uTime.value += (reducedMotion ? 0.15 : 1) * dt;
+    uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
     const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
     uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
+    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.03;
   });
+
   return (
-    <mesh position={PEDESTAL_POS} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[5.5, 5.5]} />
-      <shaderMaterial
-        vertexShader={PEDESTAL_VERTEX}
-        fragmentShader={PEDESTAL_FRAGMENT}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </mesh>
+    <group position={PEDESTAL_POS}>
+      {/* flat, slowly spinning galactic disc + star field */}
+      <group rotation={[-Math.PI / 2, 0, 0]}>
+        <group ref={spin}>
+          <mesh>
+            <planeGeometry args={[RGAL * 2, RGAL * 2]} />
+            <shaderMaterial
+              vertexShader={GALAXY_VERTEX}
+              fragmentShader={GALAXY_FRAGMENT}
+              uniforms={uniforms}
+              transparent
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          <points>
+            <bufferGeometry>
+              <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+              <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+            </bufferGeometry>
+            <pointsMaterial
+              size={0.02}
+              vertexColors
+              transparent
+              opacity={0.95}
+              sizeAttenuation
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </points>
+        </group>
+      </group>
+
+      {/* blazing blue life-core */}
+      <mesh>
+        <sphereGeometry args={[0.13, 24, 24]} />
+        <meshBasicMaterial color="#cfe6ff" />
+      </mesh>
+
+      {/* column of light rising into the orb */}
+      <mesh position={[0, 0.85, 0]}>
+        <planeGeometry args={[0.95, 1.7]} />
+        <shaderMaterial
+          vertexShader={BEAM_VERTEX}
+          fragmentShader={BEAM_FRAGMENT}
+          uniforms={uniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -305,7 +384,7 @@ export default function Entity() {
       <group position={ORB_POS} scale={ORB_SCALE}>
         <EntityBody reducedMotion={reducedMotion} />
       </group>
-      <FloorPedestal reducedMotion={reducedMotion} />
+      <SpiralGalaxy reducedMotion={reducedMotion} />
       <MarineSnow reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom

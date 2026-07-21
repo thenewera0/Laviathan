@@ -10,18 +10,18 @@ html,
 body {
   height: 100%;
   overflow: hidden;
-  background: #050507;
-  color: #c7d0e0;
+  background: #020204;
+  color: #c7d6ea;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Deep universe — near-black with almost-invisible volumetric lighting, no
-   full-canvas gradients. Light pools only where the core lives. */
+/* Deep universe — near-pure black with neon-blue volumetric light pooling
+   only where the core and galaxy live. */
 body {
   background:
-    radial-gradient(60vmax 60vmax at 50% 44%, rgba(30, 40, 90, 0.16), transparent 62%),
-    radial-gradient(80vmax 50vmax at 50% 116%, rgba(20, 34, 70, 0.2), transparent 60%),
-    #050507;
+    radial-gradient(58vmax 58vmax at 50% 42%, rgba(24, 66, 150, 0.16), transparent 60%),
+    radial-gradient(80vmax 52vmax at 50% 118%, rgba(14, 48, 120, 0.22), transparent 58%),
+    #020204;
 }
 
 /* Elegant thin UI type (Apple / SF Pro / Inter feel) */
