@@ -74,6 +74,7 @@ export class VoiceEngine {
   private rafId = 0;
 
   private awake = false; // captured speech goes to the brain
+  private awakeSince = 0; // when the wake window opened (VAD cap)
   private ptt = false; // push-to-talk held
   private speaking = false; // TTS is playing
   private synthLevel = 0; // synthetic envelope while speaking
@@ -93,7 +94,9 @@ export class VoiceEngine {
   private ttsData: Uint8Array | null = null;
   private ttsSource: AudioBufferSourceNode | null = null;
   private ttsCaptionTimer: ReturnType<typeof setInterval> | null = null;
-  private neuralOk = true; // flips false if the endpoint keeps failing
+  // After a TTS failure, rest the neural path briefly instead of abandoning
+  // it for the whole session — the signature voice comes back on its own.
+  private neuralCooldownUntil = 0;
 
   constructor(private cb: VoiceCallbacks) {}
 
@@ -203,6 +206,17 @@ export class VoiceEngine {
         sum += d * d;
       }
       level = Math.min(1, Math.sqrt(sum / this.levelData.length) * 4);
+      // Voice-activity guard: while the user is AUDIBLY still speaking,
+      // keep the utterance open even if ASR interims lag — this is what
+      // stops Leviathan cutting people off mid-sentence. Capped at 20s
+      // so background noise can't hold the window open forever.
+      if (
+        this.awake &&
+        level > 0.1 &&
+        Date.now() - this.awakeSince < 20000
+      ) {
+        this.bumpSilenceTimer(1500);
+      }
     }
     this.cb.onLevel(level);
     this.rafId = requestAnimationFrame(this.levelLoop);
@@ -218,8 +232,10 @@ export class VoiceEngine {
     const rec: SpeechRecognitionLike = new Ctor();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = "en-US";
-    rec.maxAlternatives = 3; // scan alternatives for the wake word
+    // en-IN: English (India) acoustic model — dramatically better for
+    // Indian-accented English and code-switched Hinglish than en-US.
+    rec.lang = process.env.NEXT_PUBLIC_ASR_LANG ?? "en-IN";
+    rec.maxAlternatives = 5; // scan alternatives for the wake word
 
     rec.onstart = () => {
       this.recRunning = true;
@@ -272,7 +288,7 @@ export class VoiceEngine {
   }
 
   // Self-healing: continuous recognition silently dies (tab throttling, a
-  // dropped onend, a swallowed error). Every 2.5s, if it should be running
+  // dropped onend, a swallowed error). Every 1.2s, if it should be running
   // but isn't, restart it. THIS is what keeps the wake word alive after
   // Leviathan speaks — the single-shot resume used to fail and never retry.
   private startWatchdog() {
@@ -281,7 +297,7 @@ export class VoiceEngine {
       if (!this.stopped && !this.recPaused && !this.recRunning) {
         this.startRecognition();
       }
-    }, 2500);
+    }, 1200);
   }
 
   private handleSpeech(interim: string, final: string, altPool = "") {
@@ -312,6 +328,7 @@ export class VoiceEngine {
 
   private wakeUp() {
     this.awake = true;
+    this.awakeSince = Date.now();
     this.pendingUtterance = "";
     this.lastInterim = "";
     this.cb.onWake();
@@ -397,7 +414,7 @@ export class VoiceEngine {
   // driving the entity from the ACTUAL waveform. Returns false on any
   // failure so the caller can fall back to browser TTS.
   private async speakNeural(text: string): Promise<boolean> {
-    if (!this.neuralOk) return false;
+    if (Date.now() < this.neuralCooldownUntil) return false;
     let buf: ArrayBuffer;
     try {
       const res = await fetch(this.ttsUrl(), {
@@ -406,11 +423,12 @@ export class VoiceEngine {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) {
-        if (res.status === 503) this.neuralOk = false; // TTS disabled server-side
+        this.neuralCooldownUntil = Date.now() + 60_000;
         return false;
       }
       buf = await res.arrayBuffer();
     } catch {
+      this.neuralCooldownUntil = Date.now() + 60_000;
       return false;
     }
     if (this.stopped) return true;

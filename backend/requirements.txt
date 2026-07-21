@@ -11,6 +11,10 @@ beautifulsoup4           # page -> readable text
 playwright               # rendered browsing; run: playwright install chromium
 asyncpg                  # Supabase pgvector memory (when SUPABASE_DB_URL set)
 
+# Voice — signature neural TTS. edge-tts is primary (free, keyless,
+# unlimited, SAME voice every time); Gemini TTS is the fallback.
+edge-tts
+
 # Optional — server-side voice (Phase 1 uses the browser's speech APIs by default).
 # Uncomment to enable local STT via the /stt endpoint:
 # faster-whisper==1.0.3

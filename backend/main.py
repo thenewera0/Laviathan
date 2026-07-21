@@ -44,17 +44,19 @@ async def health():
 
 @app.post("/tts")
 async def tts(request: Request):
-    """Neural voice: text -> WAV audio (Gemini). 503 -> client uses browser TTS."""
+    """Signature neural voice: text -> audio (edge-tts primary, Gemini
+    fallback). 503 -> client uses its pinned browser voice."""
     from fastapi import Response
 
     body = await request.json()
     text = (body.get("text") or "").strip()
     if not text:
         return Response(status_code=400)
-    wav = await neural_tts.synthesize(text, body.get("voice"))
-    if not wav:
+    result = await neural_tts.synthesize(text, body.get("voice"))
+    if not result:
         return Response(status_code=503)
-    return Response(content=wav, media_type="audio/wav")
+    audio, mime = result
+    return Response(content=audio, media_type=mime)
 
 
 @app.post("/stt")
