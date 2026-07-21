@@ -34,7 +34,7 @@ export default function GestureLayer({
 
   return (
     <>
-      <div className="absolute bottom-5 left-5 flex flex-col gap-1">
+      <div className="absolute bottom-2 left-64 z-30 flex flex-col gap-1">
         <button
           onClick={() => onToggle(!gesturesOn)}
           className={`w-fit font-data text-[11px] tracking-wider transition-colors focus-visible:text-lumen ${

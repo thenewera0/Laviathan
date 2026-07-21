@@ -71,7 +71,7 @@ export default function MediaLayer({
 
   return (
     <div
-      className={`glass-panel panel-enter absolute right-8 top-24 z-10 overflow-hidden ${
+      className={`glass-panel panel-enter absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 overflow-hidden ${
         wide ? "w-[30rem] max-w-[92vw]" : "w-80 max-w-[85vw]"
       }`}
     >

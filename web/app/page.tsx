@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Captions from "@/components/Captions";
 import CodePanel from "@/components/CodePanel";
 
 import CommandInput from "@/components/Dashboard/CommandInput";
@@ -11,12 +10,9 @@ import QuickActions from "@/components/Dashboard/QuickActions";
 import SidebarLeft from "@/components/Dashboard/SidebarLeft";
 import SidebarRight from "@/components/Dashboard/SidebarRight";
 
-import DeviceRoster from "@/components/DeviceRoster";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
-import TaskPanel from "@/components/TaskPanel";
-import ThoughtStream from "@/components/ThoughtStream";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
 import {
@@ -320,11 +316,7 @@ export default function Home() {
           />
           <QuickActions onAction={handleSendText} />
 
-          {/* Overlays & Panels */}
-          <DeviceRoster />
-          <Captions />
-          <ThoughtStream />
-          <TaskPanel />
+          {/* On-demand panels (deck shows speech, thoughts, tasks, devices) */}
           <CodePanel />
           <MediaLayer
             getLiveStream={getLinkedStream}
