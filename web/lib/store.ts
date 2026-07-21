@@ -62,6 +62,9 @@ interface LeviathanStore {
   pcDevices: string[];
   /** Code the builder wrote — shown in the IDE panel */
   codeProject: { project: string | null; files: { path: string; content: string }[] } | null;
+  /** Device links minted this session — pinned in the dashboard, newest
+   *  first, so the user can always copy them. */
+  deviceLinks: { url: string; purpose: string; at: number }[];
 
   setEntityState: (s: EntityState) => void;
   setAudioLevel: (v: number) => void;
@@ -87,6 +90,7 @@ interface LeviathanStore {
   setCodeProject: (
     p: { project: string | null; files: { path: string; content: string }[] } | null
   ) => void;
+  pushDeviceLink: (url: string, purpose: string) => void;
 }
 
 let wordId = 0;
@@ -113,6 +117,7 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   companionOnline: false,
   pcDevices: [],
   codeProject: null,
+  deviceLinks: [],
 
   setEntityState: (s) => set({ entityState: s }),
   setAudioLevel: (v) => set({ audioLevel: v }),
@@ -147,4 +152,11 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   setCompanionOnline: (v) => set({ companionOnline: v }),
   setPcDevices: (d) => set({ pcDevices: d, companionOnline: d.length > 0 }),
   setCodeProject: (p) => set({ codeProject: p }),
+  pushDeviceLink: (url, purpose) =>
+    set((st) => ({
+      deviceLinks: [
+        { url, purpose, at: Date.now() },
+        ...st.deviceLinks.filter((l) => l.url !== url),
+      ].slice(0, 5),
+    })),
 }));

@@ -12,9 +12,18 @@ export default function SidebarLeft({
 }) {
   const connected = useLeviathan((s) => s.connected);
   const entityState = useLeviathan((s) => s.entityState);
+  const deviceLinks = useLeviathan((s) => s.deviceLinks);
 
   const [timeStr, setTimeStr] = useState("");
   const [dateStr, setDateStr] = useState("");
+  const [copiedUrl, setCopiedUrl] = useState("");
+
+  const copyLink = (url: string) => {
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(""), 1600);
+    });
+  };
 
   useEffect(() => {
     const updateClock = () => {
@@ -151,6 +160,39 @@ export default function SidebarLeft({
             </div>
           </div>
         </div>
+
+        {deviceLinks.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-foam/35 uppercase">
+              Device Links
+            </span>
+            <div className="flex flex-col gap-1.5">
+              {deviceLinks.map((l) => (
+                <div key={l.url} className="glass-panel flex flex-col gap-1 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-data text-[9px] uppercase tracking-[0.2em] text-[#7dd3fc]">
+                      {l.purpose} · active
+                    </span>
+                    <button
+                      onClick={() => copyLink(l.url)}
+                      className="font-data text-[9px] uppercase tracking-wider text-foam/50 transition-colors hover:text-[#38bdf8]"
+                    >
+                      {copiedUrl === l.url ? "copied ✓" : "copy"}
+                    </button>
+                  </div>
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all font-data text-[10px] leading-4 text-foam/55 underline decoration-white/10 underline-offset-2 transition-colors hover:text-[#38bdf8]"
+                  >
+                    {l.url.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1 border-t border-white/[0.06] pt-4 font-data text-[11px] tracking-widest text-foam/40">
           <div className="flex items-center gap-2">

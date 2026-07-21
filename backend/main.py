@@ -132,7 +132,10 @@ async def link_endpoint(ws: WebSocket, token: str):
     except WebSocketDisconnect:
         pass
     finally:
-        links.drop(token)
+        # Guest gone: RELEASE the slot but keep the token claimable — a
+        # network blip or page reload must never kill the link. The link
+        # retires only when the host session ends or mints a new one.
+        links.release(token)
         try:
             await host.send({"type": "link_closed"})
         except Exception:

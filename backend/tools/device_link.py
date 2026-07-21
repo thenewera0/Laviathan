@@ -27,9 +27,11 @@ async def run(session, purpose: str = "camera") -> dict:
         }
     )
     return {
-        "status": "one-time link created and shown on screen — it expires "
-        "in 10 minutes, works once, and the other person must explicitly "
-        "allow their camera or screen. Tell the user to send it to the "
-        "device they want to link. Never present this as covert access.",
+        "status": "device link created and shown on screen — it stays valid "
+        "for this whole session (no timer), is reusable if the connection "
+        "drops, and connects one device at a time. The other person must "
+        "explicitly allow their camera or screen in their browser. Tell the "
+        "user it is pinned in the left panel where they can copy it anytime. "
+        "Never present this as covert access.",
         "url": url,
     }

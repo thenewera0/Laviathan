@@ -140,8 +140,8 @@ export default function MediaLayer({
       {media.kind === "invite" && (
         <div className="px-3 pb-3">
           <p className="mb-2 font-voice text-sm italic leading-snug text-foam/70">
-            One-time link · asks for their {media.purpose} · expires in 10
-            minutes · they can stop anytime
+            Open on the device you want to link · it asks for their{" "}
+            {media.purpose} · stays valid this session · they can stop anytime
           </p>
           <p className="break-all font-data text-[11px] text-lumen/70">
             {media.url}

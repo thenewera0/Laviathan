@@ -146,6 +146,8 @@ export default function Home() {
                 url: msg.url,
                 purpose: msg.purpose,
               });
+              // Pin it in the dashboard + history so it's always copyable
+              s.pushDeviceLink(msg.url, msg.purpose);
               navigator.clipboard?.writeText(msg.url).catch(() => {});
             } else if (msg.action === "play_music") {
               s.setMedia({

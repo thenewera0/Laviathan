@@ -361,13 +361,14 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "name": "create_device_link",
         "description": (
-            "Mint a ONE-TIME consent link that lets another device share "
-            "its camera or screen with this session over WebRTC. The "
-            "other person must open the link and explicitly approve in "
-            "their browser; the link expires in 10 minutes and either "
-            "side can stop it. Use when the user asks to 'link my phone', "
-            "'see through another device', 'connect that laptop'. This is "
-            "always consensual — refuse any covert framing."
+            "Mint a consent link that lets another device share its camera "
+            "or screen with this session over WebRTC. The other person must "
+            "open the link and explicitly approve in their browser; the "
+            "link stays valid for this whole session, reconnects after "
+            "drops, serves one device at a time, and either side can stop "
+            "it. Use when the user asks to 'link my phone', 'see through "
+            "another device', 'connect that laptop'. This is always "
+            "consensual — refuse any covert framing."
         ),
         "parameters": {
             "type": "object",

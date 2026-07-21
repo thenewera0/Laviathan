@@ -3,7 +3,8 @@
 // The guest side of a device link. Nothing is shared until the person
 // on THIS device clicks share and approves the browser's permission
 // prompt. A visible indicator stays on while sharing; stop ends it
-// instantly. The link token works once and expires.
+// instantly. The link stays valid for the host session's lifetime and
+// reconnects after drops — one device at a time.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { iceServers } from "@/lib/rtc";
@@ -17,6 +18,7 @@ export default function LinkPage() {
   const [stage, setStage] = useState<Stage>("idle");
   const [purpose, setPurpose] = useState("camera");
   const [conn, setConn] = useState(""); // live connection state, shown to user
+  const [shareError, setShareError] = useState(""); // never fail silently
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -31,10 +33,12 @@ export default function LinkPage() {
     const ws = new WebSocket(WS_BASE.replace(/\/ws$/, "") + `/link/${token}`);
     wsRef.current = ws;
 
+    let gotReady = false;
     ws.onmessage = async (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.type === "link_invalid") setStage("invalid");
       if (msg.type === "link_ready") {
+        gotReady = true;
         setPurpose(msg.purpose ?? "camera");
         setStage("choose");
       }
@@ -50,14 +54,21 @@ export default function LinkPage() {
         }
       }
     };
+    // A close during "connecting" must never hang the page on
+    // "reaching across…" — surface it as ended so RETRY appears.
     ws.onclose = () =>
-      setStage((s) => (s === "sharing" || s === "choose" ? "ended" : s));
+      setStage((s) =>
+        s === "sharing" || s === "choose" || (s === "connecting" && !gotReady)
+          ? "ended"
+          : s
+      );
 
     return () => stopSharing(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const share = useCallback(async (kind: "camera" | "screen") => {
+    setShareError("");
     try {
       const stream =
         kind === "camera"
@@ -103,8 +114,22 @@ export default function LinkPage() {
         })
       );
       setStage("sharing");
-    } catch {
-      /* permission denied — stay on choose */
+    } catch (err: any) {
+      // NEVER fail silently — tell the person exactly what to fix.
+      const name = err?.name ?? "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setShareError(
+          kind === "camera"
+            ? "camera blocked — tap the lock icon in the address bar, allow Camera & Microphone, then try again"
+            : "screen share was cancelled or blocked — try again and pick a screen"
+        );
+      } else if (name === "NotFoundError") {
+        setShareError("no camera found on this device");
+      } else if (name === "NotReadableError") {
+        setShareError("the camera is busy in another app — close it and try again");
+      } else {
+        setShareError("could not start sharing — reload this page and try again");
+      }
     }
   }, []);
 
@@ -130,10 +155,19 @@ export default function LinkPage() {
       )}
 
       {stage === "invalid" && (
-        <p className="max-w-sm font-data text-[12px] leading-5 text-cold">
-          this link is spent or expired — links work once and die after ten
-          minutes. Ask for a fresh one.
-        </p>
+        <div className="flex flex-col items-center gap-4">
+          <p className="max-w-sm font-data text-[12px] leading-5 text-cold">
+            this link isn&apos;t active — either another device is connected
+            on it right now, or the Leviathan session that created it has
+            closed. Ask for a fresh link, or retry.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="border border-lumen/30 px-5 py-2 font-data text-[12px] tracking-wider text-lumen transition-colors hover:bg-lumen/10"
+          >
+            retry
+          </button>
+        </div>
       )}
 
       {stage === "choose" && (
@@ -158,6 +192,11 @@ export default function LinkPage() {
               share screen
             </button>
           </div>
+          {shareError && (
+            <p className="max-w-sm font-data text-[11px] leading-5 text-glint">
+              {shareError}
+            </p>
+          )}
         </>
       )}
 
@@ -181,9 +220,18 @@ export default function LinkPage() {
       )}
 
       {stage === "ended" && (
-        <p className="font-data text-[12px] tracking-wider text-foam/40">
-          the link is closed. this device shares nothing now.
-        </p>
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-data text-[12px] tracking-wider text-foam/40">
+            the connection closed. this device shares nothing now — the link
+            is still valid, so you can reconnect.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="border border-lumen/30 px-5 py-2 font-data text-[12px] tracking-wider text-lumen transition-colors hover:bg-lumen/10"
+          >
+            reconnect
+          </button>
+        </div>
       )}
     </main>
   );
