@@ -231,6 +231,10 @@ void main() {
   // Sun-like radiant heat: hot blue-white energy pumping out from the core
   float radiate = pow(0.5 + 0.5 * sin(facing * 7.0 - uFlow * 2.6), 3.0) * pow(facing, 1.5);
   col += vec3(0.45, 0.72, 1.05) * radiate * (0.16 + uSpeak * 0.2 + uAudio * 0.25);
+  // surface ejections — hot flares breaking across the skin like a star
+  float ej = sin(n.x * 10.0 + uFlow * 1.4) * sin(n.y * 9.0 - uFlow * 1.1) * sin(n.z * 11.0 + uFlow * 0.8);
+  float eject = pow(max(ej, 0.0), 3.0);
+  col += vec3(0.55, 0.80, 1.10) * eject * (0.3 + facing * 0.5) * (0.5 + uGlow);
   vec3 mirageHue = iridescence(uFlow * 0.05) * (0.4 + 0.6 * facing);
   col = mix(col, mirageHue, 0.025 * (0.5 + 0.5 * sin(uFlow * 0.3)));
 
@@ -400,7 +404,18 @@ void main() {
   float coreGlow = pow(smoothstep(0.26, 0.0, R), 2.6);
   col += vec3(0.5, 0.82, 1.05) * coreGlow * (2.2 + uAudio * 1.0);
 
-  float alpha = clamp(density * 1.5 + coreGlow, 0.0, 1.0);
+  // nebula clouds — coloured gas (pink HII, teal, gold) drifting through arms
+  float nb = snoise(vec3(p * 1.3, spin * 0.3));
+  float nb2 = snoise(vec3(p * 0.7, spin * 0.15));
+  vec3 pink = vec3(0.95, 0.35, 0.62);
+  vec3 teal = vec3(0.22, 0.90, 0.85);
+  vec3 gold = vec3(1.00, 0.74, 0.36);
+  vec3 nebula = mix(pink, teal, 0.5 + 0.5 * nb2);
+  nebula = mix(nebula, gold, smoothstep(0.45, 0.95, nb));
+  float nebAmt = smoothstep(0.4, 0.95, nb) * rad;
+  col += nebula * nebAmt * (0.4 + density) * 1.2;
+
+  float alpha = clamp(density * 1.5 + coreGlow + nebAmt * 0.5, 0.0, 1.0);
   gl_FragColor = vec4(col, alpha);
 }
 `;

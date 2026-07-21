@@ -17,8 +17,6 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useLeviathan, type EntityState } from "@/lib/store";
 import {
-  AURA_FRAGMENT,
-  AURA_VERTEX,
   BEAM_FRAGMENT,
   BEAM_VERTEX,
   FRAGMENT_SHADER,
@@ -28,8 +26,8 @@ import {
 } from "./shaders";
 
 // ---- Scene framing (safe to tweak) --------------------------------------
-const ORB_POS: [number, number, number] = [0, 0.4, 0];   // lift the orb up
-const ORB_SCALE = 0.82;                                   // contain its size
+const ORB_POS: [number, number, number] = [0, 0.12, 0];  // centre, slightly low
+const ORB_SCALE = 0.92;                                   // a touch bigger
 const CAM_POS: [number, number, number] = [0, 0.9, 5.0];  // pull back + above
 const CAM_LOOK: [number, number, number] = [0, -0.25, 0]; // tilt down onto floor
 const PEDESTAL_POS: [number, number, number] = [0, -1.15, 0];
@@ -61,7 +59,6 @@ function damp(current: number, target: number, lambda: number, dt: number) {
 
 function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
   const mesh = useRef<THREE.Mesh>(null!);
-  const aura = useRef<THREE.Mesh>(null!);
   const flow = useRef(0);
   const smoothedAudio = useRef(0);
   const { pointer } = useThree();
@@ -80,16 +77,6 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
       uError: { value: 0 },
     }),
     []
-  );
-
-  // The aura reads the same flow/glow/error signals as the body
-  const auraUniforms = useMemo(
-    () => ({
-      uFlow: uniforms.uFlow,
-      uGlow: uniforms.uGlow,
-      uError: uniforms.uError,
-    }),
-    [uniforms]
   );
 
   useFrame((_, rawDt) => {
@@ -130,10 +117,6 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
 
     // The whole mass turns, slowly — a body, not a decal
     mesh.current.rotation.z += dt * 0.02 * motionScale;
-    if (aura.current) {
-      aura.current.position.copy(mesh.current.position);
-      aura.current.scale.setScalar(mesh.current.scale.x * 1.36);
-    }
 
     // Gaze-follow: it looks at YOU when the webcam sees a face (MediaPipe,
     // on-device); the cursor is the stand-in otherwise.
@@ -157,17 +140,8 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
           uniforms={uniforms}
         />
       </mesh>
-      <mesh ref={aura}>
-        <icosahedronGeometry args={[1, 24]} />
-        <shaderMaterial
-          vertexShader={AURA_VERTEX}
-          fragmentShader={AURA_FRAGMENT}
-          uniforms={auraUniforms}
-          transparent
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+      {/* aura shell removed — no surrounding circle; heat now radiates from
+          the orb's own surface (see FRAGMENT_SHADER ejections). */}
     </group>
   );
 }
@@ -288,10 +262,14 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
       pos[i * 3 + 1] = r * Math.sin(theta);
       pos[i * 3 + 2] = randn() * 0.03; // thin disc
       const f = r / RGAL;
+      const roll = Math.random();
       let c: [number, number, number];
-      if (r < 0.55) c = [0.72, 0.86, 1.0]; // core white-blue
-      else if (Math.random() < 0.05) c = [0.95, 0.66, 0.34]; // sparse warm star
-      else c = [0.2 - f * 0.14, 0.6 - f * 0.36, 1.0 - f * 0.28]; // cyan -> deep blue
+      if (r < 0.55) c = [0.78, 0.9, 1.0];            // blazing core white-blue
+      else if (roll < 0.05) c = [0.98, 0.55, 0.32];  // orange old star
+      else if (roll < 0.09) c = [0.98, 0.45, 0.72];  // pink HII region
+      else if (roll < 0.13) c = [1.0, 0.96, 0.9];    // hot white
+      else if (roll < 0.2) c = [0.35, 0.95, 0.92];   // teal
+      else c = [0.2 - f * 0.14, 0.6 - f * 0.34, 1.0 - f * 0.26]; // blue arms
       col[i * 3] = c[0];
       col[i * 3 + 1] = c[1];
       col[i * 3 + 2] = c[2];
@@ -309,7 +287,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <group position={PEDESTAL_POS}>
       {/* flat, slowly spinning galactic disc + star field */}
-      <group rotation={[-Math.PI / 2, 0, 0]}>
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={0.8}>
         <group ref={spin}>
           <mesh>
             <planeGeometry args={[RGAL * 2, RGAL * 2]} />
