@@ -10,68 +10,84 @@ html,
 body {
   height: 100%;
   overflow: hidden;
-  background: #04080a;
-  color: #9fb8b2;
+  background: #050507;
+  color: #c7d0e0;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Abyss backdrop: the entity floats in a faint pressure gradient, never flat black */
+/* Deep universe — near-black with almost-invisible volumetric lighting, no
+   full-canvas gradients. Light pools only where the core lives. */
 body {
   background:
-    radial-gradient(120vmax 90vmax at 50% 120%, rgba(10, 26, 40, 0.85), transparent 60%),
-    radial-gradient(90vmax 70vmax at 50% -20%, rgba(14, 24, 48, 0.55), transparent 55%),
-    #04070c;
+    radial-gradient(60vmax 60vmax at 50% 44%, rgba(30, 40, 90, 0.16), transparent 62%),
+    radial-gradient(80vmax 50vmax at 50% 116%, rgba(20, 34, 70, 0.2), transparent 60%),
+    #050507;
+}
+
+/* Elegant thin UI type (Apple / SF Pro / Inter feel) */
+.type-ui {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+    system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.015em;
 }
 
 ::selection {
-  background: rgba(139, 124, 240, 0.28);
+  background: rgba(120, 140, 255, 0.28);
 }
 
-/* Ambient halo seating the orb in the scene — violet/blue pressure bloom */
+/* faint star / energy-dust field behind everything */
+.starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(200, 215, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 70% 20%, rgba(180, 200, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(200, 215, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 85% 60%, rgba(160, 190, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 55% 85%, rgba(200, 215, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 15% 80%, rgba(180, 200, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 90% 35%, rgba(200, 215, 255, 0.35), transparent);
+  background-size: 100% 100%;
+  opacity: 0.5;
+  mask-image: radial-gradient(circle at 50% 46%, transparent 22%, black 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 46%, transparent 22%, black 80%);
+}
+
+/* Ambient halo seating the orb — deep blue/violet, restrained */
 .orb-halo {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(38vmax 38vmax at 50% 46%, rgba(120, 110, 240, 0.10), transparent 62%),
-    radial-gradient(26vmax 26vmax at 50% 46%, rgba(80, 130, 255, 0.08), transparent 60%);
-  mask-image: radial-gradient(circle at 50% 46%, black 20%, transparent 75%);
-  -webkit-mask-image: radial-gradient(circle at 50% 46%, black 20%, transparent 75%);
+    radial-gradient(30vmax 30vmax at 50% 44%, rgba(90, 90, 210, 0.09), transparent 62%),
+    radial-gradient(20vmax 20vmax at 50% 44%, rgba(60, 110, 230, 0.07), transparent 60%);
+  mask-image: radial-gradient(circle at 50% 44%, black 16%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle at 50% 44%, black 16%, transparent 72%);
 }
 
-/* ---- HUD design system --------------------------------------------- */
-
-/* faint instrument grid — atmosphere, not decoration */
-.hud-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(120, 130, 245, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 130, 245, 0.03) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 34%, black 90%);
-}
-
-/* premium glass surface shared by every panel */
+/* ---- GLASS 2.0 -------------------------------------------------------- */
+/* Real transparent glass: heavy blur, soft edge highlight, subtle interior
+   refraction, whisper-quiet shadow. Not a dark card — a floating sheet. */
+.glass,
 .glass-panel {
-  background: linear-gradient(
-    160deg,
-    rgba(10, 22, 30, 0.86),
-    rgba(6, 12, 20, 0.9)
-  );
+  position: relative;
+  border-radius: 24px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01) 46%),
+    rgba(12, 15, 26, 0.42);
+  backdrop-filter: blur(24px) saturate(1.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
   border: 1px solid transparent;
-  border-radius: 16px;
   background-clip: padding-box;
   box-shadow:
-    0 30px 80px -24px rgba(0, 0, 0, 0.8),
-    0 0 40px -18px rgba(120, 110, 240, 0.35),
-    inset 0 1px 0 rgba(139, 124, 240, 0.1);
-  position: relative;
-  backdrop-filter: blur(20px) saturate(1.15);
+    0 40px 90px -34px rgba(0, 0, 0, 0.85),
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 0 60px -30px rgba(110, 120, 240, 0.35) inset;
 }
-/* gradient hairline border via a masked pseudo-frame */
+/* soft gradient hairline that catches the core's light */
+.glass::before,
 .glass-panel::before {
   content: "";
   position: absolute;
@@ -79,10 +95,10 @@ body {
   border-radius: inherit;
   padding: 1px;
   background: linear-gradient(
-    160deg,
-    rgba(139, 124, 240, 0.5),
-    rgba(96, 165, 250, 0.22) 42%,
-    transparent 72%
+    150deg,
+    rgba(160, 175, 255, 0.4),
+    rgba(120, 200, 255, 0.14) 38%,
+    rgba(255, 255, 255, 0.02) 70%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -91,91 +107,74 @@ body {
   mask-composite: exclude;
   pointer-events: none;
 }
+/* faint instrument grid — atmosphere, not decoration */
+.hud-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(120, 130, 245, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 130, 245, 0.022) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at 50% 46%, transparent 40%, black 92%);
+  -webkit-mask-image: radial-gradient(circle at 50% 46%, transparent 40%, black 92%);
+}
 
-/* panels rise and focus in */
+/* ---- motion: everything breathes, nothing snaps -------------------- */
+@keyframes float-a {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+.float-a { animation: float-a 9s ease-in-out infinite; }
+.float-b { animation: float-b 11s ease-in-out infinite; }
+
 @keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.98);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
+  from { opacity: 0; transform: translateY(16px) scale(0.985); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
-.panel-enter {
-  animation: panel-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+.panel-enter { animation: panel-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* instrument readouts fade up on mount */
 @keyframes hud-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.hud-enter {
-  animation: hud-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+.hud-enter { animation: hud-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* corner brackets grow in when Leviathan surfaces */
 @keyframes bracket-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0.5;
-  }
+  from { opacity: 0; }
+  to { opacity: 0.5; }
 }
-.hud-bracket {
-  animation: bracket-in 1.4s ease-out 0.2s both;
-}
+.hud-bracket { animation: bracket-in 1.4s ease-out 0.2s both; }
 
-/* Captions surface word by word, like speech condensing */
 @keyframes surface-word {
-  from {
-    opacity: 0;
-    transform: translateY(0.35em);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
-
 .caption-word {
   display: inline-block;
   animation: surface-word 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
 }
+.status-live { animation: pulse-dot 2.4s ease-in-out infinite; }
 
-.status-live {
-  animation: pulse-dot 2.4s ease-in-out infinite;
+/* a soft traveling shimmer along the timeline / active rows */
+@keyframes breathe-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
+.breathe-glow { animation: breathe-glow 3s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .caption-word,
-  .status-live,
-  .panel-enter,
-  .hud-enter,
-  .hud-bracket {
+  .caption-word, .status-live, .panel-enter, .hud-enter, .hud-bracket,
+  .float-a, .float-b, .breathe-glow {
     animation: none;
   }
 }

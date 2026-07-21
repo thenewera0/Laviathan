@@ -304,7 +304,8 @@ export default function Home() {
 
       {surfaced ? (
         <>
-          {/* Ambient violet/blue bloom seating the orb in the scene */}
+          {/* Deep-universe backdrop + ambient core bloom */}
+          <div className="starfield" />
           <div className="orb-halo" />
           {/* Dashboard HUD & Frame */}
           <HudFrame />

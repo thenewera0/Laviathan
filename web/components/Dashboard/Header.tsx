@@ -28,20 +28,20 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
     : "I am listening. How may I assist you?";
 
   return (
-    <header className="pointer-events-auto absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-8 py-6 select-none">
+    <header className="type-ui pointer-events-auto absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-10 py-7 select-none">
       {/* Top Left Branding */}
-      <div className="flex flex-col gap-0.5">
-        <span className="font-voice text-xl font-light tracking-[0.45em] text-white/90">
+      <div className="flex flex-col gap-1">
+        <span className="text-lg font-thin tracking-[0.5em] text-white/90">
           LEVIATHAN
         </span>
-        <span className="font-data text-[10px] tracking-[0.25em] text-white/40">
+        <span className="text-[10px] font-light tracking-[0.3em] text-white/35">
           Autonomous AI Entity
         </span>
       </div>
 
       {/* Center Header Greeting & Live Status */}
-      <div className="flex flex-col items-center gap-1.5">
-        <h1 className="font-voice text-2xl font-light tracking-wide text-foam/95">
+      <div className="flex flex-col items-center gap-2">
+        <h1 className="text-2xl font-thin tracking-[0.06em] text-white/95">
           {getGreeting()}, Akash
         </h1>
         <div className="flex items-center gap-2 font-data text-xs text-[#a99cf5]/90">
@@ -57,23 +57,23 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
 
       {/* Top Right Controls (Voice Mode badge & Settings) */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-[#8f7bf0]/30 bg-black/40 px-3.5 py-1.5 shadow-[0_0_20px_-6px_rgba(139,124,240,0.6)] backdrop-blur-md">
-          <svg className="h-3.5 w-3.5 text-[#8f7bf0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
+        <div className="glass flex items-center gap-2 !rounded-full px-4 py-2">
+          <svg className="h-3.5 w-3.5 text-[#8ea2ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
           </svg>
-          <span className="font-data text-[11px] font-medium uppercase tracking-widest text-foam/80">
+          <span className="text-[11px] font-light uppercase tracking-[0.2em] text-white/75">
             Voice Mode
           </span>
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#8f7bf0] opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#8f7bf0]" />
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#8ea2ff] opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#8ea2ff]" />
           </span>
         </div>
 
         {/* Settings Button */}
         <button
           onClick={onOpenSettings}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-white/60 transition-colors hover:border-white/20 hover:text-white"
+          className="glass flex h-10 w-10 items-center justify-center !rounded-2xl text-white/60 transition-colors hover:text-white"
           aria-label="Settings"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
