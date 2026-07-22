@@ -24,6 +24,7 @@ async def run(session, purpose: str = "camera") -> dict:
             "action": "show_link_invite",
             "url": url,
             "purpose": purpose,
+            "token": token,  # web stores it, re-registers on reconnect
         }
     )
     return {

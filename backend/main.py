@@ -111,15 +111,33 @@ async def link_endpoint(ws: WebSocket, token: str):
     from linking import registry as links
 
     await ws.accept()
-    link = links.claim(token, ws)
-    if link is None:
+    claimed = links.claim(token, ws)
+    if claimed is None:
+        # Token unknown: the host never made this link, or a restart wiped
+        # it and the host hasn't reconnected yet. Actionable message.
         await ws.send_text(json.dumps({"type": "link_invalid"}))
         await ws.close()
         return
+    link, prev_guest = claimed
+
+    # Last opener wins: kick any stale/previous guest off this token.
+    if prev_guest is not None and prev_guest is not ws:
+        try:
+            await prev_guest.send_text(json.dumps({"type": "link_superseded"}))
+            await prev_guest.close()
+        except Exception:
+            pass
 
     host = link["session"]
     try:
-        await host.send({"type": "link_guest_joined", "purpose": link["purpose"]})
+        # If the host session is gone (its main tab closed), tell the guest
+        # clearly instead of a dead half-connection.
+        try:
+            await host.send({"type": "link_guest_joined", "purpose": link["purpose"]})
+        except Exception:
+            await ws.send_text(json.dumps({"type": "link_host_offline"}))
+            await ws.close()
+            return
         await ws.send_text(json.dumps({"type": "link_ready", "purpose": link["purpose"]}))
         while True:
             raw = await ws.receive_text()
@@ -128,14 +146,19 @@ async def link_endpoint(ws: WebSocket, token: str):
             except json.JSONDecodeError:
                 continue
             if msg.get("type") == "signal":
-                await host.send({"type": "link_signal", "data": msg.get("data")})
+                # host may have reconnected: re-fetch the current session
+                cur = links.LINKS.get(token, link)["session"]
+                try:
+                    await cur.send({"type": "link_signal", "data": msg.get("data")})
+                except Exception:
+                    await ws.send_text(json.dumps({"type": "link_host_offline"}))
+                    break
     except WebSocketDisconnect:
         pass
     finally:
-        # Guest gone: RELEASE the slot but keep the token claimable — a
-        # network blip or page reload must never kill the link. The link
-        # retires only when the host session ends or mints a new one.
-        links.release(token)
+        # Release only if THIS guest still owns the slot (a takeover may
+        # have replaced us), keeping the token claimable for reconnects.
+        links.release(token, ws)
         try:
             await host.send({"type": "link_closed"})
         except Exception:

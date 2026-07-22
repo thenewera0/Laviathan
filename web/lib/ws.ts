@@ -17,6 +17,7 @@ export type ServerAction =
       action: "show_link_invite";
       url: string;
       purpose: string;
+      token?: string;
     }
   | {
       type: "action";
@@ -70,6 +71,17 @@ export class LeviathanSocket {
     this.ws.onopen = () => {
       this.retry = 0;
       this.onStatus(true);
+      // Re-register any active device link so it survives this reconnect
+      // (and backend restarts) — the guest URL keeps working.
+      try {
+        const saved = localStorage.getItem("leviathan_link");
+        if (saved) {
+          const { token, purpose } = JSON.parse(saved);
+          if (token) this.send({ type: "relink", token, purpose });
+        }
+      } catch {
+        /* no stored link */
+      }
     };
 
     this.ws.onmessage = (ev) => {

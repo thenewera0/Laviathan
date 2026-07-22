@@ -12,7 +12,14 @@ import { iceServers } from "@/lib/rtc";
 const WS_BASE =
   process.env.NEXT_PUBLIC_LEVIATHAN_WS ?? "ws://localhost:8000/ws";
 
-type Stage = "idle" | "connecting" | "choose" | "sharing" | "ended" | "invalid";
+type Stage =
+  | "idle"
+  | "connecting"
+  | "choose"
+  | "sharing"
+  | "ended"
+  | "invalid"
+  | "host_offline";
 
 export default function LinkPage() {
   const [stage, setStage] = useState<Stage>("idle");
@@ -35,41 +42,70 @@ export default function LinkPage() {
       setStage("invalid");
       return;
     }
-    setStage("connecting");
-    const ws = new WebSocket(WS_BASE.replace(/\/ws$/, "") + `/link/${token}`);
-    wsRef.current = ws;
 
-    let gotReady = false;
-    ws.onmessage = async (ev) => {
-      const msg = JSON.parse(ev.data);
-      if (msg.type === "link_invalid") setStage("invalid");
-      if (msg.type === "link_ready") {
-        gotReady = true;
-        setPurpose(msg.purpose ?? "camera");
-        setStage("choose");
-      }
-      if (msg.type === "signal" && pcRef.current) {
-        if (msg.data?.sdp?.type === "answer") {
-          await pcRef.current.setRemoteDescription(msg.data.sdp);
-        } else if (msg.data?.candidate) {
-          try {
-            await pcRef.current.addIceCandidate(msg.data.candidate);
-          } catch {
-            /* teardown race */
+    let attempts = 0;
+    let closedByUs = false;
+    let settled = false; // reached a real state (ready/invalid/offline)
+
+    const connect = () => {
+      setStage("connecting");
+      const ws = new WebSocket(WS_BASE.replace(/\/ws$/, "") + `/link/${token}`);
+      wsRef.current = ws;
+
+      ws.onmessage = async (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === "link_invalid") {
+          settled = true;
+          setStage("invalid");
+        }
+        if (msg.type === "link_host_offline") {
+          settled = true;
+          setStage("host_offline");
+        }
+        if (msg.type === "link_superseded") {
+          settled = true;
+          setStage("ended"); // another device took over this link
+        }
+        if (msg.type === "link_ready") {
+          settled = true;
+          setPurpose(msg.purpose ?? "camera");
+          setStage("choose");
+        }
+        if (msg.type === "signal" && pcRef.current) {
+          if (msg.data?.sdp?.type === "answer") {
+            await pcRef.current.setRemoteDescription(msg.data.sdp);
+          } else if (msg.data?.candidate) {
+            try {
+              await pcRef.current.addIceCandidate(msg.data.candidate);
+            } catch {
+              /* teardown race */
+            }
           }
         }
-      }
-    };
-    // A close during "connecting" must never hang the page on
-    // "reaching across…" — surface it as ended so RETRY appears.
-    ws.onclose = () =>
-      setStage((s) =>
-        s === "sharing" || s === "choose" || (s === "connecting" && !gotReady)
-          ? "ended"
-          : s
-      );
+      };
 
-    return () => stopSharing(true);
+      ws.onclose = () => {
+        if (closedByUs) return;
+        // Transient close before we ever got a real state (cold start on a
+        // free-tier backend, host still reconnecting) — retry a few times
+        // before giving up, so a slow wake never looks like a dead link.
+        if (!settled && attempts < 5) {
+          attempts += 1;
+          setTimeout(connect, Math.min(1200 * attempts, 4000));
+          return;
+        }
+        setStage((s) =>
+          s === "sharing" || s === "choose" ? "ended" : settled ? s : "ended"
+        );
+      };
+      ws.onerror = () => ws.close();
+    };
+    connect();
+
+    return () => {
+      closedByUs = true;
+      stopSharing(true);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -181,9 +217,24 @@ export default function LinkPage() {
       {stage === "invalid" && (
         <div className="flex flex-col items-center gap-4">
           <p className="max-w-sm font-data text-[12px] leading-5 text-cold">
-            this link isn&apos;t active — either another device is connected
-            on it right now, or the Leviathan session that created it has
-            closed. Ask for a fresh link, or retry.
+            this link isn&apos;t recognised — it may have been replaced by a
+            newer one. Ask Leviathan for a fresh link, then open that.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="border border-lumen/30 px-5 py-2 font-data text-[12px] tracking-wider text-lumen transition-colors hover:bg-lumen/10"
+          >
+            retry
+          </button>
+        </div>
+      )}
+
+      {stage === "host_offline" && (
+        <div className="flex flex-col items-center gap-4">
+          <p className="max-w-sm font-data text-[12px] leading-5 text-cold">
+            Leviathan isn&apos;t connected right now. Open Leviathan on the
+            main device (or wait a moment for it to wake), then retry — this
+            link starts working again the instant it reconnects.
           </p>
           <button
             onClick={() => window.location.reload()}

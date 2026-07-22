@@ -61,6 +61,14 @@ class BrainSession:
         elif kind == "frame":
             if self._frame_future and not self._frame_future.done():
                 self._frame_future.set_result(msg.get("data") or "")
+        elif kind == "relink":
+            # Host reconnected (or backend restarted) — re-register its link
+            # token to THIS live session so the guest URL keeps working.
+            from linking import registry as links
+
+            tok = msg.get("token")
+            if tok:
+                links.rebind(tok, self, msg.get("purpose") or "camera")
         elif kind == "link_signal":
             # Host's SDP/ICE answer -> relay to the linked guest device
             from linking import registry as links

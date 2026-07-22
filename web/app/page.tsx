@@ -148,6 +148,18 @@ export default function Home() {
               });
               // Pin it in the dashboard + history so it's always copyable
               s.pushDeviceLink(msg.url, msg.purpose);
+              // Remember the token so the link survives reconnects/restarts
+              // (re-registered on every WS reopen).
+              try {
+                if (msg.token) {
+                  localStorage.setItem(
+                    "leviathan_link",
+                    JSON.stringify({ token: msg.token, purpose: msg.purpose })
+                  );
+                }
+              } catch {
+                /* storage unavailable */
+              }
               navigator.clipboard?.writeText(msg.url).catch(() => {});
             } else if (msg.action === "play_music") {
               s.setMedia({
