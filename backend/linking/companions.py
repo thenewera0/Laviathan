@@ -35,3 +35,18 @@ def drop_ws(ws) -> dict | None:
             COMPANIONS.pop(code)
             return entry
     return None
+
+
+def handle_command(code: str, command: str) -> None:
+    entry = get(code)
+    if entry and entry["session"]:
+        session = entry["session"]
+        if command.startswith("open_app:"):
+            app_name = command[len("open_app:"):]
+            session.send({"type": "open_app", "app_name": app_name})
+        elif command.startswith("search:"):
+            query = command[len("search:"):]
+            session.send({"type": "search", "query": query})
+        elif command.startswith("perform_function:"):
+            function_name = command[len("perform_function:"):]
+            session.send({"type": "perform_function", "function_name": function_name})
