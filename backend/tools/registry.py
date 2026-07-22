@@ -13,6 +13,7 @@ from tools import (
     code_run,
     computer,
     device_link,
+    devices,
     image,
     memory_tools,
     research,
@@ -409,6 +410,126 @@ TOOL_SCHEMAS: list[dict] = [
             "required": [],
         },
     },
+    {
+        "name": "list_network_devices",
+        "description": (
+            "List the devices on the user's OWN local network (phones, TVs, "
+            "printers, other computers) as seen by a paired PC — IP, MAC, "
+            "and name. Read-only, like the device list in a router. Use for "
+            "'what's on my network' / 'what devices are connected'. Needs a "
+            "paired computer."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string", "description": "hostname to query; omit for all paired PCs"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "device_vitals",
+        "description": (
+            "Live health of the user's paired PC(s): CPU, memory, disk, "
+            "battery, uptime. Use for 'how's my computer', 'is it running "
+            "hot', 'how much memory is free'. Also updates the on-screen "
+            "vitals. Needs a paired computer."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string", "description": "hostname; omit for all paired PCs"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "control_media",
+        "description": (
+            "Control media playback/volume on a paired PC. Use for 'pause', "
+            "'next song', 'turn it up', 'mute'."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["play_pause", "next", "prev", "vol_up", "vol_down", "mute"],
+                },
+                "device": {"type": "string", "description": "hostname; omit for all"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "system_action",
+        "description": (
+            "Do a system action on a paired PC: lock the screen, sleep it, "
+            "take a screenshot, show a notification, or read/write the "
+            "clipboard. lock/sleep/clipboard-write ask the user to confirm "
+            "on the PC unless trusted mode is on."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["lock", "sleep", "screenshot", "notify",
+                             "clipboard_get", "clipboard_set"],
+                },
+                "value": {"type": "string", "description": "text for notify / clipboard_set"},
+                "device": {"type": "string", "description": "hostname; omit for all"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "list_processes",
+        "description": (
+            "List the top running processes by memory on a paired PC. Use "
+            "for 'what's using my memory', 'what's running'."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string", "description": "hostname; omit for all"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "kill_process",
+        "description": (
+            "Close/terminate processes matching a name on a paired PC (e.g. "
+            "'close Chrome'). Asks the user to confirm on the PC unless "
+            "trusted mode is on."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "process name to close, e.g. 'chrome'"},
+                "device": {"type": "string", "description": "hostname; omit for all"},
+            },
+            "required": ["name"],
+        },
+    },
+    {
+        "name": "set_trusted",
+        "description": (
+            "Turn TRUSTED MODE on or off for a paired PC. When on, "
+            "state-changing actions (run, lock, sleep, kill, clipboard "
+            "write) run WITHOUT asking the user to confirm each time. Only "
+            "enable when the user explicitly asks to trust the machine."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "on": {"type": "boolean", "description": "true to enable, false to disable"},
+                "device": {"type": "string", "description": "hostname; omit for all"},
+            },
+            "required": ["on"],
+        },
+    },
 ]
 
 _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
@@ -432,6 +553,13 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "read_path": computer.read_path,
     "run_command": computer.run_command,
     "preview_project": computer.preview_project,
+    "list_network_devices": devices.list_network_devices,
+    "device_vitals": devices.device_vitals,
+    "control_media": devices.control_media,
+    "system_action": devices.system_action,
+    "list_processes": devices.list_processes,
+    "kill_process": devices.kill_process,
+    "set_trusted": devices.set_trusted,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -456,6 +584,13 @@ THOUGHT_LINES = {
     "read_path": "studying — {path}",
     "run_command": "asking your leave to run — {command}",
     "preview_project": "raising a preview — {name}",
+    "list_network_devices": "sensing the currents of your network",
+    "device_vitals": "reading the pulse of your machine",
+    "control_media": "conducting the sound — {action}",
+    "system_action": "reaching into the machine — {action}",
+    "list_processes": "counting the living threads",
+    "kill_process": "silencing — {name}",
+    "set_trusted": "deepening our trust",
 }
 
 

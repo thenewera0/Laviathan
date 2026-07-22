@@ -172,6 +172,9 @@ export default function Home() {
           case "companion":
             s.setPcDevices(msg.devices ?? (msg.status === "online" ? ["PC"] : []));
             break;
+          case "vitals":
+            s.setDeviceVitals(msg.data);
+            break;
           case "link_signal":
             handleLinkSignal(
               msg.data,

@@ -46,6 +46,7 @@ export type ServerMessage =
   | { type: "link_signal"; data: any }
   | { type: "link_closed" }
   | { type: "companion"; status: "online" | "offline"; devices?: string[] }
+  | { type: "vitals"; device?: string; data: Record<string, any> }
   | { type: "error"; message: string }
   | ServerAction;
 

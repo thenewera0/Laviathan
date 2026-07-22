@@ -132,12 +132,23 @@ export default function SidebarRight() {
     return () => cancelAnimationFrame(animId);
   }, [audioLevel, entityState]);
 
-  const vitals = [
-    { label: "CPU", value: "23%", color: "#38bdf8", d: "M0,10 Q12,2 25,12 T50,8" },
-    { label: "MEM", value: "66%", color: "#60a5fa", d: "M0,12 Q15,4 30,10 T50,5" },
-    { label: "NET", value: "42%", color: "#34d399", d: "M0,8 Q10,14 25,4 T50,11" },
-    { label: "TMP", value: "42°C", color: "#f59e0b", d: "M0,11 Q15,3 32,12 T50,7" },
-  ];
+  const dv = useLeviathan((s) => s.deviceVitals);
+  // Real vitals from a paired PC (via the companion) when present; a paired
+  // machine with no reading yet shows "—"; no companion shows the dash too.
+  const pct = (v: any) => (typeof v === "number" ? `${Math.round(v)}%` : "—");
+  const vitals = dv
+    ? [
+        { label: "CPU", value: pct(dv.cpu_percent), color: "#38bdf8", d: "M0,10 Q12,2 25,12 T50,8" },
+        { label: "MEM", value: pct(dv.memory_percent), color: "#60a5fa", d: "M0,12 Q15,4 30,10 T50,5" },
+        { label: "DISK", value: pct(dv.disk_percent), color: "#34d399", d: "M0,8 Q10,14 25,4 T50,11" },
+        { label: "BATT", value: dv.battery ?? "—", color: "#f59e0b", d: "M0,11 Q15,3 32,12 T50,7" },
+      ]
+    : [
+        { label: "CPU", value: "—", color: "#38bdf8", d: "M0,10 Q12,2 25,12 T50,8" },
+        { label: "MEM", value: "—", color: "#60a5fa", d: "M0,12 Q15,4 30,10 T50,5" },
+        { label: "DISK", value: "—", color: "#34d399", d: "M0,8 Q10,14 25,4 T50,11" },
+        { label: "BATT", value: "—", color: "#f59e0b", d: "M0,11 Q15,3 32,12 T50,7" },
+      ];
 
   const liveOps =
     tasks.length > 0
