@@ -17,6 +17,7 @@ from tools import (
     image,
     memory_tools,
     research,
+    schedule_tools,
     search,
     translate,
     vision,
@@ -530,6 +531,64 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["on"],
         },
     },
+    {
+        "name": "set_reminder",
+        "description": (
+            "Remind the user once, later. Give in_minutes (relative) OR "
+            "at_time (a clock time like '8am' or '20:30'). Leviathan speaks "
+            "the reminder itself when it comes due — even if the app was "
+            "idle. Use for 'remind me to…', 'in 20 minutes…', 'at 5pm…'."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "what to remind them about"},
+                "in_minutes": {"type": "number", "description": "minutes from now"},
+                "at_time": {"type": "string", "description": "clock time, e.g. '8am', '20:30'"},
+            },
+            "required": ["text"],
+        },
+    },
+    {
+        "name": "set_routine",
+        "description": (
+            "Run an instruction automatically EVERY DAY at a set time — a "
+            "morning briefing, an evening summary, a recurring check. The "
+            "instruction runs the full tool loop and is spoken. Use for "
+            "'every morning brief me on…', 'each evening…'. For a one-off "
+            "later, use set_reminder instead."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "instruction": {
+                    "type": "string",
+                    "description": "what to do daily, phrased as a request, e.g. 'give me a short news brief on AI'",
+                },
+                "at_time": {"type": "string", "description": "daily time, e.g. '8am', '07:30'"},
+            },
+            "required": ["instruction", "at_time"],
+        },
+    },
+    {
+        "name": "list_schedules",
+        "description": "List the user's active reminders and daily routines.",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    },
+    {
+        "name": "cancel_schedule",
+        "description": (
+            "Cancel a reminder or routine by its id, by matching words in "
+            "it, or 'all' to clear everything."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "which": {"type": "string", "description": "id, matching text, or 'all'"},
+            },
+            "required": ["which"],
+        },
+    },
 ]
 
 _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
@@ -560,6 +619,10 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "list_processes": devices.list_processes,
     "kill_process": devices.kill_process,
     "set_trusted": devices.set_trusted,
+    "set_reminder": schedule_tools.set_reminder,
+    "set_routine": schedule_tools.set_routine,
+    "list_schedules": schedule_tools.list_schedules,
+    "cancel_schedule": schedule_tools.cancel_schedule,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -591,6 +654,10 @@ THOUGHT_LINES = {
     "list_processes": "counting the living threads",
     "kill_process": "silencing — {name}",
     "set_trusted": "deepening our trust",
+    "set_reminder": "marking the hour — {text}",
+    "set_routine": "setting a rhythm — {instruction}",
+    "list_schedules": "recalling what is set",
+    "cancel_schedule": "unmarking — {which}",
 }
 
 

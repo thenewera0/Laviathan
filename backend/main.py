@@ -165,11 +165,20 @@ async def link_endpoint(ws: WebSocket, token: str):
             pass
 
 
+@app.on_event("startup")
+async def _start_scheduler():
+    from scheduling import manager
+    await manager.start()
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
+    from scheduling import manager
+
     await ws.accept()
     session = BrainSession(ws)
     await session.send_meta()
+    await manager.register(session)  # proactive delivery target
     try:
         while True:
             raw = await ws.receive_text()
@@ -180,6 +189,8 @@ async def ws_endpoint(ws: WebSocket):
             await session.handle(msg)
     except WebSocketDisconnect:
         session._cancel_current()
+    finally:
+        manager.unregister(session)
 
 
 if __name__ == "__main__":
