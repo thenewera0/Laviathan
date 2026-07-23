@@ -3,11 +3,19 @@
 import { useEffect, useRef } from "react";
 import { useLeviathan } from "@/lib/store";
 
+function relTime(at: number): string {
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  return `${Math.round(s / 3600)}h ago`;
+}
+
 export default function SidebarRight() {
   const tasks = useLeviathan((s) => s.tasks);
   const audioLevel = useLeviathan((s) => s.audioLevel);
   const entityState = useLeviathan((s) => s.entityState);
   const pcDevices = useLeviathan((s) => s.pcDevices);
+  const activity = useLeviathan((s) => s.activity);
 
   const canvasRef = useRef<HTMLCanvasElement>(null!);
 
@@ -150,21 +158,42 @@ export default function SidebarRight() {
         { label: "BATT", value: "—", color: "#f59e0b", d: "M0,11 Q15,3 32,12 T50,7" },
       ];
 
+  const boltIcon = (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+  // Real operations: live background tasks first, else the genuine recent
+  // activity feed, else an honest idle state — never invented data.
   const liveOps =
     tasks.length > 0
       ? tasks.map((t) => ({
           id: t.id,
-          icon: (
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          ),
+          icon: boltIcon,
           title: t.label,
           status: t.status === "running" ? "In Progress" : t.status === "done" ? "Completed" : "Failed",
           time: "just now",
           tone: t.status === "failed" ? "text-rose-400" : t.status === "done" ? "text-[#34d399]" : "text-[#38bdf8]",
         }))
-      : defaultOps;
+      : activity.length > 0
+        ? activity.map((a) => ({
+            id: String(a.id),
+            icon: boltIcon,
+            title: a.text,
+            status: "done",
+            time: relTime(a.at),
+            tone: "text-[#38bdf8]",
+          }))
+        : [
+            {
+              id: "idle",
+              icon: boltIcon,
+              title: "Awaiting your command",
+              status: "Idle",
+              time: "",
+              tone: "text-foam/40",
+            },
+          ];
 
   return (
     <aside className="pointer-events-auto absolute right-6 top-24 bottom-6 z-20 flex w-80 flex-col gap-4 select-none">

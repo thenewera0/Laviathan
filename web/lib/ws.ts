@@ -49,6 +49,7 @@ export type ServerMessage =
   | { type: "companion"; status: "online" | "offline"; devices?: string[] }
   | { type: "vitals"; device?: string; data: Record<string, any> }
   | { type: "memories"; items: { id: string; text: string; created: string }[] }
+  | { type: "schedules"; items: any[] }
   | { type: "error"; message: string }
   | ServerAction;
 
@@ -136,6 +137,14 @@ export class LeviathanSocket {
 
   forgetMemory(id: string) {
     this.send({ type: "forget_memory", id });
+  }
+
+  getSchedules() {
+    this.send({ type: "get_schedules" });
+  }
+
+  cancelSchedule(id: string) {
+    this.send({ type: "cancel_schedule_ui", id });
   }
 
   close() {

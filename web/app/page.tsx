@@ -14,6 +14,7 @@ import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
 import MemoryPanel from "@/components/MemoryPanel";
+import SchedulesPanel from "@/components/SchedulesPanel";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
 import {
@@ -111,6 +112,7 @@ export default function Home() {
             break;
           case "thought":
             s.pushThought(msg.text);
+            s.pushActivity(msg.text); // real Recent-Activity feed
             break;
           case "task":
             s.upsertTask({
@@ -190,6 +192,9 @@ export default function Home() {
             break;
           case "memories":
             s.setMemories(msg.items);
+            break;
+          case "schedules":
+            s.setSchedules(msg.items);
             break;
           case "link_signal":
             handleLinkSignal(
@@ -343,6 +348,13 @@ export default function Home() {
               onClose={() => setActiveTab("VOICE COMMAND")}
               onRefresh={() => socketRef.current?.getMemories()}
               onForget={(id) => socketRef.current?.forgetMemory(id)}
+            />
+          )}
+          {activeTab === "AUTOMATION" && (
+            <SchedulesPanel
+              onClose={() => setActiveTab("VOICE COMMAND")}
+              onRefresh={() => socketRef.current?.getSchedules()}
+              onCancel={(id) => socketRef.current?.cancelSchedule(id)}
             />
           )}
           <CodePanel />

@@ -62,6 +62,8 @@ interface LeviathanStore {
   pcDevices: string[];
   deviceVitals: Record<string, any> | null;
   memories: { id: string; text: string; created: string }[];
+  activity: { id: number; text: string; at: number }[];
+  schedules: any[];
   /** Code the builder wrote — shown in the IDE panel */
   codeProject: { project: string | null; files: { path: string; content: string }[] } | null;
   /** Device links minted this session — pinned in the dashboard, newest
@@ -91,6 +93,8 @@ interface LeviathanStore {
   setPcDevices: (d: string[]) => void;
   setDeviceVitals: (v: Record<string, any>) => void;
   setMemories: (m: { id: string; text: string; created: string }[]) => void;
+  pushActivity: (text: string) => void;
+  setSchedules: (s: any[]) => void;
   setCodeProject: (
     p: { project: string | null; files: { path: string; content: string }[] } | null
   ) => void;
@@ -122,6 +126,8 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   pcDevices: [],
   deviceVitals: null,
   memories: [],
+  activity: [],
+  schedules: [],
   codeProject: null,
   deviceLinks: [],
 
@@ -159,6 +165,9 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   setPcDevices: (d) => set({ pcDevices: d, companionOnline: d.length > 0 }),
   setDeviceVitals: (v) => set({ deviceVitals: v }),
   setMemories: (m) => set({ memories: m }),
+  setSchedules: (s) => set({ schedules: s }),
+  pushActivity: (text) =>
+    set((st) => ({ activity: [{ id: Date.now() + Math.random(), text, at: Date.now() }, ...st.activity].slice(0, 12) })),
   setCodeProject: (p) => set({ codeProject: p }),
   pushDeviceLink: (url, purpose) =>
     set((st) => ({

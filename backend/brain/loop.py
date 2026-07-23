@@ -62,6 +62,21 @@ class BrainSession:
         elif kind == "frame":
             if self._frame_future and not self._frame_future.done():
                 self._frame_future.set_result(msg.get("data") or "")
+        elif kind == "get_schedules":
+            from scheduling import manager as sched
+            try:
+                items = sched.active()
+            except Exception:
+                items = []
+            await self.send({"type": "schedules", "items": items})
+        elif kind == "cancel_schedule_ui":
+            from scheduling import manager as sched
+            try:
+                await sched.cancel(str(msg.get("id", "")))
+                items = sched.active()
+            except Exception:
+                items = []
+            await self.send({"type": "schedules", "items": items})
         elif kind == "get_memories":
             try:
                 items = await memory.list_all()
