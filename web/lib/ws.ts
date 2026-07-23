@@ -48,6 +48,7 @@ export type ServerMessage =
   | { type: "link_closed" }
   | { type: "companion"; status: "online" | "offline"; devices?: string[] }
   | { type: "vitals"; device?: string; data: Record<string, any> }
+  | { type: "memories"; items: { id: string; text: string; created: string }[] }
   | { type: "error"; message: string }
   | ServerAction;
 
@@ -127,6 +128,14 @@ export class LeviathanSocket {
 
   sendLinkClose() {
     this.send({ type: "link_close" });
+  }
+
+  getMemories() {
+    this.send({ type: "get_memories" });
+  }
+
+  forgetMemory(id: string) {
+    this.send({ type: "forget_memory", id });
   }
 
   close() {

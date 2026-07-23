@@ -61,6 +61,7 @@ interface LeviathanStore {
   /** Names of every paired PC */
   pcDevices: string[];
   deviceVitals: Record<string, any> | null;
+  memories: { id: string; text: string; created: string }[];
   /** Code the builder wrote — shown in the IDE panel */
   codeProject: { project: string | null; files: { path: string; content: string }[] } | null;
   /** Device links minted this session — pinned in the dashboard, newest
@@ -89,6 +90,7 @@ interface LeviathanStore {
   setCompanionOnline: (v: boolean) => void;
   setPcDevices: (d: string[]) => void;
   setDeviceVitals: (v: Record<string, any>) => void;
+  setMemories: (m: { id: string; text: string; created: string }[]) => void;
   setCodeProject: (
     p: { project: string | null; files: { path: string; content: string }[] } | null
   ) => void;
@@ -119,6 +121,7 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   companionOnline: false,
   pcDevices: [],
   deviceVitals: null,
+  memories: [],
   codeProject: null,
   deviceLinks: [],
 
@@ -155,6 +158,7 @@ export const useLeviathan = create<LeviathanStore>((set) => ({
   setCompanionOnline: (v) => set({ companionOnline: v }),
   setPcDevices: (d) => set({ pcDevices: d, companionOnline: d.length > 0 }),
   setDeviceVitals: (v) => set({ deviceVitals: v }),
+  setMemories: (m) => set({ memories: m }),
   setCodeProject: (p) => set({ codeProject: p }),
   pushDeviceLink: (url, purpose) =>
     set((st) => ({

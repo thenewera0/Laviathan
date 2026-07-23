@@ -245,3 +245,46 @@ async def count() -> int:
             return conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0]
 
     return await asyncio.to_thread(_count)
+
+
+async def list_all(limit: int = 200) -> list[dict]:
+    """Everything Leviathan remembers, newest first — for the Memory view."""
+    if settings.supabase_db_url:
+        pool = await _pg_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, text, created_at FROM memories "
+                "ORDER BY created_at DESC LIMIT $1", limit
+            )
+            return [{"id": str(r["id"]), "text": r["text"],
+                     "created": r["created_at"].isoformat() if r["created_at"] else ""}
+                    for r in rows]
+
+    def _read():
+        with _connect() as conn:
+            rows = conn.execute(
+                "SELECT id, text, created_at FROM memories "
+                "ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+            return [{"id": str(r[0]), "text": r[1], "created": str(r[2])} for r in rows]
+
+    return await asyncio.to_thread(_read)
+
+
+async def forget(memory_id: str) -> bool:
+    """Delete one memory by id."""
+    if settings.supabase_db_url:
+        pool = await _pg_pool()
+        async with pool.acquire() as conn:
+            res = await conn.execute("DELETE FROM memories WHERE id=$1", int(memory_id))
+            return res.endswith("1")
+
+    def _del():
+        with _connect() as conn:
+            cur = conn.execute("DELETE FROM memories WHERE id=?", (int(memory_id),))
+            return cur.rowcount > 0
+
+    try:
+        return await asyncio.to_thread(_del)
+    except ValueError:
+        return False

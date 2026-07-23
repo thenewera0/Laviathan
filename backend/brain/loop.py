@@ -27,6 +27,7 @@ class BrainSession:
         self.history: list[dict] = []
         self._task: asyncio.Task | None = None
         self._frame_future: asyncio.Future | None = None
+        self._turns = 0  # user turns, for periodic auto-memory
         # Live translation mode (Phase 4): language code or None
         self.translate_lang: str | None = None
         self.translate_lang_name: str | None = None
@@ -61,6 +62,21 @@ class BrainSession:
         elif kind == "frame":
             if self._frame_future and not self._frame_future.done():
                 self._frame_future.set_result(msg.get("data") or "")
+        elif kind == "get_memories":
+            try:
+                items = await memory.list_all()
+            except Exception:
+                items = []  # a DB hiccup must never drop the session
+            await self.send({"type": "memories", "items": items})
+        elif kind == "forget_memory":
+            mid = msg.get("id")
+            try:
+                if mid:
+                    await memory.forget(str(mid))
+                items = await memory.list_all()
+            except Exception:
+                items = []
+            await self.send({"type": "memories", "items": items})
         elif kind == "relink":
             # Host reconnected (or backend restarted) — re-register its link
             # token to THIS live session so the guest URL keeps working.
@@ -228,6 +244,38 @@ class BrainSession:
             {"type": "reply_done", "text": translated, "lang": self.translate_lang}
         )
 
+    async def _auto_remember(self) -> None:
+        """Quietly distil durable facts from the recent conversation into
+        long-term memory. Runs in the background, one cheap LLM call."""
+        from brain.router import complete
+
+        recent = [m for m in self.history[-12:]
+                  if m.get("role") in ("user", "assistant") and m.get("content")]
+        if len(recent) < 2:
+            return
+        convo = "\n".join(f"{m['role']}: {m['content']}" for m in recent)
+        prompt = (
+            "From this conversation, extract only DURABLE facts worth "
+            "remembering long-term about the user or their world (name, "
+            "preferences, projects, people, decisions, ongoing tasks). "
+            "Write each as one short third-person sentence starting 'The "
+            "user'. Skip small talk and anything transient. If nothing is "
+            "worth keeping, reply exactly NONE.\n\n" + convo
+        )
+        try:
+            out = await complete([{"role": "user", "content": prompt}])
+        except Exception:
+            return
+        if not out or "NONE" in out.upper()[:8]:
+            return
+        for line in out.splitlines():
+            fact = line.strip("-• \t")
+            if len(fact) > 8 and fact.lower().startswith("the user"):
+                try:
+                    await memory.remember(fact)
+                except Exception:
+                    pass
+
     async def _think(self, user_text: str) -> None:
         if self.translate_lang:
             if any(p in user_text.lower() for p in self.STOP_TRANSLATE):
@@ -280,6 +328,12 @@ class BrainSession:
                     self.history.append({"role": "assistant", "content": text})
                     await self.send({"type": "reply_delta", "text": text})
                     await self.send({"type": "reply_done", "text": text})
+                    # Every few turns, quietly distil durable facts from the
+                    # conversation into long-term memory — so Leviathan keeps
+                    # remembering without being told to.
+                    self._turns += 1
+                    if self._turns % 4 == 0:
+                        asyncio.create_task(self._auto_remember())
                     return
 
                 # ACT: run the requested tools, narrate via ThoughtStream

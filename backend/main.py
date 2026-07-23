@@ -186,7 +186,11 @@ async def ws_endpoint(ws: WebSocket):
                 msg = json.loads(raw)
             except json.JSONDecodeError:
                 continue
-            await session.handle(msg)
+            try:
+                await session.handle(msg)
+            except Exception:
+                # one bad message/handler must never drop the whole session
+                pass
     except WebSocketDisconnect:
         session._cancel_current()
     finally:

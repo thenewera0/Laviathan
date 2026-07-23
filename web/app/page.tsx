@@ -13,6 +13,7 @@ import SidebarRight from "@/components/Dashboard/SidebarRight";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
+import MemoryPanel from "@/components/MemoryPanel";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
 import {
@@ -187,6 +188,9 @@ export default function Home() {
           case "vitals":
             s.setDeviceVitals(msg.data);
             break;
+          case "memories":
+            s.setMemories(msg.items);
+            break;
           case "link_signal":
             handleLinkSignal(
               msg.data,
@@ -334,6 +338,13 @@ export default function Home() {
           <QuickActions onAction={handleSendText} />
 
           {/* On-demand panels (deck shows speech, thoughts, tasks, devices) */}
+          {(activeTab === "MEMORY" || activeTab === "KNOWLEDGE") && (
+            <MemoryPanel
+              onClose={() => setActiveTab("VOICE COMMAND")}
+              onRefresh={() => socketRef.current?.getMemories()}
+              onForget={(id) => socketRef.current?.forgetMemory(id)}
+            />
+          )}
           <CodePanel />
           <MediaLayer
             getLiveStream={getLinkedStream}
