@@ -262,7 +262,7 @@ export default function ChatStudio() {
   };
 
   return (
-    <div className="pointer-events-auto absolute left-64 right-6 top-24 bottom-6 z-30 flex overflow-hidden rounded-2xl border border-white/15 bg-[#070b14]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-foam/90">
+    <div className="pointer-events-auto absolute left-56 lg:left-60 right-4 lg:right-6 top-20 bottom-4 z-30 flex overflow-hidden rounded-2xl border border-white/15 bg-[#070b14]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-foam/90 max-h-[calc(100vh-90px)]">
       
       {/* ------------------------------------------------ Left Sidebar */}
       <div className="w-64 border-r border-white/10 bg-black/60 flex flex-col justify-between p-3.5 select-none shrink-0">

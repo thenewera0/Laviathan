@@ -115,9 +115,9 @@ export default function SidebarLeft({
   const isError = entityState === "error";
 
   return (
-    <aside className="pointer-events-auto absolute left-6 top-24 bottom-6 z-20 flex w-56 flex-col justify-between select-none">
+    <aside className="pointer-events-auto absolute left-4 lg:left-6 top-20 bottom-4 z-20 flex w-52 lg:w-56 flex-col justify-between select-none max-h-[calc(100vh-90px)]">
       {/* Navigation Section */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
         <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-foam/35 uppercase">
           Core Interface
         </span>
@@ -129,19 +129,19 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative flex items-center gap-3.5 rounded-lg px-3.5 py-2.5 font-data text-xs tracking-[0.18em] transition-all duration-300 ${
+                className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 font-data text-xs tracking-[0.15em] transition-all duration-300 ${
                   isActive
                     ? "bg-gradient-to-r from-[#38bdf8]/18 to-transparent text-[#bae6fd]"
                     : "text-foam/45 hover:bg-white/[0.04] hover:text-foam/85"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-[#38bdf8] shadow-[0_0_10px_2px_rgba(56,189,248,0.7)]" />
+                  <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-[#38bdf8] shadow-[0_0_10px_2px_rgba(56,189,248,0.7)]" />
                 )}
                 <span className={isActive ? "text-[#38bdf8]" : "text-foam/40 group-hover:text-foam/70"}>
                   {item.icon}
                 </span>
-                <span>{item.id}</span>
+                <span className="truncate">{item.id}</span>
               </button>
             );
           })}
@@ -149,29 +149,22 @@ export default function SidebarLeft({
       </div>
 
       {/* Bottom Section: Entity Status & Clock */}
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2.5">
-          <span className="font-data text-[10px] font-semibold tracking-[0.3em] text-foam/35 uppercase">
-            Entity Status
-          </span>
-
-          <div className="glass-panel flex items-center gap-3.5 p-3.5">
-            <div className="relative flex h-8 w-8 items-center justify-center">
+      <div className="flex flex-col gap-3 pt-2 border-t border-white/10 shrink-0">
+        <div className="flex flex-col gap-2">
+          <div className="glass-panel flex items-center gap-3 p-3">
+            <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
               <span className={`status-live absolute inset-0 rounded-full border ${isError ? "border-rose-500" : "border-[#38bdf8]"} opacity-40`} />
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#38bdf8]"}`}>
-                <span className={`h-2 w-2 rounded-full ${isError ? "bg-rose-500" : "bg-[#38bdf8]"} shadow-[0_0_8px_2px_rgba(56,189,248,0.7)]`} />
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#38bdf8]"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${isError ? "bg-rose-500" : "bg-[#38bdf8]"} shadow-[0_0_8px_2px_rgba(56,189,248,0.7)]`} />
               </span>
             </div>
 
-            <div className="flex flex-col">
-              <span className="font-data text-xs font-semibold tracking-wider text-foam/90">
+            <div className="flex flex-col min-w-0">
+              <span className="font-data text-[11px] font-semibold tracking-wider text-foam/90 truncate">
                 LEVIATHAN CORE
               </span>
-              <span className={`font-data text-[10px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#7dd3fc]"}`}>
+              <span className={`font-data text-[9px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#7dd3fc]"}`}>
                 {isError ? "System Error" : "Online"}
-              </span>
-              <span className="font-data text-[9px] tracking-wide text-foam/40">
-                {connected ? "All systems operational" : "Standby mode"}
               </span>
             </div>
           </div>

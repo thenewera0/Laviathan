@@ -138,19 +138,19 @@ export default function MediaLayer({
       )}
 
       {media.kind === "invite" && (
-        <div className="px-3 pb-3">
-          <p className="mb-2 font-voice text-sm italic leading-snug text-foam/70">
-            Open on the device you want to link · it asks for their{" "}
-            {media.purpose} · stays valid this session · they can stop anytime
+        <div className="p-5 flex flex-col gap-3 bg-[#080d18]/95 border border-[#38bdf8]/30 rounded-xl">
+          <p className="font-data text-xs leading-relaxed text-foam/80">
+            Open this URL on the device you wish to link. It connects securely for{" "}
+            <span className="text-[#7dd3fc] font-semibold">{media.purpose}</span>.
           </p>
-          <p className="break-all font-data text-[11px] text-lumen/70">
+          <div className="bg-black/60 border border-white/10 p-3 rounded-lg font-mono text-[11px] text-[#7dd3fc] break-all">
             {media.url}
-          </p>
+          </div>
           <button
             onClick={() => navigator.clipboard?.writeText(media.url)}
-            className="mt-2 border border-lumen/30 px-3 py-1 font-data text-[11px] tracking-wider text-lumen transition-colors hover:bg-lumen/10"
+            className="w-full py-2 bg-[#38bdf8] text-black font-data text-xs font-bold rounded-lg hover:bg-[#7dd3fc] transition-colors shadow-[0_0_12px_rgba(56,189,248,0.4)]"
           >
-            copy link
+            COPY DEVICE LINK
           </button>
         </div>
       )}

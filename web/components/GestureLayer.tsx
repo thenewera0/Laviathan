@@ -34,11 +34,11 @@ export default function GestureLayer({
 
   return (
     <>
-      <div className="absolute bottom-2 left-64 z-30 flex flex-col gap-1">
+      <div className="absolute bottom-3 right-6 z-30 flex flex-col gap-1 items-end select-none">
         <button
           onClick={() => onToggle(!gesturesOn)}
-          className={`w-fit font-data text-[11px] tracking-wider transition-colors focus-visible:text-lumen ${
-            gesturesOn ? "text-lumen" : "text-foam/40 hover:text-foam/70"
+          className={`w-fit font-data text-[11px] tracking-wider transition-colors px-2 py-1 rounded bg-black/50 border border-white/10 hover:border-[#38bdf8] ${
+            gesturesOn ? "text-[#7dd3fc] border-[#38bdf8]" : "text-foam/40 hover:text-foam/70"
           }`}
         >
           ✋ gestures {gesturesOn ? "on" : "off"}

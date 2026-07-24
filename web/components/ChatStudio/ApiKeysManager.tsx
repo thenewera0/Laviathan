@@ -82,7 +82,7 @@ export default function ApiKeysManager() {
   const activeKeysCount = keys.filter((k) => !k.revoked).length;
 
   return (
-    <div className="pointer-events-auto absolute left-64 right-6 top-24 bottom-6 z-30 flex flex-col p-6 overflow-y-auto rounded-2xl border border-white/15 bg-[#070b14]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-foam/90">
+    <div className="pointer-events-auto absolute left-56 lg:left-60 right-4 lg:right-6 top-20 bottom-4 z-30 flex flex-col p-5 lg:p-6 overflow-y-auto rounded-2xl border border-white/15 bg-[#070b14]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-foam/90 max-h-[calc(100vh-90px)]">
       
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
