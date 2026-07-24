@@ -16,6 +16,7 @@ export default function ApiKeysManager() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [activeCodeTab, setActiveCodeTab] = useState<"curl" | "fetch" | "python" | "openai">("curl");
   const [error, setError] = useState("");
 
   const API_BASE = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_LEVIATHAN_API || "http://localhost:8000") : "http://localhost:8000";
@@ -78,52 +79,81 @@ export default function ApiKeysManager() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
+  const activeKeysCount = keys.filter((k) => !k.revoked).length;
+
   return (
-    <div className="glass-panel pointer-events-auto absolute left-64 right-6 top-24 bottom-6 z-20 flex flex-col p-6 overflow-y-auto text-foam/90">
+    <div className="pointer-events-auto absolute left-64 right-6 top-24 bottom-6 z-30 flex flex-col p-6 overflow-y-auto rounded-2xl border border-white/15 bg-[#070b14]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-foam/90">
+      
+      {/* Top Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
         <div>
-          <h2 className="font-data text-lg font-bold tracking-wider text-foam">LEVIATHAN AI GATEWAY — API KEYS</h2>
+          <h2 className="font-data text-lg font-bold tracking-wider text-foam flex items-center gap-2">
+            <span>🔑</span> LEVIATHAN AI GATEWAY — API KEYS STUDIO
+          </h2>
           <p className="font-data text-xs text-foam/50 mt-1">
-            Single-channel API key to power your external AI apps & websites. Failover rate-limit routing included.
+            Single-channel API keys to power external websites & AI apps with rate-limit budgeting and multi-provider failover.
           </p>
         </div>
-        <span className="font-data text-xs px-3 py-1 rounded bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#7dd3fc]">
-          ACTIVE GATEWAY
-        </span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/30 font-data text-xs text-[#7dd3fc]">
+          <span className="h-2 w-2 rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]" />
+          <span>GATEWAY ONLINE</span>
+        </div>
+      </div>
+
+      {/* Metric Bento Cards */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {[
+          { label: "Active Generated Keys", value: activeKeysCount, icon: "🔑", color: "text-[#38bdf8]" },
+          { label: "Failover Providers", value: "Gemini • Groq • OpenRouter", icon: "⚡", color: "text-[#7dd3fc]" },
+          { label: "RPM Capacity", value: "115 RPM Safety Buffer", icon: "🛡️", color: "text-emerald-400" },
+          { label: "Failover Engine", value: "Smart Task Router", icon: "🔱", color: "text-purple-400" },
+        ].map((m, idx) => (
+          <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-1">
+            <div className="flex items-center justify-between font-data text-[10px] text-foam/40 uppercase tracking-wider">
+              <span>{m.label}</span>
+              <span>{m.icon}</span>
+            </div>
+            <span className={`font-data text-sm font-bold ${m.color} truncate mt-1`}>
+              {m.value}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Key Generation Section */}
       <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mb-6 flex flex-col gap-4">
-        <h3 className="font-data text-sm font-semibold text-foam/80 tracking-wide uppercase">Generate New Secret Key</h3>
+        <h3 className="font-data text-xs font-semibold text-foam/80 tracking-wider uppercase">
+          Generate New Secret Key
+        </h3>
         <div className="flex gap-3">
           <input
             type="text"
-            placeholder="Key Label (e.g. My Website, Sales Bot, App Gateway)"
+            placeholder="Key Label (e.g. Portfolio Website, E-Commerce Bot, Mobile App)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="flex-1 bg-black/40 border border-white/15 rounded-lg px-4 py-2.5 font-data text-xs text-foam placeholder:text-foam/30 focus:outline-none focus:border-[#38bdf8]"
+            className="flex-1 bg-black/60 border border-white/15 rounded-lg px-4 py-2.5 font-data text-xs text-foam placeholder:text-foam/30 focus:outline-none focus:border-[#38bdf8]"
           />
           <button
             onClick={handleGenerateKey}
             disabled={loading || !newLabel.trim()}
-            className="px-5 py-2.5 rounded-lg bg-[#38bdf8] text-black font-data text-xs font-semibold hover:bg-[#7dd3fc] transition-all disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg bg-[#38bdf8] text-black font-data text-xs font-bold hover:bg-[#7dd3fc] transition-all disabled:opacity-40 shadow-[0_0_15px_rgba(56,189,248,0.4)]"
           >
-            {loading ? "Generating..." : "Generate Key"}
+            {loading ? "Generating..." : "+ Generate Key"}
           </button>
         </div>
 
         {error && <p className="text-xs text-rose-400 font-data">{error}</p>}
 
         {createdKey && (
-          <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex flex-col gap-2">
+          <div className="mt-2 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-col gap-2">
             <span className="font-data text-xs text-emerald-400 font-semibold uppercase tracking-wider">
-              NEW API KEY CREATED — Save it safely!
+              NEW SECRET API KEY CREATED — Save it safely!
             </span>
-            <div className="flex items-center justify-between bg-black/50 p-3 rounded font-mono text-xs text-emerald-300">
+            <div className="flex items-center justify-between bg-black/60 p-3 rounded-lg font-mono text-xs text-emerald-300 border border-emerald-500/20">
               <span>{createdKey}</span>
               <button
                 onClick={() => copyToClipboard(createdKey)}
-                className="px-3 py-1 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/40 rounded transition-colors text-xs"
+                className="px-3 py-1 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/40 rounded transition-colors text-xs font-semibold"
               >
                 {copiedKey ? "COPIED ✓" : "COPY KEY"}
               </button>
@@ -134,10 +164,12 @@ export default function ApiKeysManager() {
 
       {/* Keys Table */}
       <div className="flex flex-col gap-3 mb-8">
-        <h3 className="font-data text-sm font-semibold text-foam/80 tracking-wide uppercase">Active Internal Keys</h3>
-        <div className="overflow-x-auto border border-white/10 rounded-xl bg-black/20">
+        <h3 className="font-data text-xs font-semibold text-foam/80 tracking-wider uppercase">
+          Active Generated Keys
+        </h3>
+        <div className="overflow-x-auto border border-white/10 rounded-xl bg-black/30">
           <table className="w-full text-left font-data text-xs">
-            <thead className="bg-white/[0.05] border-b border-white/10 text-foam/60 uppercase tracking-wider">
+            <thead className="bg-white/[0.04] border-b border-white/10 text-foam/50 uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="p-3.5">Label</th>
                 <th className="p-3.5">Key Prefix</th>
@@ -150,17 +182,17 @@ export default function ApiKeysManager() {
               {keys.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-4 text-center text-foam/40">
-                    No keys generated yet. Use the form above to generate your first API key.
+                    No active keys generated yet. Use the input above to create your first API key.
                   </td>
                 </tr>
               ) : (
                 keys.map((k) => (
                   <tr key={k.id} className="hover:bg-white/[0.02]">
-                    <td className="p-3.5 font-medium text-foam/90">{k.label}</td>
-                    <td className="p-3.5 font-mono text-foam/60">{k.prefix}</td>
+                    <td className="p-3.5 font-semibold text-foam/90">{k.label}</td>
+                    <td className="p-3.5 font-mono text-[#7dd3fc]">{k.prefix}</td>
                     <td className="p-3.5 text-foam/50">{new Date(k.created_at).toLocaleDateString()}</td>
                     <td className="p-3.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${k.revoked ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`}>
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase ${k.revoked ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`}>
                         {k.revoked ? "Revoked" : "Active"}
                       </span>
                     </td>
@@ -168,7 +200,7 @@ export default function ApiKeysManager() {
                       {!k.revoked && (
                         <button
                           onClick={() => handleRevokeKey(k.id)}
-                          className="text-xs text-rose-400/70 hover:text-rose-400 transition-colors uppercase tracking-wider"
+                          className="text-xs text-rose-400/70 hover:text-rose-400 transition-colors uppercase tracking-wider font-semibold"
                         >
                           Revoke
                         </button>
@@ -182,21 +214,86 @@ export default function ApiKeysManager() {
         </div>
       </div>
 
-      {/* Integration Code Snippet */}
-      <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 flex flex-col gap-3">
-        <h3 className="font-data text-sm font-semibold text-foam/80 tracking-wide uppercase">Integration Code Snippet</h3>
-        <p className="font-data text-xs text-foam/50">
-          Use your generated key in `X-API-Key` header to route requests to Leviathan Gateway:
-        </p>
+      {/* Interactive Code Integration Studio */}
+      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-data text-xs font-semibold text-foam/80 tracking-wider uppercase">
+            Integration Code Builder
+          </h3>
+          <div className="flex gap-2 font-data text-xs">
+            {[
+              { id: "curl", label: "cURL" },
+              { id: "fetch", label: "JavaScript / Fetch" },
+              { id: "python", label: "Python Requests" },
+              { id: "openai", label: "OpenAI SDK" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCodeTab(tab.id as any)}
+                className={`px-3 py-1 rounded-lg border transition-all ${
+                  activeCodeTab === tab.id
+                    ? "bg-[#38bdf8]/20 border-[#38bdf8] text-[#7dd3fc]"
+                    : "bg-black/40 border-white/10 text-foam/50 hover:text-foam/80"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-xs text-foam/80 space-y-2 overflow-x-auto">
-          <div className="text-[#38bdf8]">// cURL Request</div>
-          <div>{`curl -X POST http://localhost:8000/v1/chat \\`}</div>
-          <div>{`  -H "X-API-Key: YOUR_GENERATED_LVH_KEY" \\`}</div>
-          <div>{`  -H "Content-Type: application/json" \\`}</div>
-          <div>{`  -d '{"prompt": "Hello Leviathan", "model": "gemini-2.5-flash"}'`}</div>
+        <div className="bg-black/70 border border-white/10 rounded-xl p-4 font-mono text-xs text-foam/80 overflow-x-auto leading-relaxed">
+          {activeCodeTab === "curl" && (
+            <pre>{`curl -X POST http://localhost:8000/v1/chat \\
+  -H "X-API-Key: ${createdKey || "lvh-live-your_generated_key"}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "Generate full stack integration route", "model": "llama-3.3-70b-versatile"}'`}</pre>
+          )}
+
+          {activeCodeTab === "fetch" && (
+            <pre>{`const response = await fetch("http://localhost:8000/v1/chat", {
+  method: "POST",
+  headers: {
+    "X-API-Key": "${createdKey || "lvh-live-your_generated_key"}",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    prompt: "Write landing page copy",
+    model: "gemini-2.5-flash"
+  }),
+});
+const data = await response.json();
+console.log(data.reply);`}</pre>
+          )}
+
+          {activeCodeTab === "python" && (
+            <pre>{`import requests
+
+resp = requests.post(
+    "http://localhost:8000/v1/chat",
+    headers={"X-API-Key": "${createdKey || "lvh-live-your_generated_key"}"},
+    json={"prompt": "Explain quantum computing in 2 sentences"}
+)
+print(resp.json()["reply"])`}</pre>
+          )}
+
+          {activeCodeTab === "openai" && (
+            <pre>{`from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="${createdKey || "lvh-live-your_generated_key"}"
+)
+
+resp = client.chat.completions.create(
+    model="leviathan-auto",
+    messages=[{"role": "user", "content": "Hello Leviathan"}]
+)
+print(resp.choices[0].message.content)`}</pre>
+          )}
         </div>
       </div>
+
     </div>
   );
 }

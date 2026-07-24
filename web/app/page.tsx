@@ -333,14 +333,17 @@ export default function Home() {
           <HudFrame />
           <Header />
           <SidebarLeft activeTab={activeTab} onSelectTab={setActiveTab} />
-          <SidebarRight />
-
-          {/* Central Command Input & Quick Actions */}
-          <CommandInput
-            onSubmitText={handleSendText}
-            onMicClick={handleMicTrigger}
-          />
-          <QuickActions onAction={handleSendText} />
+          {/* Central Command Input & Right Sidebar — Voice Command Mode */}
+          {activeTab === "VOICE COMMAND" && (
+            <>
+              <SidebarRight />
+              <CommandInput
+                onSubmitText={handleSendText}
+                onMicClick={handleMicTrigger}
+              />
+              <QuickActions onAction={handleSendText} />
+            </>
+          )}
 
           {/* Chat Studio & API Key Manager */}
           {activeTab === "CHAT STUDIO" && <ChatStudio />}
