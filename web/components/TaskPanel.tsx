@@ -19,7 +19,7 @@ export default function TaskPanel() {
   if (tasks.length === 0) return null;
 
   return (
-    <div className="absolute bottom-24 left-8 w-72 max-w-[80vw] space-y-2">
+    <div className="absolute bottom-20 right-6 z-30 w-80 max-w-[85vw] space-y-2 select-none">
       {tasks.map((t) => (
         <div
           key={t.id}
