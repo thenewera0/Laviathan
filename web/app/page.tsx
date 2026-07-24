@@ -2,14 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ApiKeysManager from "@/components/ChatStudio/ApiKeysManager";
+import ChatStudio from "@/components/ChatStudio/ChatStudio";
 import CodePanel from "@/components/CodePanel";
-
 import CommandInput from "@/components/Dashboard/CommandInput";
 import Header from "@/components/Dashboard/Header";
 import QuickActions from "@/components/Dashboard/QuickActions";
 import SidebarLeft from "@/components/Dashboard/SidebarLeft";
 import SidebarRight from "@/components/Dashboard/SidebarRight";
-
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
@@ -341,6 +341,10 @@ export default function Home() {
             onMicClick={handleMicTrigger}
           />
           <QuickActions onAction={handleSendText} />
+
+          {/* Chat Studio & API Key Manager */}
+          {activeTab === "CHAT STUDIO" && <ChatStudio />}
+          {activeTab === "API KEYS" && <ApiKeysManager />}
 
           {/* On-demand panels (deck shows speech, thoughts, tasks, devices) */}
           {(activeTab === "MEMORY" || activeTab === "KNOWLEDGE") && (

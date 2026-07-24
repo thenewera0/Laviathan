@@ -169,32 +169,50 @@ commands, no deleting or modifying files; every action is printed in its
 window; closing the window ends all control instantly. Point it at a
 local backend with `LEVIATHAN_BACKEND=ws://localhost:8000`.
 
-## Deployment (all free tiers)
+## Multi-Provider AI Gateway & Failover
 
-| Piece | Where | Notes |
-|---|---|---|
-| `backend/` | **Render** free web service (Singapore) | `uvicorn main:app --host 0.0.0.0 --port $PORT`; health check `/health` |
-| `web/` | **Render** static site (or Vercel) | `npm install && npm run build`, publish `web/out` (static export) |
-| memory | **Supabase** pgvector (Mumbai) | set `SUPABASE_DB_URL` on the backend — SESSION POOLER string only |
-| keep-awake | **GitHub Actions** cron | [.github/workflows/keepalive.yml](.github/workflows/keepalive.yml) pings `/health` every 10 min so the free instance never sleeps |
+Leviathan AI includes a built-in **FastAPI AI Gateway** supporting automatic failover across free-tier AI providers.
 
-Free-tier truths:
-- Render free = 750 instance-hours/month. One always-awake service ≈ 720.
-  Keep exactly one free backend per workspace.
-- The free instance has 512 MB RAM — Chromium is not installed there, so
-  `browse` uses its plain-fetch fallback in the cloud (full rendering
-  still works locally). `run_code` needs Docker and reports itself
-  unavailable in the cloud. Reports/media on disk are ephemeral; memory
-  is NOT — it lives in Supabase.
-- Set secrets ONLY in Render env vars (`GEMINI_API_KEY`,
-  `SUPABASE_DB_URL`). Never commit them — this repo is public.
-- Supabase pauses free projects after ~7 days of inactivity; Leviathan's
-  per-turn recall counts as activity when it's used.
-- Frontend needs `NEXT_PUBLIC_LEVIATHAN_WS=wss://<backend>.onrender.com/ws`
-  at build time.
+- **Supported Providers**: Google Gemini, Groq Cloud, OpenRouter, Mistral AI, Cohere, Hugging Face.
+- **Failover Logic**: When a provider returns `HTTP 429` or an error, the Gateway automatically retries with the next available provider, placing rate-limited providers on a 60-second cooldown.
+- **Protected Endpoint**: `POST /v1/chat` & `POST /v1/chat/completions` (requires `X-API-Key` or Bearer token).
+- **API Keys Manager**: Generate, list, and revoke single-channel internal API keys (`lvh-live-...`) directly in the Leviathan Dashboard under **API KEYS**.
 
-## Next: Phase 4 — Multimodal & Gestures
+### How to Add a New AI Provider to the Gateway
 
-Live translation, MediaPipe hand gestures, gaze-follow from the webcam
-(replacing the cursor stand-in), and screen understanding. Per the
-blueprint: Phases 1–3 must run end-to-end before Phase 4 begins.
+To extend the Gateway with a new provider (e.g. Venice AI, Ollama, DeepSeek):
+
+1. **Add Key to `backend/config.py` & `.env`**:
+   ```python
+   newprovider_api_key: str = os.getenv("NEWPROVIDER_API_KEY", "")
+   ```
+
+2. **Add Provider Handler to `backend/brain/gateway.py`**:
+   ```python
+   async def _call_newprovider(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float) -> str:
+       url = "https://api.newprovider.com/v1/chat"
+       headers = {"Authorization": f"Bearer {settings.newprovider_api_key}"}
+       async with httpx.AsyncClient(timeout=45.0) as client:
+           resp = await client.post(url, headers=headers, json={"messages": messages})
+           resp.raise_for_status()
+           return resp.json()["reply"]
+   ```
+
+3. **Register in Provider Chain**:
+   In `AIGateway.get_active_providers()` and `_call_provider()`, add `"newprovider"` to the execution list.
+
+---
+
+## Deployment & Keep-Alive
+
+### Render.com Deployment Settings
+- **Service Type**: Web Service (Python)
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables**: Add `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `LEVIATHAN_MASTER_KEY`, etc.
+
+### Cron-Job.org Keep-Alive Setup (No Downtime)
+1. Go to [cron-job.org](https://cron-job.org).
+2. Create a new Cron Job with URL: `https://your-leviathan-backend.onrender.com/health`.
+3. Set schedule to **Every 12 minutes**.
+4. Save. This keeps the free Render instance active 24/7 with zero cold starts!

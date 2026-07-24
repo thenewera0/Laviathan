@@ -38,16 +38,21 @@ async def complete(messages: list[dict]) -> str:
 
 
 def _provider_chain() -> list[tuple[str, float]]:
-    """Ordered (provider, pre-delay) attempts. Free tiers rate-limit under
-    load, so we retry the primary a couple times, then fail over to the
-    other provider. Both keys present => real cross-provider resilience."""
-    have_or = bool(settings.openrouter_api_key)
+    """Ordered (provider, pre-delay) attempts across configured free tiers."""
     have_gem = bool(settings.gemini_api_key)
+    have_groq = bool(settings.groq_api_key)
+    have_or = bool(settings.openrouter_api_key)
+    have_mis = bool(settings.mistral_api_key)
+
     chain: list[tuple[str, float]] = []
-    if have_or:
-        chain += [("openrouter", 0.0), ("openrouter", 1.2)]
     if have_gem:
-        chain += [("gemini", 0.0), ("gemini", 1.5)]
+        chain += [("gemini", 0.0)]
+    if have_groq:
+        chain += [("groq", 0.0)]
+    if have_or:
+        chain += [("openrouter", 0.0), ("openrouter", 1.0)]
+    if have_mis:
+        chain += [("mistral", 0.0)]
     if not chain:
         chain = [("mock", 0.0)]
     return chain

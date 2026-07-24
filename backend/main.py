@@ -9,19 +9,30 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from brain.api_keys import (
+    check_key_rate_limit,
+    generate_api_key,
+    list_api_keys,
+    revoke_api_key,
+    validate_api_key,
+)
+from brain.gateway import gateway
 from brain.loop import BrainSession
 from config import settings
+from fastapi import File, Header, HTTPException, UploadFile
 from voice import neural_tts, stt
 
-app = FastAPI(title="Leviathan Core", version="0.2.0")
+app = FastAPI(title="Leviathan Core & AI Gateway", version="0.3.0")
+
+# Uploads directory
+UPLOADS_DIR = Path(__file__).parent / "media" / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Generated media (HF images etc.) served to the client
 MEDIA_DIR = Path(__file__).parent / "media"
 MEDIA_DIR.mkdir(exist_ok=True)
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
-# No cookies/credentials are used, so a wildcard origin is safe here;
-# the WebSocket carries no secrets and auth arrives in a later phase.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,12 +44,159 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
+    return {"status": "surfaced", "gateway": "online"}
+
+
+@app.get("/v1/gateway/stats")
+async def gateway_stats_endpoint():
+    """Real-time AI Gateway provider health & rate budget stats."""
     return {
-        "status": "surfaced",
-        "provider": settings.provider,
-        "model": settings.active_model,
-        "server_stt": stt.available(),
-        "neural_tts": neural_tts.available(),
+        "status": "online",
+        "providers": gateway.get_gateway_stats(),
+    }
+
+
+# ---------------------------------------------------------------- AI Gateway APIs
+
+@app.post("/v1/chat")
+async def gateway_chat(
+    request: Request,
+    x_api_key: str = Header(None, alias="X-API-Key"),
+    authorization: str = Header(None, alias="Authorization"),
+):
+    """Protected AI Gateway Chat Endpoint with Task Routing & Rate Budgeting."""
+    api_key = x_api_key
+    if not api_key and authorization and authorization.startswith("Bearer "):
+        api_key = authorization.split("Bearer ")[1].strip()
+
+    client_host = request.client.host if request.client else ""
+    is_local_web = client_host in ("127.0.0.1", "localhost", "::1")
+
+    if is_local_web:
+        valid_key = True
+        key_id = "local"
+    else:
+        valid_key, key_id = validate_api_key(api_key)
+
+    if not valid_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing X-API-Key header. Generate a key in the Leviathan Dashboard.",
+        )
+
+    # Check key sliding window rate limit
+    if not check_key_rate_limit(key_id):
+        raise HTTPException(
+            status_code=429,
+            detail="API Key rate limit exceeded (max 60 requests/min). Please slow down.",
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    prompt = body.get("prompt")
+    system_prompt = body.get("system_prompt", "You are Leviathan AI, an advanced intelligent agent.")
+    messages = body.get("messages", [])
+    model = body.get("model")
+    temperature = float(body.get("temperature", 0.7))
+    files = body.get("files", [])
+
+    if not messages and prompt:
+        messages = [{"role": "user", "content": prompt}]
+
+    if not messages:
+        raise HTTPException(status_code=400, detail="Either 'prompt' or 'messages' array is required.")
+
+    result = await gateway.chat_completion(
+        messages=messages,
+        model=model,
+        system_prompt=system_prompt,
+        temperature=temperature,
+        has_files=bool(files),
+    )
+    return result
+
+
+@app.post("/v1/chat/completions")
+async def gateway_chat_completions(
+    request: Request,
+    x_api_key: str = Header(None, alias="X-API-Key"),
+    authorization: str = Header(None, alias="Authorization"),
+):
+    """OpenAI-Compatible Chat Endpoint."""
+    res = await gateway_chat(request, x_api_key, authorization)
+    if not res.get("success"):
+        raise HTTPException(status_code=500, detail=res.get("reply"))
+
+    return {
+        "id": f"chatcmpl-{settings.active_model}",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": res.get("model", "leviathan-auto"),
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": res.get("reply", ""),
+                },
+                "finish_reason": "stop",
+            }
+        ],
+
+        "provider_used": res.get("provider", "gateway"),
+    }
+
+
+# ---------------------------------------------------------------- API Key Management
+
+@app.post("/v1/keys/generate")
+async def generate_key_endpoint(request: Request):
+    """Generate a new internal API key."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    label = body.get("label", "App Key")
+    new_key = generate_api_key(label=label)
+    return {"success": True, "key_info": new_key}
+
+
+@app.get("/v1/keys")
+async def list_keys_endpoint():
+    """List all active API key prefixes."""
+    keys = list_api_keys()
+    return {"success": True, "keys": keys}
+
+
+@app.delete("/v1/keys/{key_id}")
+async def revoke_key_endpoint(key_id: str):
+    """Revoke an API key."""
+    success = revoke_api_key(key_id)
+    if not success:
+        raise HTTPException(status_code=440, detail="Key ID not found")
+    return {"success": True, "message": "Key revoked"}
+
+
+# ---------------------------------------------------------------- File Upload Route
+
+@app.post("/v1/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload files (images, pdfs, docs) for Chat Studio context."""
+    ext = Path(file.filename).suffix
+    file_id = f"doc_{Path(file.filename).stem}_{int(settings.port)}{ext}"
+    target_path = UPLOADS_DIR / file_id
+    with target_path.open("wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+
+    return {
+        "success": True,
+        "filename": file.filename,
+        "url": f"/media/uploads/{file_id}",
+        "size": len(content),
     }
 
 
