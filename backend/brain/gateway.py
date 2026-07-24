@@ -130,6 +130,8 @@ class SmartAIGateway:
             provs.append("mistral")
         if settings.cohere_api_key:
             provs.append("cohere")
+        if settings.hf_token:
+            provs.append("huggingface")
         if not provs:
             provs.append("mock")
         return provs
@@ -144,25 +146,29 @@ class SmartAIGateway:
 
         # Task-based base preference order
         if task_intent == "VISION":
-            intent_order = ["gemini", "openrouter", "groq", "mistral"]
+            intent_order = ["gemini", "openrouter", "huggingface", "groq", "mistral"]
         elif task_intent == "REASONING_CODE":
-            intent_order = ["groq", "openrouter", "gemini", "mistral"]
+            intent_order = ["groq", "openrouter", "gemini", "mistral", "cohere"]
         elif task_intent == "LONG_CONTEXT":
-            intent_order = ["gemini", "openrouter", "groq", "mistral"]
+            intent_order = ["gemini", "openrouter", "cohere", "groq", "mistral"]
         elif task_intent == "CONVERSATIONAL_FAST":
-            intent_order = ["groq", "gemini", "mistral", "openrouter"]
+            intent_order = ["groq", "gemini", "mistral", "cohere", "openrouter"]
         else:
-            intent_order = ["gemini", "groq", "openrouter", "mistral", "cohere"]
+            intent_order = ["gemini", "groq", "openrouter", "mistral", "cohere", "huggingface"]
 
         # Override if user requested specific model
         if user_model_preference:
             pref = user_model_preference.lower()
             if "gemini" in pref and "gemini" in configured:
                 intent_order = ["gemini"] + [p for p in intent_order if p != "gemini"]
-            elif ("groq" in pref or "llama" in pref) and "groq" in configured:
+            elif ("groq" in pref or "llama" in pref or "qwen" in pref) and "groq" in configured:
                 intent_order = ["groq"] + [p for p in intent_order if p != "groq"]
             elif "mistral" in pref and "mistral" in configured:
                 intent_order = ["mistral"] + [p for p in intent_order if p != "mistral"]
+            elif "cohere" in pref and "cohere" in configured:
+                intent_order = ["cohere"] + [p for p in intent_order if p != "cohere"]
+            elif "huggingface" in pref and "huggingface" in configured:
+                intent_order = ["huggingface"] + [p for p in intent_order if p != "huggingface"]
 
         # Filter and score providers by health state & RPM budget headroom
         usable_providers = []
@@ -262,6 +268,8 @@ class SmartAIGateway:
             return await self._call_mistral(messages, model, temperature)
         elif provider == "cohere":
             return await self._call_cohere(messages, model, temperature)
+        elif provider == "huggingface":
+            return await self._call_huggingface(messages, model, temperature)
         else:
             return await self._call_mock(messages)
 
@@ -272,6 +280,7 @@ class SmartAIGateway:
             "openrouter": settings.openrouter_model,
             "mistral": settings.mistral_model,
             "cohere": settings.cohere_model,
+            "huggingface": "meta-llama/Llama-3.2-3B-Instruct",
             "mock": "leviathan-mock",
         }
         return defaults.get(provider, "default")
@@ -394,6 +403,26 @@ class SmartAIGateway:
             data = resp.json()
             return data.get("text", "")
 
+    async def _call_huggingface(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float) -> str:
+        url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.hf_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "meta-llama/Llama-3.2-3B-Instruct",
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": 1024,
+        }
+
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code != 200:
+                raise RuntimeError(f"HuggingFace HTTP {resp.status_code}: {resp.text}")
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
+
     async def _call_mock(self, messages: List[Dict[str, str]]) -> str:
         await asyncio.sleep(0.3)
         last_user = messages[-1]["content"] if messages else "Hello"
@@ -402,7 +431,7 @@ class SmartAIGateway:
     def get_gateway_stats(self) -> Dict:
         """Return real-time health, RPM usage, and circuit status for monitoring."""
         stats = {}
-        for p in ["gemini", "groq", "openrouter", "mistral", "cohere"]:
+        for p in ["gemini", "groq", "openrouter", "mistral", "cohere", "huggingface"]:
             rpm = _get_provider_current_rpm(p)
             limit = PROVIDER_RPM_LIMITS.get(p, 30)
             state = _get_circuit_state(p)

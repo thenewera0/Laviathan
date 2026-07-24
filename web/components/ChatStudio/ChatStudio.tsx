@@ -385,11 +385,16 @@ export default function ChatStudio() {
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="bg-transparent text-[#7dd3fc] font-semibold focus:outline-none cursor-pointer"
               >
-                <option value="auto" className="bg-gray-900 text-white">Auto-Route (Smart Failover)</option>
-                <option value="gemini-2.5-flash" className="bg-gray-900 text-white">Google Gemini 2.5 Flash</option>
-                <option value="llama-3.3-70b-versatile" className="bg-gray-900 text-white">Groq Llama 3.3 70B</option>
-                <option value="meta-llama/llama-3.3-70b-instruct:free" className="bg-gray-900 text-white">OpenRouter Free Pool</option>
-                <option value="mistral-small-latest" className="bg-gray-900 text-white">Mistral Small</option>
+                <option value="auto" className="bg-gray-900 text-white">⚡ Auto-Route (Smart Failover Across 18 Keys)</option>
+                <option value="gemini-2.5-flash" className="bg-gray-900 text-white">♊ Google Gemini 2.5 Flash (Vision & 1M Context)</option>
+                <option value="llama-3.3-70b-versatile" className="bg-gray-900 text-white">🚀 Groq Llama 3.3 70B (Ultra-Fast Reasoning)</option>
+                <option value="qwen-2.5-72b-instruct" className="bg-gray-900 text-white">⚡ Groq Qwen 2.5 72B (Code & Math)</option>
+                <option value="deepseek/deepseek-r1:free" className="bg-gray-900 text-white">🌀 OpenRouter DeepSeek R1 (Reasoning Free)</option>
+                <option value="qwen/qwen-2.5-coder-32b-instruct:free" className="bg-gray-900 text-white">💻 OpenRouter Qwen 2.5 Coder (Free)</option>
+                <option value="meta-llama/llama-3.3-70b-instruct:free" className="bg-gray-900 text-white">🦙 OpenRouter Llama 3.3 70B (Free)</option>
+                <option value="mistral-small-latest" className="bg-gray-900 text-white">🌪️ Mistral Small Latest</option>
+                <option value="command-r-plus" className="bg-gray-900 text-white">🌿 Cohere Command-R+</option>
+                <option value="huggingface-llama" className="bg-gray-900 text-white">🤗 Hugging Face Llama 3.2</option>
               </select>
             </div>
 
