@@ -156,28 +156,42 @@ async def gateway_chat_completions(
 async def generate_key_endpoint(request: Request):
     """Generate a new internal API key."""
     try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    label = body.get("label", "App Key")
-    new_key = generate_api_key(label=label)
-    return {"success": True, "key_info": new_key}
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        label = body.get("label", "App Key")
+        new_key = generate_api_key(label=label)
+        return {"success": True, "key_info": new_key}
+    except Exception as err:
+        print(f"Key generation failed: {err}")
+        raise HTTPException(status_code=500, detail=f"Key generation failed: {str(err)}")
 
 
 @app.get("/v1/keys")
 async def list_keys_endpoint():
     """List all active API key prefixes."""
-    keys = list_api_keys()
-    return {"success": True, "keys": keys}
+    try:
+        keys = list_api_keys()
+        return {"success": True, "keys": keys}
+    except Exception as err:
+        print(f"Key listing failed: {err}")
+        return {"success": True, "keys": []}
 
 
 @app.delete("/v1/keys/{key_id}")
 async def revoke_key_endpoint(key_id: str):
     """Revoke an API key."""
-    success = revoke_api_key(key_id)
-    if not success:
-        raise HTTPException(status_code=440, detail="Key ID not found")
-    return {"success": True, "message": "Key revoked"}
+    try:
+        success = revoke_api_key(key_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Key ID not found")
+        return {"success": True, "message": "Key revoked"}
+    except HTTPException:
+        raise
+    except Exception as err:
+        print(f"Key revocation failed: {err}")
+        raise HTTPException(status_code=500, detail=f"Key revocation failed: {str(err)}")
 
 
 # ---------------------------------------------------------------- File Upload Route

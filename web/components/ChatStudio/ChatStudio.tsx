@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fetchApi } from "@/lib/apiConfig";
 
 interface FileAttachment {
   name: string;
@@ -127,7 +128,7 @@ export default function ChatStudio() {
       formData.append("file", file);
 
       try {
-        const res = await fetch(`${API_BASE}/v1/upload`, {
+        const res = await fetchApi("/v1/upload", {
           method: "POST",
           body: formData,
         });
@@ -170,19 +171,20 @@ export default function ChatStudio() {
           ? {
               ...s,
               title: newTitle,
+              updatedAt: new Date().toISOString(),
               messages: [...s.messages, userMessage],
             }
           : s
       )
     );
 
-    if (!customPrompt) setInput("");
+    setInput("");
     setAttachments([]);
     setIsToolsOpen(false);
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/chat`, {
+      const res = await fetchApi("/v1/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

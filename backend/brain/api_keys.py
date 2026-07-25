@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Tuple
 from config import settings
 
 DB_DIR = Path(__file__).parent.parent / "data"
-DB_DIR.mkdir(exist_ok=True)
+DB_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DB_DIR / "api_keys.db"
 
 # Sliding window rate limiter for keys: key_id -> list of request timestamps
@@ -23,7 +23,7 @@ DEFAULT_KEY_LIMIT_PER_MINUTE = 60  # Max 60 requests/min per client key
 
 
 def _get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     with conn:
         conn.execute(

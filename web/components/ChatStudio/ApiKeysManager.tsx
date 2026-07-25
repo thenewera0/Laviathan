@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchApi, getApiBaseUrl } from "@/lib/apiConfig";
 
 interface KeyInfo {
   id: string;
@@ -19,11 +20,11 @@ export default function ApiKeysManager() {
   const [activeCodeTab, setActiveCodeTab] = useState<"curl" | "fetch" | "python" | "openai">("curl");
   const [error, setError] = useState("");
 
-  const API_BASE = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_LEVIATHAN_API || "http://localhost:8000") : "http://localhost:8000";
+  const apiBase = getApiBaseUrl();
 
   const fetchKeys = async () => {
     try {
-      const res = await fetch(`${API_BASE}/v1/keys`);
+      const res = await fetchApi("/v1/keys");
       if (res.ok) {
         const data = await res.json();
         setKeys(data.keys || []);
@@ -42,21 +43,22 @@ export default function ApiKeysManager() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/v1/keys/generate`, {
+      const res = await fetchApi("/v1/keys/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: newLabel.trim() }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.key_info) {
         setCreatedKey(data.key_info.key);
         setNewLabel("");
         fetchKeys();
       } else {
-        setError("Failed to generate API key");
+        setError(data.detail || "Failed to generate API key");
       }
-    } catch (e) {
-      setError("Backend connection error");
+    } catch (e: any) {
+      console.error("Backend error during key generation:", e);
+      setError("Backend connection error: Could not reach Leviathan API server");
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function ApiKeysManager() {
 
   const handleRevokeKey = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/v1/keys/${id}`, { method: "DELETE" });
+      const res = await fetchApi(`/v1/keys/${id}`, { method: "DELETE" });
       if (res.ok) {
         fetchKeys();
       }
