@@ -20,7 +20,7 @@ export function getApiBaseUrl(): string {
     return "http://localhost:8000";
   }
 
-  // 3. If running on Render or hosted domain, use origin
+  // 3. If running on Render static web host
   return window.location.origin.replace(/\/+$/, "");
 }
 
@@ -33,20 +33,9 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
     const res = await fetch(primaryUrl, options);
     return res;
   } catch (err) {
-    console.warn(`Fetch to primary API (${primaryUrl}) encountered connection issue. Trying fallbacks...`, err);
+    console.warn(`Fetch to primary API (${primaryUrl}) encountered network issue. Trying fallbacks...`, err);
 
-    // Fallback 1: Relative path on current window origin
-    if (typeof window !== "undefined" && primaryBase !== window.location.origin) {
-      try {
-        const fallbackUrl = `${window.location.origin}${cleanEndpoint}`;
-        const res = await fetch(fallbackUrl, options);
-        return res;
-      } catch (e) {
-        // Continue to fallback 2
-      }
-    }
-
-    // Fallback 2: Localhost 8000
+    // Fallback 1: Localhost 8000
     if (primaryBase !== "http://localhost:8000") {
       try {
         const res = await fetch(`http://localhost:8000${cleanEndpoint}`, options);

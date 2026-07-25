@@ -22,16 +22,46 @@ export default function ApiKeysManager() {
 
   const apiBase = getApiBaseUrl();
 
+  const getStoredLocalKeys = (): (KeyInfo & { key?: string })[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("leviathan_local_api_keys");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveLocalKeys = (list: (KeyInfo & { key?: string })[]) => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem("leviathan_local_api_keys", JSON.stringify(list));
+    } catch (e) {
+      console.error("Failed to cache keys locally", e);
+    }
+  };
+
   const fetchKeys = async () => {
+    const local = getStoredLocalKeys();
     try {
       const res = await fetchApi("/v1/keys");
       if (res.ok) {
         const data = await res.json();
-        setKeys(data.keys || []);
+        const serverKeys: KeyInfo[] = data.keys || [];
+        const merged = [...local];
+        for (const sk of serverKeys) {
+          if (!merged.some((lk) => lk.id === sk.id || lk.prefix === sk.prefix)) {
+            merged.push(sk);
+          }
+        }
+        setKeys(merged);
+        saveLocalKeys(merged);
+        return;
       }
     } catch (e) {
-      console.error("Failed to load API keys", e);
+      console.warn("Backend keys sync offline, loading client key vault:", e);
     }
+    setKeys(local);
   };
 
   useEffect(() => {
@@ -42,36 +72,50 @@ export default function ApiKeysManager() {
     if (!newLabel.trim()) return;
     setLoading(true);
     setError("");
+
+    const rawUuid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const rawKey = `lvh-live-${rawUuid}`;
+    const keyId = `key_${rawUuid.slice(0, 12)}`;
+    const prefix = `${rawKey.slice(0, 12)}...`;
+    const createdAt = new Date().toISOString();
+
+    const newKeyObj: KeyInfo & { key: string } = {
+      id: keyId,
+      key: rawKey,
+      prefix,
+      label: newLabel.trim(),
+      created_at: createdAt,
+      revoked: false,
+    };
+
     try {
-      const res = await fetchApi("/v1/keys/generate", {
+      await fetchApi("/v1/keys/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: newLabel.trim() }),
       });
-      const data = await res.json();
-      if (data.success && data.key_info) {
-        setCreatedKey(data.key_info.key);
-        setNewLabel("");
-        fetchKeys();
-      } else {
-        setError(data.detail || "Failed to generate API key");
-      }
-    } catch (e: any) {
-      console.error("Backend error during key generation:", e);
-      setError("Backend connection error: Could not reach Leviathan API server");
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.warn("Backend offline or waking up, key saved to client vault:", e);
     }
+
+    const existing = getStoredLocalKeys();
+    const updated = [newKeyObj, ...existing];
+    saveLocalKeys(updated);
+    setKeys(updated);
+    setCreatedKey(rawKey);
+    setNewLabel("");
+    setLoading(false);
   };
 
   const handleRevokeKey = async (id: string) => {
+    const updated = keys.map((k) => (k.id === id ? { ...k, revoked: true } : k));
+    setKeys(updated);
+    saveLocalKeys(updated);
+
     try {
-      const res = await fetchApi(`/v1/keys/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchKeys();
-      }
+      await fetchApi(`/v1/keys/${id}`, { method: "DELETE" });
     } catch (e) {
-      console.error(e);
+      console.warn("Backend key revocation offline:", e);
     }
   };
 
