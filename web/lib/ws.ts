@@ -147,6 +147,10 @@ export class LeviathanSocket {
     this.send({ type: "cancel_schedule_ui", id });
   }
 
+  requestDeviceLink(purpose: string = "camera input") {
+    this.sendUserText(`generate device link for ${purpose}`);
+  }
+
   close() {
     this.closed = true;
     this.ws?.close();

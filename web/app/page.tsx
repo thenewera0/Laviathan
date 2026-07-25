@@ -10,11 +10,14 @@ import Header from "@/components/Dashboard/Header";
 import QuickActions from "@/components/Dashboard/QuickActions";
 import SidebarLeft from "@/components/Dashboard/SidebarLeft";
 import SidebarRight from "@/components/Dashboard/SidebarRight";
+import DeviceRoster from "@/components/DeviceRoster";
+import ExecuteStudio from "@/components/ExecuteStudio";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
 import MemoryPanel from "@/components/MemoryPanel";
 import SchedulesPanel from "@/components/SchedulesPanel";
+import SystemDashboard from "@/components/SystemDashboard";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
 import {
@@ -348,6 +351,17 @@ export default function Home() {
           {/* Chat Studio & API Key Manager */}
           {activeTab === "CHAT STUDIO" && <ChatStudio />}
           {activeTab === "API KEYS" && <ApiKeysManager />}
+
+          {/* Devices, Execution, and System Dashboards */}
+          {activeTab === "DEVICES" && (
+            <DeviceRoster
+              onRequestLink={(purpose) => {
+                socketRef.current?.requestDeviceLink(purpose);
+              }}
+            />
+          )}
+          {activeTab === "EXECUTE" && <ExecuteStudio />}
+          {activeTab === "SYSTEM" && <SystemDashboard />}
 
           {/* On-demand panels (deck shows speech, thoughts, tasks, devices) */}
           {(activeTab === "MEMORY" || activeTab === "KNOWLEDGE") && (
