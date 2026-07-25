@@ -24,13 +24,13 @@ export default function CommandInput({
     <div className="pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
       <form onSubmit={handleSubmit} className="relative flex items-center">
         {/* soft aura behind the pill */}
-        <div className="pointer-events-none absolute -inset-1 rounded-full bg-[#38bdf8]/10 blur-xl" />
+        <div className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-[#22d3ee]/20 to-[#a855f7]/20 blur-xl" />
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Speak or type your command"
-          className="relative w-full rounded-full border border-[#38bdf8]/25 bg-black/60 px-6 py-4 pr-14 font-data text-sm tracking-wide text-foam/90 placeholder-foam/35 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl outline-none transition-all duration-300 focus:border-[#38bdf8]/60 focus:bg-black/80 focus:ring-2 focus:ring-[#38bdf8]/25"
+          placeholder="Speak or type your command..."
+          className="relative w-full rounded-full border border-[#22d3ee]/40 bg-[#070b18]/90 px-6 py-4 pr-14 font-data text-sm tracking-wide text-white placeholder-foam/40 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#a855f7] focus:ring-2 focus:ring-[#22d3ee]/30"
         />
 
         {/* Mic & Submit button */}
@@ -38,14 +38,14 @@ export default function CommandInput({
           <button
             type="button"
             onClick={onMicClick}
-            className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${
               micActive
-                ? "animate-pulse bg-[#38bdf8] text-white shadow-[0_0_16px_2px_rgba(56,189,248,0.7)]"
-                : "text-foam/50 hover:bg-white/10 hover:text-white"
+                ? "animate-pulse bg-gradient-to-r from-[#22d3ee] to-[#a855f7] text-white shadow-[0_0_20px_rgba(34,211,238,0.8)]"
+                : "text-[#7dd3fc] hover:bg-white/10 hover:text-white"
             }`}
             aria-label="Activate Microphone"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
             </svg>
           </button>

@@ -434,14 +434,14 @@ export default function ChatStudio() {
             {currentSession.messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full max-w-3xl mx-auto gap-8 my-auto select-none">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="h-16 w-16 rounded-2xl bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center text-3xl shadow-[0_0_30px_rgba(56,189,248,0.2)]">
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#22d3ee]/20 to-[#a855f7]/20 border border-[#22d3ee]/40 flex items-center justify-center text-3xl shadow-[0_0_35px_rgba(34,211,238,0.3)]">
                     🔱
                   </div>
-                  <h2 className="font-data text-xl font-bold tracking-wider text-foam">
+                  <h2 className="font-data text-xl font-bold tracking-wider celestial-text-gradient">
                     How can Leviathan AI assist you today?
                   </h2>
-                  <p className="font-data text-xs text-foam/45 max-w-md">
-                    Requests auto-route across Gemini, Groq, OpenRouter & Mistral free tiers with failover.
+                  <p className="font-data text-xs text-foam/50 max-w-md">
+                    Requests auto-route across Gemini, Groq, OpenRouter, Mistral, Cohere & HuggingFace free tiers with failover.
                   </p>
                 </div>
 
@@ -472,12 +472,12 @@ export default function ChatStudio() {
                     <button
                       key={idx}
                       onClick={() => handleSend(card.prompt)}
-                      className="group flex flex-col gap-1.5 p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#38bdf8]/50 hover:bg-[#38bdf8]/10 text-left transition-all duration-300"
+                      className="group flex flex-col gap-1.5 p-4 rounded-xl bg-[#080e1c]/80 border border-white/10 hover:border-[#22d3ee] hover:bg-gradient-to-br hover:from-[#22d3ee]/10 hover:to-[#a855f7]/10 text-left transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.25)]"
                     >
-                      <span className="font-data text-xs font-semibold text-foam/90 group-hover:text-[#7dd3fc]">
+                      <span className="font-data text-xs font-bold text-foam/90 group-hover:text-[#22d3ee] transition-colors">
                         {card.title}
                       </span>
-                      <span className="font-data text-[11px] text-foam/40 group-hover:text-foam/70">
+                      <span className="font-data text-[11px] text-foam/45 group-hover:text-foam/80 transition-colors">
                         {card.desc}
                       </span>
                     </button>

@@ -60,17 +60,17 @@ export default function QuickActions({
   ];
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 bottom-6 z-20 flex -translate-x-1/2 items-center gap-6 select-none">
+    <div className="pointer-events-auto absolute left-1/2 bottom-5 z-20 flex -translate-x-1/2 items-center gap-6 select-none">
       {actions.map((act) => (
         <button
           key={act.title}
           onClick={() => onAction(act.prompt)}
-          className="group flex flex-col items-center gap-1.5 transition-transform duration-300 hover:-translate-y-0.5"
+          className="group flex flex-col items-center gap-1.5 transition-all duration-300 hover:-translate-y-1"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#38bdf8]/20 bg-black/40 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md transition-all group-hover:border-[#38bdf8]/70 group-hover:bg-[#38bdf8]/10 group-hover:shadow-[0_0_22px_-4px_rgba(56,189,248,0.6)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#22d3ee]/30 bg-[#070b18]/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all duration-300 group-hover:border-[#22d3ee] group-hover:bg-[#22d3ee]/15 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.6)]">
             {act.icon}
           </div>
-          <span className="font-data text-[10px] font-semibold tracking-wider text-foam/90 group-hover:text-[#bae6fd]">
+          <span className="font-data text-[10px] font-bold tracking-wider text-foam/90 group-hover:text-[#22d3ee] transition-colors">
             {act.title}
           </span>
           <span className="font-data text-[9px] tracking-wide text-foam/40">

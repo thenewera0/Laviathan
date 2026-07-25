@@ -129,16 +129,16 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 font-data text-xs tracking-[0.15em] transition-all duration-300 ${
+                className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.18em] transition-all duration-300 ${
                   isActive
-                    ? "bg-gradient-to-r from-[#38bdf8]/18 to-transparent text-[#bae6fd]"
-                    : "text-foam/45 hover:bg-white/[0.04] hover:text-foam/85"
+                    ? "bg-gradient-to-r from-[#22d3ee]/25 via-[#a855f7]/15 to-transparent text-white font-semibold border-l-2 border-[#22d3ee] shadow-[0_0_15px_rgba(34,211,238,0.25)]"
+                    : "text-foam/50 hover:bg-white/[0.05] hover:text-foam"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-[#38bdf8] shadow-[0_0_10px_2px_rgba(56,189,248,0.7)]" />
+                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[#22d3ee] shadow-[0_0_12px_#22d3ee]" />
                 )}
-                <span className={isActive ? "text-[#38bdf8]" : "text-foam/40 group-hover:text-foam/70"}>
+                <span className={isActive ? "text-[#22d3ee] drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "text-foam/40 group-hover:text-foam/80"}>
                   {item.icon}
                 </span>
                 <span className="truncate">{item.id}</span>

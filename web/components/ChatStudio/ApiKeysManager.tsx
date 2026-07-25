@@ -133,28 +133,28 @@ export default function ApiKeysManager() {
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
         <div>
-          <h2 className="font-data text-lg font-bold tracking-wider text-foam flex items-center gap-2">
+          <h2 className="font-data text-lg font-bold tracking-wider text-white flex items-center gap-2 celestial-text-gradient">
             <span>🔑</span> LEVIATHAN AI GATEWAY — API KEYS STUDIO
           </h2>
           <p className="font-data text-xs text-foam/50 mt-1">
             Single-channel API keys to power external websites & AI apps with rate-limit budgeting and multi-provider failover.
           </p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/30 font-data text-xs text-[#7dd3fc]">
-          <span className="h-2 w-2 rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]" />
-          <span>GATEWAY ONLINE</span>
+        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#22d3ee]/10 border border-[#22d3ee]/40 font-data text-xs text-[#22d3ee] shadow-[0_0_15px_rgba(34,211,238,0.25)]">
+          <span className="h-2 w-2 rounded-full bg-[#22d3ee] shadow-[0_0_8px_#22d3ee] animate-pulse" />
+          <span className="font-bold uppercase tracking-wider">GATEWAY ONLINE</span>
         </div>
       </div>
 
       {/* Metric Bento Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Active Generated Keys", value: activeKeysCount, icon: "🔑", color: "text-[#38bdf8]" },
+          { label: "Active Generated Keys", value: activeKeysCount, icon: "🔑", color: "text-[#22d3ee]" },
           { label: "Failover Providers", value: "Gemini • Groq • OpenRouter", icon: "⚡", color: "text-[#7dd3fc]" },
-          { label: "RPM Capacity", value: "115 RPM Safety Buffer", icon: "🛡️", color: "text-emerald-400" },
+          { label: "RPM Capacity", value: "135 RPM Safety Buffer", icon: "🛡️", color: "text-emerald-400" },
           { label: "Failover Engine", value: "Smart Task Router", icon: "🔱", color: "text-purple-400" },
         ].map((m, idx) => (
-          <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-1">
+          <div key={idx} className="p-4 rounded-xl bg-[#080e1c]/80 border border-white/10 flex flex-col gap-1 shadow-lg hover:border-[#22d3ee]/50 transition-all">
             <div className="flex items-center justify-between font-data text-[10px] text-foam/40 uppercase tracking-wider">
               <span>{m.label}</span>
               <span>{m.icon}</span>
