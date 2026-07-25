@@ -25,23 +25,26 @@ export default function CommandInput({
       <form onSubmit={handleSubmit} className="relative flex items-center">
         {/* soft aura behind the pill */}
         <div className="pointer-events-none absolute -inset-1.5 rounded-full bg-gradient-to-r from-[#f472b6]/35 via-[#c084fc]/30 to-[#38bdf8]/35 blur-xl" />
+        <div className="absolute left-5 z-30 font-mono text-xs font-bold text-[#22d3ee] pointer-events-none">
+          SYS_CMD &gt;
+        </div>
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Speak or type your command..."
-          className="relative w-full rounded-full border border-[#f472b6]/40 bg-[#0f172a]/95 px-6 py-4 pr-14 font-data text-sm tracking-wide text-white placeholder-white/45 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#c084fc] focus:ring-2 focus:ring-[#f472b6]/30"
+          placeholder="Speak or type autonomous instruction..."
+          className="relative w-full rounded-full border border-[#f472b6]/40 bg-[#0d1326]/95 pl-24 pr-14 py-4 font-data text-sm tracking-wide text-white placeholder-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.85)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#22d3ee] focus:ring-2 focus:ring-[#f472b6]/30"
         />
 
         {/* Mic & Submit button */}
-        <div className="absolute right-3 flex items-center gap-1.5">
+        <div className="absolute right-3 flex items-center gap-1.5 z-30">
           <button
             type="button"
             onClick={onMicClick}
             className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${
               micActive
                 ? "animate-pulse bg-gradient-to-r from-[#f472b6] via-[#c084fc] to-[#38bdf8] text-white shadow-[0_0_22px_rgba(244,114,182,0.8)]"
-                : "text-[#f472b6] hover:bg-white/10 hover:text-white"
+                : "text-[#22d3ee] hover:bg-white/10 hover:text-white"
             }`}
             aria-label="Activate Microphone"
           >
