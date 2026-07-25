@@ -67,13 +67,13 @@ export default function QuickActions({
           onClick={() => onAction(act.prompt)}
           className="group flex flex-col items-center gap-1.5 transition-all duration-300 hover:-translate-y-1"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#22d3ee]/30 bg-[#070b18]/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all duration-300 group-hover:border-[#22d3ee] group-hover:bg-[#22d3ee]/15 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.6)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-[#0f172a]/90 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all duration-300 group-hover:border-[#f472b6] group-hover:bg-gradient-to-br group-hover:from-[#f472b6]/20 group-hover:to-[#38bdf8]/20 group-hover:shadow-[0_0_25px_rgba(244,114,182,0.6)]">
             {act.icon}
           </div>
-          <span className="font-data text-[10px] font-bold tracking-wider text-foam/90 group-hover:text-[#22d3ee] transition-colors">
+          <span className="font-data text-[10px] font-bold tracking-wider text-white group-hover:text-[#f472b6] transition-colors">
             {act.title}
           </span>
-          <span className="font-data text-[9px] tracking-wide text-foam/40">
+          <span className="font-data text-[9px] tracking-wide text-white/50">
             {act.subtitle}
           </span>
         </button>

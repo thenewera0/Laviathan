@@ -24,13 +24,13 @@ export default function CommandInput({
     <div className="pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
       <form onSubmit={handleSubmit} className="relative flex items-center">
         {/* soft aura behind the pill */}
-        <div className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-[#22d3ee]/20 to-[#a855f7]/20 blur-xl" />
+        <div className="pointer-events-none absolute -inset-1.5 rounded-full bg-gradient-to-r from-[#f472b6]/35 via-[#c084fc]/30 to-[#38bdf8]/35 blur-xl" />
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Speak or type your command..."
-          className="relative w-full rounded-full border border-[#22d3ee]/40 bg-[#070b18]/90 px-6 py-4 pr-14 font-data text-sm tracking-wide text-white placeholder-foam/40 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#a855f7] focus:ring-2 focus:ring-[#22d3ee]/30"
+          className="relative w-full rounded-full border border-[#f472b6]/40 bg-[#0f172a]/95 px-6 py-4 pr-14 font-data text-sm tracking-wide text-white placeholder-white/45 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#c084fc] focus:ring-2 focus:ring-[#f472b6]/30"
         />
 
         {/* Mic & Submit button */}
@@ -40,8 +40,8 @@ export default function CommandInput({
             onClick={onMicClick}
             className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${
               micActive
-                ? "animate-pulse bg-gradient-to-r from-[#22d3ee] to-[#a855f7] text-white shadow-[0_0_20px_rgba(34,211,238,0.8)]"
-                : "text-[#7dd3fc] hover:bg-white/10 hover:text-white"
+                ? "animate-pulse bg-gradient-to-r from-[#f472b6] via-[#c084fc] to-[#38bdf8] text-white shadow-[0_0_22px_rgba(244,114,182,0.8)]"
+                : "text-[#f472b6] hover:bg-white/10 hover:text-white"
             }`}
             aria-label="Activate Microphone"
           >

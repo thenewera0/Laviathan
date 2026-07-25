@@ -122,7 +122,7 @@ export default function SidebarLeft({
           Core Interface
         </span>
 
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1.5">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -131,14 +131,14 @@ export default function SidebarLeft({
                 onClick={() => onSelectTab(item.id)}
                 className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.18em] transition-all duration-300 ${
                   isActive
-                    ? "bg-gradient-to-r from-[#22d3ee]/25 via-[#a855f7]/15 to-transparent text-white font-semibold border-l-2 border-[#22d3ee] shadow-[0_0_15px_rgba(34,211,238,0.25)]"
-                    : "text-foam/50 hover:bg-white/[0.05] hover:text-foam"
+                    ? "bg-gradient-to-r from-[#f472b6]/30 via-[#c084fc]/25 to-[#38bdf8]/30 text-white font-bold border-l-2 border-[#f472b6] shadow-[0_0_20px_rgba(244,114,182,0.35)]"
+                    : "text-white/60 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[#22d3ee] shadow-[0_0_12px_#22d3ee]" />
+                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-gradient-to-b from-[#f472b6] to-[#38bdf8] shadow-[0_0_12px_#f472b6]" />
                 )}
-                <span className={isActive ? "text-[#22d3ee] drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "text-foam/40 group-hover:text-foam/80"}>
+                <span className={isActive ? "text-[#f472b6] drop-shadow-[0_0_8px_rgba(244,114,182,0.9)]" : "text-white/45 group-hover:text-white"}>
                   {item.icon}
                 </span>
                 <span className="truncate">{item.id}</span>
