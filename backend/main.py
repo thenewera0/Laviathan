@@ -131,6 +131,13 @@ async def gateway_chat(
     model = body.get("model")
     temperature = float(body.get("temperature", 0.7))
     files = body.get("files", [])
+    raw_max_tokens = body.get("max_tokens") or body.get("max_output_tokens")
+    max_tokens = None
+    if raw_max_tokens:
+        try:
+            max_tokens = int(raw_max_tokens)
+        except ValueError:
+            max_tokens = None
 
     if not messages and prompt:
         messages = [{"role": "user", "content": prompt}]
@@ -143,6 +150,7 @@ async def gateway_chat(
         model=model,
         system_prompt=system_prompt,
         temperature=temperature,
+        max_tokens=max_tokens,
         has_files=bool(files),
     )
     return result
