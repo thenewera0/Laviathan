@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ThinkingOrb } from "thinking-orbs";
 
 export default function CommandInput({
   onSubmitText,
@@ -25,8 +26,8 @@ export default function CommandInput({
       <form onSubmit={handleSubmit} className="relative flex items-center">
         {/* Soft aura behind the pill */}
         <div className="pointer-events-none absolute -inset-1.5 rounded-full bg-gradient-to-r from-[#00d4ff]/35 via-[#0099ff]/30 to-[#f59e0b]/25 blur-xl" />
-        <div className="absolute left-5 z-30 font-mono text-xs font-bold text-[#00d4ff] pointer-events-none">
-          SYS_CMD &gt;
+        <div className="absolute left-5 z-30 font-mono text-xs font-bold text-[#00d4ff] pointer-events-none flex items-center gap-2">
+          {micActive ? <ThinkingOrb state="listening" size={20} /> : "SYS_CMD >"}
         </div>
         <input
           type="text"

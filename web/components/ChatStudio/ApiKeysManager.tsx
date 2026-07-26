@@ -182,7 +182,7 @@ export default function ApiKeysManager() {
             <span>🔑</span> LEVIATHAN AI GATEWAY — API KEYS & TELEMETRY STUDIO
           </h2>
           <p className="font-data text-xs text-foam/50 mt-1">
-            Manage API keys, track real-time token consumption telemetry, and integrate 24x7 cloud AI endpoints into apps like desknomads.shop.
+            Manage API keys, track real-time token consumption telemetry, and integrate 24x7 cloud AI endpoints into apps like <span className="text-[#38bdf8] font-bold">desknomads.shop</span>. Rate limits are disabled (UNRESTRICTED tier) for heavy workload capability.
           </p>
         </div>
         <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#22d3ee]/10 border border-[#22d3ee]/40 font-data text-xs text-[#22d3ee] shadow-[0_0_15px_rgba(34,211,238,0.25)]">
@@ -279,6 +279,7 @@ export default function ApiKeysManager() {
                 <th className="p-3.5 text-right">Prompt Tokens</th>
                 <th className="p-3.5 text-right">Completion Tokens</th>
                 <th className="p-3.5 text-right">Total Tokens</th>
+                <th className="p-3.5">Tier / Quota</th>
                 <th className="p-3.5">Last Used</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 text-right">Action</th>
@@ -300,6 +301,11 @@ export default function ApiKeysManager() {
                     <td className="p-3.5 text-right text-purple-300">{formatNum(k.prompt_tokens)}</td>
                     <td className="p-3.5 text-right text-pink-300">{formatNum(k.completion_tokens)}</td>
                     <td className="p-3.5 text-right text-[#34d399] font-bold">{formatNum(k.total_tokens)}</td>
+                    <td className="p-3.5 font-data">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30 whitespace-nowrap">
+                        UNRESTRICTED
+                      </span>
+                    </td>
                     <td className="p-3.5 text-white/50 text-[11px] font-data">{relTime(k.last_used_at)}</td>
                     <td className="p-3.5 font-data">
                       <span className={`px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase ${k.revoked ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`}>

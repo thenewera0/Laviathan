@@ -19,7 +19,7 @@ DB_PATH = DB_DIR / "api_keys.db"
 
 # Sliding window rate limiter for keys: key_id -> list of request timestamps
 KEY_REQUEST_WINDOWS: Dict[str, List[float]] = {}
-DEFAULT_KEY_LIMIT_PER_MINUTE = 300  # High-capacity budget (300 req/min) for heavy apps like desknomads.shop
+DEFAULT_KEY_LIMIT_PER_MINUTE = 60000  # UNRESTRICTED capacity (60,000 req/min) for heavy apps like desknomads.shop
 
 
 def _get_db():

@@ -17,11 +17,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useLeviathan, type EntityState } from "@/lib/store";
 import {
-  BEAM_FRAGMENT,
-  BEAM_VERTEX,
   FRAGMENT_SHADER,
-  GALAXY_FRAGMENT,
-  GALAXY_VERTEX,
   VERTEX_SHADER,
 } from "./shaders";
 
@@ -235,99 +231,9 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
   );
 }
 
-// A dense, spinning spiral galaxy beneath the entity — thousands of stars on
-// log-spiral arms, a blazing blue life-core, and a column of light pouring up
-// into the orb, which drinks its power.
-const RGAL = 3.6;
 
-function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
-  const spin = useRef<THREE.Group>(null!);
-  const uniforms = useMemo(
-    () => ({ uFlow: { value: 0 }, uAudio: { value: 0 } }),
-    []
-  );
 
-  const { positions, colors } = useMemo(() => {
-    const N = 12000;
-    const pos = new Float32Array(N * 3);
-    const col = new Float32Array(N * 3);
-    const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
-    for (let i = 0; i < N; i++) {
-      const r = Math.pow(Math.random(), 0.5) * RGAL;
-      const arm = i % 3;
-      const armAngle = (arm * 2 * Math.PI) / 3;
-      const spread = randn() * 0.5 * (0.35 + r / RGAL);
-      const theta = armAngle + 3.0 * Math.log(r + 0.2) + spread;
-      pos[i * 3] = r * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.sin(theta);
-      pos[i * 3 + 2] = randn() * 0.03; // thin disc
-      const f = r / RGAL;
-      const roll = Math.random();
-      let c: [number, number, number];
-      if (r < 0.55) c = [0.78, 0.9, 1.0];            // blazing core white-blue
-      else if (roll < 0.05) c = [0.98, 0.55, 0.32];  // orange old star
-      else if (roll < 0.09) c = [0.98, 0.45, 0.72];  // pink HII region
-      else if (roll < 0.13) c = [1.0, 0.96, 0.9];    // hot white
-      else if (roll < 0.2) c = [0.35, 0.95, 0.92];   // teal
-      else c = [0.2 - f * 0.14, 0.6 - f * 0.34, 1.0 - f * 0.26]; // blue arms
-      col[i * 3] = c[0];
-      col[i * 3 + 1] = c[1];
-      col[i * 3 + 2] = c[2];
-    }
-    return { positions: pos, colors: col };
-  }, []);
-
-  useFrame((_, dt) => {
-    uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
-    const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
-    uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
-    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.03;
-  });
-
-  return (
-    <group position={PEDESTAL_POS}>
-      {/* flat, slowly spinning galactic disc + star field */}
-      <group rotation={[-Math.PI / 2, 0, 0]} scale={0.8}>
-        <group ref={spin}>
-          <mesh>
-            <planeGeometry args={[RGAL * 2, RGAL * 2]} />
-            <shaderMaterial
-              vertexShader={GALAXY_VERTEX}
-              fragmentShader={GALAXY_FRAGMENT}
-              uniforms={uniforms}
-              transparent
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </group>
-      </group>
-
-      {/* blazing blue life-core */}
-      <mesh>
-        <sphereGeometry args={[0.13, 24, 24]} />
-        <meshBasicMaterial color="#32C7FF" />
-      </mesh>
-
-      {/* column of light rising into the orb */}
-      <mesh position={[0, 0.85, 0]}>
-        <planeGeometry args={[0.95, 1.7]} />
-        <shaderMaterial
-          vertexShader={BEAM_VERTEX}
-          fragmentShader={BEAM_FRAGMENT}
-          uniforms={uniforms}
-          transparent
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-// 3D Glowing Celestial Concentric Orbital Rings surrounding the Leviathan Core
+// 3D Glowing Celestial Concentric Orbital Rings at the base
 function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
   const ring1 = useRef<THREE.Mesh>(null!);
   const ring2 = useRef<THREE.Mesh>(null!);
@@ -337,22 +243,19 @@ function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
     if (reducedMotion) return;
     if (ring1.current) {
       ring1.current.rotation.z += dt * 0.35;
-      ring1.current.rotation.y += dt * 0.15;
     }
     if (ring2.current) {
       ring2.current.rotation.z -= dt * 0.25;
-      ring2.current.rotation.x += dt * 0.20;
     }
     if (ring3.current) {
-      ring3.current.rotation.y += dt * 0.30;
       ring3.current.rotation.z += dt * 0.12;
     }
   });
 
   return (
-    <group position={ORB_POS} scale={ORB_SCALE}>
+    <group position={PEDESTAL_POS} scale={1.5} rotation={[-Math.PI / 2, 0, 0]}>
       {/* Inner Ring — Electric Cyan */}
-      <mesh ref={ring1} rotation={[1.2, 0.4, 0]}>
+      <mesh ref={ring1}>
         <torusGeometry args={[1.45, 0.018, 32, 120]} />
         <meshBasicMaterial
           color="#5AFBFF"
@@ -363,7 +266,7 @@ function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
       </mesh>
 
       {/* Middle Ring — Bright Electric Blue */}
-      <mesh ref={ring2} rotation={[0.7, -0.6, 0.4]}>
+      <mesh ref={ring2}>
         <torusGeometry args={[1.85, 0.014, 32, 120]} />
         <meshBasicMaterial
           color="#32C7FF"
@@ -374,7 +277,7 @@ function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
       </mesh>
 
       {/* Outer Ring — Deep Electric Blue */}
-      <mesh ref={ring3} rotation={[-0.5, 1.1, -0.2]}>
+      <mesh ref={ring3}>
         <torusGeometry args={[2.35, 0.010, 32, 120]} />
         <meshBasicMaterial
           color="#1F7BFF"
@@ -408,7 +311,6 @@ export default function Entity() {
         <EntityBody reducedMotion={reducedMotion} />
       </group>
       <CelestialRings reducedMotion={reducedMotion} />
-      <SpiralGalaxy reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
           intensity={0.85}

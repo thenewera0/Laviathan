@@ -34,81 +34,87 @@ export default function LiquidMetalBackground() {
       uniform vec2 u_mouse;
       uniform float u_time;
 
-      // Organic Liquid Metal Displacement Map
-      float map(vec3 p) {
-        vec3 q = p;
-        q.x += sin(p.y * 1.8 + u_time * 0.4) * 0.4;
-        q.y += cos(p.x * 1.5 + u_time * 0.3) * 0.4;
-        
-        float d1 = sin(q.x * 2.2) * cos(q.y * 2.2) * sin(q.z * 2.2);
-        float d2 = sin(q.x * 4.5 + u_time * 0.6) * cos(q.y * 4.5) * 0.25;
-        return d1 + d2;
+      // Organic Liquid Metal Displacement Map using FBM
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+                   mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float value = 0.0;
+        float amplitude = 0.5;
+        for (int i = 0; i < 5; i++) {
+          value += amplitude * noise(p);
+          p *= 2.0;
+          amplitude *= 0.5;
+        }
+        return value;
       }
 
       void main() {
-        vec2 st = gl_FragCoord.xy / u_resolution.xy;
-        st.x *= u_resolution.x / u_resolution.y;
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        uv.x *= u_resolution.x / u_resolution.y;
 
-        float t = u_time * 0.035; // Slow continuous fluid motion
+        float t = u_time * 0.15; // Slow continuous fluid motion
 
         // Mouse Position in Normalized Aspect Space
         vec2 m = u_mouse;
         m.x *= u_resolution.x / u_resolution.y;
 
         // Interactive Cursor Ripple Push
-        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
-        vec2 mouseUV = m - vec2(0.5 * u_resolution.x / u_resolution.y, 0.5);
-        float mouseDist = length(uv - mouseUV);
-        float mousePush = smoothstep(0.45, 0.0, mouseDist);
+        float mouseDist = length(uv - m);
+        float mousePush = exp(-mouseDist * 4.0); // Smooth falloff
 
-        // Displace liquid coordinates with cursor push
-        vec3 p = vec3(uv * 2.8 + (uv - mouseUV) * mousePush * 0.6, t);
+        // Displace liquid coordinates with cursor push & time
+        vec2 q = vec2(0.0);
+        q.x = fbm(uv * 3.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5);
+        q.y = fbm(uv * 3.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5);
 
-        float n1 = map(p);
-        float n2 = map(p + vec3(n1 * 0.8, n1 * 0.5, t * 0.5));
-        float surface = map(p + 1.8 * vec3(n2, n1, t * 0.2));
+        vec2 r = vec2(0.0);
+        r.x = fbm(uv * 4.0 + q * 2.0 + vec2(t * 0.4, 0.0));
+        r.y = fbm(uv * 4.0 + q * 2.0 + vec2(0.0, t * 0.3));
 
-        // Colors matching Reference Image 2
-        vec3 colObsidian   = vec3(0.008, 0.012, 0.02);   // #020305 Deep OLED Black
-        vec3 colDarkNavy   = vec3(0.03, 0.065, 0.12);    // #08111E Metallic Navy
-        vec3 colMetalSpec  = vec3(0.48, 0.55, 0.67);    // #7A8DAA Specular Highlight
-        vec3 colCopperGold = vec3(0.85, 0.52, 0.12);    // #D97706 Copper-Gold Reflection
+        float f = fbm(uv * 2.5 + r * 1.5 + t * 0.5);
+        
+        // Enhance flow based on cursor interaction
+        f = mix(f, f + mousePush * 0.8, 0.3);
 
-        // Liquid Metal Surface
-        float facet = smoothstep(-0.5, 0.7, surface);
-        vec3 liquidSurface = mix(colObsidian, colDarkNavy, facet * 0.85);
+        // Colors matching Reference Image 3 (Deep Obsidian with vibrant Neon Blue/Cyan/Magenta edges)
+        vec3 colObsidian = vec3(0.005, 0.008, 0.015);  // #020305 Deep OLED Black
+        vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);       // #00D4FF Neon Cyan
+        vec3 colNeonBlue = vec3(0.0, 0.3, 1.0);        // #004DFF Electric Blue
+        vec3 colPurple   = vec3(0.4, 0.0, 0.9);        // Deep Magenta/Purple contrast
 
-        // Metallic Specular Reflection + Copper Gold Ridge Lighting (Image 2)
-        float spec = pow(clamp(surface * 1.4, 0.0, 1.0), 4.0);
-        float goldReflect = pow(clamp((surface + 0.3) * 1.2, 0.0, 1.0), 3.0);
-        liquidSurface += colMetalSpec * spec * 0.4;
-        liquidSurface += colCopperGold * goldReflect * 0.28;
+        // Create metallic ridges and emissive valleys
+        float ridge = smoothstep(0.3, 0.7, f);
+        float edge = abs(f - 0.5) * 2.0; 
+        float glowMask = smoothstep(0.1, 0.0, edge); // Highlight the sharp ridges
 
-        // Curved Neon Electric Blue & Cyan Energy Stream (Image 2)
-        // Dynamic river stream reacting to cursor flow
-        float riverX = uv.x - 0.1 * sin(uv.y * 3.5 + t * 1.5) - 0.05 * cos(uv.y * 7.0 - t) - mousePush * 0.15;
-        float riverDist = abs(riverX);
-        float riverMask = smoothstep(0.22, 0.0, riverDist);
+        // Base metallic surface
+        vec3 liquidSurface = mix(colObsidian, colNeonBlue * 0.2, ridge);
+        
+        // Add colorful flow currents
+        liquidSurface = mix(liquidSurface, colPurple * 0.4, smoothstep(0.4, 0.6, r.x));
+        liquidSurface = mix(liquidSurface, colNeonCyan * 0.5, smoothstep(0.5, 0.8, r.y));
 
-        // Neon Blue & Cyan Emissive Colors
-        vec3 colNeonBlue = vec3(0.0, 0.53, 1.0);  // #0088FF Electric Blue
-        vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);  // #00D4FF Neon Cyan
-        vec3 colCoreWhite = vec3(0.85, 0.98, 1.0); // #D9FAFF Core Emissive White
+        // Specular & Emissive highlights along ridges
+        float spec = pow(glowMask, 4.0);
+        liquidSurface += colNeonCyan * spec * 1.5;
+        liquidSurface += colNeonBlue * pow(glowMask, 2.0) * 0.8;
 
-        vec3 riverColor = mix(colNeonBlue, colNeonCyan, riverMask);
-        riverColor = mix(riverColor, colCoreWhite, pow(riverMask, 3.0));
-
-        // Soft Outer Volumetric Glow
-        float outerGlow = smoothstep(0.55, 0.0, riverDist);
-        vec3 emissiveGlow = colNeonBlue * outerGlow * 1.4;
-
-        // Final Surface Composite
-        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.6 + emissiveGlow;
+        // Interactive mouse glow burst
+        liquidSurface += colNeonCyan * mousePush * 0.3;
 
         // Soft Vignette for Spatial Focus
-        float vignette = (1.0 - length(uv * 0.55));
-        vignette = clamp(pow(vignette, 1.5), 0.0, 1.0);
-        finalColor *= vignette;
+        float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 1.2);
+        vignette = clamp(pow(vignette, 1.2), 0.0, 1.0);
+        
+        vec3 finalColor = liquidSurface * vignette;
 
         gl_FragColor = vec4(finalColor, 1.0);
       }

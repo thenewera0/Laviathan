@@ -118,7 +118,7 @@ async def gateway_chat(
     if not check_key_rate_limit(key_id):
         raise HTTPException(
             status_code=429,
-            detail="API Key rate limit exceeded (max 60 requests/min). Please slow down.",
+            detail="API Key rate limit exceeded. Heavy AI workloads (UNRESTRICTED tier) should optimize concurrency.",
         )
 
     try:

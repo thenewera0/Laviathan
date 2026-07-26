@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
+import { ThinkingOrb } from "thinking-orbs";
 
 interface FileAttachment {
   name: string;
@@ -540,9 +541,9 @@ export default function ChatStudio() {
             )}
 
             {loading && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/10 max-w-sm text-xs font-data text-[#7dd3fc] animate-pulse">
-                <span className="text-base">🔱</span>
-                <span>Leviathan Gateway routing & generating...</span>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/10 max-w-sm text-xs font-data text-[#7dd3fc]">
+                <ThinkingOrb state="searching" size={20} />
+                <span className="animate-pulse">Leviathan Gateway routing & generating...</span>
               </div>
             )}
 
