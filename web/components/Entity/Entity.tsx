@@ -375,7 +375,7 @@ export default function Entity() {
           radialModulation={false}
           modulationOffset={0}
         />
-        <Vignette eskil={false} offset={0.25} darkness={0.85} /> // Stronger vignette for deep space edges
+        <Vignette eskil={false} offset={0.25} darkness={0.85} />
       </EffectComposer>
     </Canvas>
   );
