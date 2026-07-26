@@ -115,7 +115,10 @@ export default function LiquidMetalBackground() {
         float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.8);
         vignette = clamp(pow(vignette, 0.8), 0.0, 1.0);
         
-        vec3 finalColor = liquidSurface * vignette;
+        // Two-tone horizon fade to reveal Spiral Galaxy at the bottom (like two oceans meeting)
+        float horizonFade = smoothstep(0.1, 0.45, gl_FragCoord.xy.y / u_resolution.y);
+
+        vec3 finalColor = liquidSurface * vignette * horizonFade;
 
         gl_FragColor = vec4(finalColor, 1.0);
       }
