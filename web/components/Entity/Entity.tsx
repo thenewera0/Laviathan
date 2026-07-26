@@ -19,6 +19,10 @@ import { useLeviathan, type EntityState } from "@/lib/store";
 import {
   FRAGMENT_SHADER,
   VERTEX_SHADER,
+  GALAXY_VERTEX,
+  GALAXY_FRAGMENT,
+  BEAM_VERTEX,
+  BEAM_FRAGMENT,
 } from "./shaders";
 
 // ---- Scene framing (safe to tweak) --------------------------------------
@@ -233,57 +237,104 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
 
 
 
-// 3D Glowing Celestial Concentric Orbital Rings at the base
-function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
-  const ring1 = useRef<THREE.Mesh>(null!);
-  const ring2 = useRef<THREE.Mesh>(null!);
-  const ring3 = useRef<THREE.Mesh>(null!);
+const RGAL = 3.6;
+
+function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
+  const spin = useRef<THREE.Group>(null!);
+  const uniforms = useMemo(
+    () => ({ uFlow: { value: 0 }, uAudio: { value: 0 } }),
+    []
+  );
+
+  const { positions, colors } = useMemo(() => {
+    const N = 12000;
+    const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
+    for (let i = 0; i < N; i++) {
+      const r = Math.pow(Math.random(), 0.5) * RGAL;
+      const arm = i % 3;
+      const armAngle = (arm * 2 * Math.PI) / 3;
+      const spread = randn() * 0.5 * (0.35 + r / RGAL);
+      const theta = armAngle + 3.0 * Math.log(r + 0.2) + spread;
+      pos[i * 3] = r * Math.cos(theta);
+      pos[i * 3 + 1] = r * Math.sin(theta);
+      pos[i * 3 + 2] = randn() * 0.03; // thin disc
+      const f = r / RGAL;
+      const roll = Math.random();
+      let c: [number, number, number];
+      if (r < 0.55) c = [0.78, 0.9, 1.0];            // blazing core white-blue
+      else if (roll < 0.05) c = [0.98, 0.55, 0.32];  // orange old star
+      else if (roll < 0.09) c = [0.98, 0.45, 0.72];  // pink HII region
+      else if (roll < 0.13) c = [1.0, 0.96, 0.9];    // hot white
+      else if (roll < 0.2) c = [0.35, 0.95, 0.92];   // teal
+      else c = [0.2 - f * 0.14, 0.6 - f * 0.34, 1.0 - f * 0.26]; // blue arms
+      col[i * 3] = c[0];
+      col[i * 3 + 1] = c[1];
+      col[i * 3 + 2] = c[2];
+    }
+    return { positions: pos, colors: col };
+  }, []);
 
   useFrame((_, dt) => {
-    if (reducedMotion) return;
-    if (ring1.current) {
-      ring1.current.rotation.z += dt * 0.35;
-    }
-    if (ring2.current) {
-      ring2.current.rotation.z -= dt * 0.25;
-    }
-    if (ring3.current) {
-      ring3.current.rotation.z += dt * 0.12;
-    }
+    uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
+    const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
+    uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
+    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.03;
   });
 
   return (
-    <group position={PEDESTAL_POS} scale={1.5} rotation={[-Math.PI / 2, 0, 0]}>
-      {/* Inner Ring — Electric Cyan */}
-      <mesh ref={ring1}>
-        <torusGeometry args={[1.45, 0.018, 32, 120]} />
-        <meshBasicMaterial
-          color="#5AFBFF"
-          transparent
-          opacity={0.88}
-          blending={THREE.AdditiveBlending}
-        />
+    <group position={PEDESTAL_POS}>
+      {/* flat, slowly spinning galactic disc + star field */}
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={0.8}>
+        <group ref={spin}>
+          <mesh>
+            <planeGeometry args={[RGAL * 2, RGAL * 2]} />
+            <shaderMaterial
+              vertexShader={GALAXY_VERTEX}
+              fragmentShader={GALAXY_FRAGMENT}
+              uniforms={uniforms}
+              transparent
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          <points>
+            <bufferGeometry>
+              <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+              <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+            </bufferGeometry>
+            <pointsMaterial
+              size={0.008}
+              vertexColors
+              transparent
+              opacity={0.45}
+              sizeAttenuation
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </points>
+        </group>
+      </group>
+
+      {/* blazing blue life-core */}
+      <mesh>
+        <sphereGeometry args={[0.13, 24, 24]} />
+        <meshBasicMaterial color="#32C7FF" />
       </mesh>
 
-      {/* Middle Ring — Bright Electric Blue */}
-      <mesh ref={ring2}>
-        <torusGeometry args={[1.85, 0.014, 32, 120]} />
-        <meshBasicMaterial
-          color="#32C7FF"
+      {/* column of light rising into the orb */}
+      <mesh position={[0, 0.85, 0]}>
+        <planeGeometry args={[0.95, 1.7]} />
+        <shaderMaterial
+          vertexShader={BEAM_VERTEX}
+          fragmentShader={BEAM_FRAGMENT}
+          uniforms={uniforms}
           transparent
-          opacity={0.78}
+          depthWrite={false}
           blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Outer Ring — Deep Electric Blue */}
-      <mesh ref={ring3}>
-        <torusGeometry args={[2.35, 0.010, 32, 120]} />
-        <meshBasicMaterial
-          color="#1F7BFF"
-          transparent
-          opacity={0.68}
-          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
         />
       </mesh>
     </group>

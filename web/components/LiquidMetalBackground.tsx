@@ -71,15 +71,16 @@ export default function LiquidMetalBackground() {
         float mousePush = exp(-mouseDist * 4.0); // Smooth falloff
 
         // Displace liquid coordinates with cursor push & time
+        // INCREASED UV MULTIPLIERS FOR HIGHER DENSITY
         vec2 q = vec2(0.0);
-        q.x = fbm(uv * 3.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5);
-        q.y = fbm(uv * 3.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5);
+        q.x = fbm(uv * 5.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5);
+        q.y = fbm(uv * 5.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5);
 
         vec2 r = vec2(0.0);
-        r.x = fbm(uv * 4.0 + q * 2.0 + vec2(t * 0.4, 0.0));
-        r.y = fbm(uv * 4.0 + q * 2.0 + vec2(0.0, t * 0.3));
+        r.x = fbm(uv * 7.0 + q * 2.5 + vec2(t * 0.4, 0.0));
+        r.y = fbm(uv * 7.0 + q * 2.5 + vec2(0.0, t * 0.3));
 
-        float f = fbm(uv * 2.5 + r * 1.5 + t * 0.5);
+        float f = fbm(uv * 4.0 + r * 2.0 + t * 0.5);
         
         // Enhance flow based on cursor interaction
         f = mix(f, f + mousePush * 0.8, 0.3);
@@ -91,28 +92,28 @@ export default function LiquidMetalBackground() {
         vec3 colPurple   = vec3(0.4, 0.0, 0.9);        // Deep Magenta/Purple contrast
 
         // Create metallic ridges and emissive valleys
-        float ridge = smoothstep(0.3, 0.7, f);
+        float ridge = smoothstep(0.45, 0.55, f); // Sharper metallic transition
         float edge = abs(f - 0.5) * 2.0; 
-        float glowMask = smoothstep(0.1, 0.0, edge); // Highlight the sharp ridges
+        float glowMask = pow(1.0 - edge, 3.5); // Highlight the sharp ridges highly focused
 
         // Base metallic surface
-        vec3 liquidSurface = mix(colObsidian, colNeonBlue * 0.2, ridge);
+        vec3 liquidSurface = mix(colObsidian, colNeonBlue * 0.15, ridge);
         
         // Add colorful flow currents
-        liquidSurface = mix(liquidSurface, colPurple * 0.4, smoothstep(0.4, 0.6, r.x));
-        liquidSurface = mix(liquidSurface, colNeonCyan * 0.5, smoothstep(0.5, 0.8, r.y));
+        liquidSurface = mix(liquidSurface, colPurple * 0.5, smoothstep(0.4, 0.7, r.x));
+        liquidSurface = mix(liquidSurface, colNeonCyan * 0.7, smoothstep(0.5, 0.8, r.y));
 
         // Specular & Emissive highlights along ridges
-        float spec = pow(glowMask, 4.0);
-        liquidSurface += colNeonCyan * spec * 1.5;
-        liquidSurface += colNeonBlue * pow(glowMask, 2.0) * 0.8;
+        float spec = pow(glowMask, 5.0);
+        liquidSurface += colNeonCyan * spec * 2.0;
+        liquidSurface += colNeonBlue * pow(glowMask, 3.0) * 1.5;
 
         // Interactive mouse glow burst
-        liquidSurface += colNeonCyan * mousePush * 0.3;
+        liquidSurface += colNeonCyan * mousePush * 0.4;
 
-        // Soft Vignette for Spatial Focus
-        float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 1.2);
-        vignette = clamp(pow(vignette, 1.2), 0.0, 1.0);
+        // Soft Vignette for Spatial Focus (expanded to ensure it reaches corners)
+        float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.8);
+        vignette = clamp(pow(vignette, 0.8), 0.0, 1.0);
         
         vec3 finalColor = liquidSurface * vignette;
 
