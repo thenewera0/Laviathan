@@ -115,12 +115,18 @@ export default function LiquidMetalBackground() {
         float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.8);
         vignette = clamp(pow(vignette, 0.8), 0.0, 1.0);
         
-        // Two-tone horizon fade to reveal Spiral Galaxy at the bottom (like two oceans meeting)
-        float horizonFade = smoothstep(0.1, 0.45, gl_FragCoord.xy.y / u_resolution.y);
+        // Two-tone horizon: Create a sharp but glowing oceanic meeting line
+        // We fade out the liquid metal rapidly below the horizon (uv.y = 0.35)
+        float hY = gl_FragCoord.xy.y / u_resolution.y;
+        float horizonMask = smoothstep(0.28, 0.35, hY);
+        
+        // Add a glowing bright cyan rim right at the horizon line where the two worlds meet
+        float horizonGlow = smoothstep(0.25, 0.35, hY) * smoothstep(0.45, 0.35, hY);
+        
+        vec3 finalColor = liquidSurface * vignette * horizonMask;
+        finalColor += colNeonCyan * horizonGlow * 0.4 * vignette; // glowing edge
 
-        vec3 finalColor = liquidSurface * vignette * horizonFade;
-
-        gl_FragColor = vec4(finalColor, 1.0);
+        gl_FragColor = vec4(finalColor, horizonMask); // Fade alpha to transparent at bottom
       }
     `;
 

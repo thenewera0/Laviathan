@@ -306,10 +306,10 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
               <bufferAttribute attach="attributes-color" args={[colors, 3]} />
             </bufferGeometry>
             <pointsMaterial
-              size={0.008}
+              size={0.009}
               vertexColors
               transparent
-              opacity={0.45}
+              opacity={0.85}
               sizeAttenuation
               depthWrite={false}
               blending={THREE.AdditiveBlending}
