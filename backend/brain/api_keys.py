@@ -34,10 +34,27 @@ def _get_db():
                 prefix TEXT NOT NULL,
                 label TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                revoked INTEGER DEFAULT 0
+                revoked INTEGER DEFAULT 0,
+                request_count INTEGER DEFAULT 0,
+                prompt_tokens INTEGER DEFAULT 0,
+                completion_tokens INTEGER DEFAULT 0,
+                total_tokens INTEGER DEFAULT 0,
+                last_used_at TEXT DEFAULT ''
             )
             """
         )
+        # Migrations for existing DBs missing token usage columns
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(api_keys)").fetchall()]
+        if "request_count" not in columns:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN request_count INTEGER DEFAULT 0")
+        if "prompt_tokens" not in columns:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN prompt_tokens INTEGER DEFAULT 0")
+        if "completion_tokens" not in columns:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN completion_tokens INTEGER DEFAULT 0")
+        if "total_tokens" not in columns:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN total_tokens INTEGER DEFAULT 0")
+        if "last_used_at" not in columns:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN last_used_at TEXT DEFAULT ''")
     return conn
 
 
@@ -130,12 +147,42 @@ def check_key_rate_limit(key_id: str, max_rpm: int = DEFAULT_KEY_LIMIT_PER_MINUT
     return True
 
 
-def list_api_keys() -> List[Dict[str, str]]:
-    """List all generated API keys."""
+def record_key_usage(key_id: str, prompt_tokens: int, completion_tokens: int):
+    """Record request count and token usage statistics for an API key."""
+    if not key_id or key_id in ("master", "local", "anonymous"):
+        return
+
+    now_iso = datetime.utcnow().isoformat()
+    tot_tokens = prompt_tokens + completion_tokens
+
+    conn = _get_db()
+    with conn:
+        conn.execute(
+            """
+            UPDATE api_keys
+            SET request_count = request_count + 1,
+                prompt_tokens = prompt_tokens + ?,
+                completion_tokens = completion_tokens + ?,
+                total_tokens = total_tokens + ?,
+                last_used_at = ?
+            WHERE id = ?
+            """,
+            (prompt_tokens, completion_tokens, tot_tokens, now_iso, key_id),
+        )
+    conn.close()
+
+
+def list_api_keys() -> List[Dict[str, any]]:
+    """List all generated API keys with usage & token telemetry statistics."""
     conn = _get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, prefix, label, created_at, revoked FROM api_keys ORDER BY created_at DESC"
+        """
+        SELECT id, prefix, label, created_at, revoked,
+               request_count, prompt_tokens, completion_tokens, total_tokens, last_used_at
+        FROM api_keys
+        ORDER BY created_at DESC
+        """
     )
     rows = cursor.fetchall()
     conn.close()
@@ -147,6 +194,11 @@ def list_api_keys() -> List[Dict[str, str]]:
             "label": r["label"],
             "created_at": r["created_at"],
             "revoked": bool(r["revoked"]),
+            "request_count": r["request_count"] or 0,
+            "prompt_tokens": r["prompt_tokens"] or 0,
+            "completion_tokens": r["completion_tokens"] or 0,
+            "total_tokens": r["total_tokens"] or 0,
+            "last_used_at": r["last_used_at"] or r["created_at"],
         }
         for r in rows
     ]

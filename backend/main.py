@@ -13,6 +13,7 @@ from brain.api_keys import (
     check_key_rate_limit,
     generate_api_key,
     list_api_keys,
+    record_key_usage,
     revoke_api_key,
     validate_api_key,
 )
@@ -153,6 +154,19 @@ async def gateway_chat(
         max_tokens=max_tokens,
         has_files=bool(files),
     )
+
+    if result.get("success"):
+        reply_text = result.get("reply", "")
+        prompt_len = sum(len(m.get("content", "")) for m in messages)
+        p_tok = max(1, prompt_len // 4)
+        c_tok = max(1, len(reply_text) // 4)
+        record_key_usage(key_id, p_tok, c_tok)
+        result["usage"] = {
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+            "total_tokens": p_tok + c_tok,
+        }
+
     return result
 
 
