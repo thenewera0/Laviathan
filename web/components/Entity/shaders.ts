@@ -137,6 +137,7 @@ uniform float uAudio;
 uniform float uThink;    // state weights
 uniform float uSpeak;
 uniform float uError;
+uniform float uCursorActive;
 
 varying vec3 vNormal;
 varying vec3 vViewDir;
@@ -238,10 +239,14 @@ void main() {
   vec3 mirageHue = iridescence(uFlow * 0.05) * (0.4 + 0.6 * facing);
   col = mix(col, mirageHue, 0.025 * (0.5 + 0.5 * sin(uFlow * 0.3)));
 
-  // ---- error: heat leaves the body — desaturate, shift cold
   float grey = dot(col, vec3(0.299, 0.587, 0.114));
   vec3 coldCol = mix(vec3(grey), vec3(grey * 0.7, grey * 0.85, grey * 1.25), 0.8);
   col = mix(col, coldCol + vec3(0.02, 0.04, 0.09) * fresnel, uError);
+
+  // Fade out the signature metal effects and heat when cursor is idle
+  vec3 matteBase = mix(vec3(0.005, 0.005, 0.008), vec3(0.015, 0.018, 0.025), facing);
+  float activeMix = max(uCursorActive, 0.08); // 8% visibility when idle
+  col = mix(matteBase, col, activeMix);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -364,6 +369,7 @@ void main() {
 export const GALAXY_FRAGMENT = /* glsl */ `
 uniform float uFlow;
 uniform float uAudio;
+uniform float uCursorActive;
 varying vec3 vLocalPos;
 
 ${SIMPLEX_NOISE}
@@ -411,6 +417,9 @@ void main() {
   // Alpha must be heavily clamped to density so the background is 100% transparent in gaps
   float alpha = clamp((density * 1.5 + coreGlow * 2.0), 0.0, 1.0) * smoothstep(1.0, 0.7, R);
   
+  // Fade out the galaxy when the cursor is idle to reduce visual load
+  alpha *= (uCursorActive * 0.95 + 0.05);
+  
   gl_FragColor = vec4(col, alpha);
 }
 `;
@@ -427,6 +436,7 @@ void main() {
 export const BEAM_FRAGMENT = /* glsl */ `
 uniform float uFlow;
 uniform float uAudio;
+uniform float uCursorActive;
 varying vec2 vUv;
 
 void main() {
@@ -437,6 +447,7 @@ void main() {
   float flick = 0.85 + 0.15 * sin(uFlow * 3.0 + up * 7.0);
   vec3 col = mix(vec3(0.4, 0.88, 1.0), vec3(0.0, 0.55, 1.0), up);
   float a = horiz * vert * flick * (0.85 + uAudio * 0.6);
+  a *= (uCursorActive * 0.95 + 0.05); // Fade beam on idle
   gl_FragColor = vec4(col, a);
 }
 `;

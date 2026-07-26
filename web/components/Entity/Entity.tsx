@@ -75,9 +75,13 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
       uThink: { value: 0 },
       uSpeak: { value: 0 },
       uError: { value: 0 },
+      uCursorActive: { value: 0 },
     }),
     []
   );
+
+  const lastPointer = useRef({ x: 0, y: 0 });
+  const cursorActivity = useRef(0);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -91,6 +95,18 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     flow.current += dt * p.flowSpeed * motionScale;
     u.uTime.value += dt;
     u.uFlow.value = flow.current;
+
+    const dx = pointer.x - lastPointer.current.x;
+    const dy = pointer.y - lastPointer.current.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    lastPointer.current.x = pointer.x;
+    lastPointer.current.y = pointer.y;
+    if (dist > 0.001) {
+      cursorActivity.current = damp(cursorActivity.current, 1.0, 10, dt);
+    } else {
+      cursorActivity.current = damp(cursorActivity.current, 0.0, 2.0, dt);
+    }
+    (u as any).uCursorActive.value = cursorActivity.current;
 
     // Audio envelope: fast attack, slow release — ripples land, then fade
     const target = reducedMotion ? 0 : audioLevel;
@@ -168,8 +184,8 @@ function BackGlow() {
             float d = length(vUv - 0.5) * 2.0;
             float g = pow(smoothstep(1.0, 0.0, d), 2.6);
             float breathe = 0.85 + 0.15 * sin(uTime * 0.4);
-            vec3 col = mix(vec3(0.010, 0.042, 0.062), vec3(0.022, 0.072, 0.115), g);
-            gl_FragColor = vec4(col * g * breathe, g * 0.8);
+            vec3 col = vec3(0.005, 0.005, 0.008); // Titanium black / matte black
+            gl_FragColor = vec4(col * g * breathe, g * 0.9);
           }`,
       }),
     []
@@ -242,7 +258,7 @@ const RGAL = 3.6;
 function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   const spin = useRef<THREE.Group>(null!);
   const uniforms = useMemo(
-    () => ({ uFlow: { value: 0 }, uAudio: { value: 0 } }),
+    () => ({ uFlow: { value: 0 }, uAudio: { value: 0 }, uCursorActive: { value: 0 } }),
     []
   );
 
@@ -311,8 +327,26 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
     return { positions: pos, colors: col };
   }, []);
 
-  useFrame((_, dt) => {
+  const { pointer } = useThree();
+  const lastPointer = useRef({ x: 0, y: 0 });
+  const cursorActivity = useRef(0);
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05);
     uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
+
+    const dx = pointer.x - lastPointer.current.x;
+    const dy = pointer.y - lastPointer.current.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    lastPointer.current.x = pointer.x;
+    lastPointer.current.y = pointer.y;
+    if (dist > 0.001) {
+      cursorActivity.current = damp(cursorActivity.current, 1.0, 10, dt);
+    } else {
+      cursorActivity.current = damp(cursorActivity.current, 0.0, 2.0, dt);
+    }
+    uniforms.uCursorActive.value = cursorActivity.current;
+
     const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
     uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
     if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.04;
@@ -344,7 +378,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
               size={0.005} // OPTIMIZATION: Smaller points so they look like distinct stars, not a blob
               vertexColors
               transparent
-              opacity={0.15} // CRITICAL FIX: Massive reduction in opacity to prevent 25k points from blowing out via AdditiveBlending
+              opacity={0.35} 
               sizeAttenuation
               depthWrite={false}
               blending={THREE.AdditiveBlending}
