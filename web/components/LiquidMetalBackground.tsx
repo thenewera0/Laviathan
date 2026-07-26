@@ -67,12 +67,15 @@ export default function LiquidMetalBackground() {
         vec2 m = u_mouse;
         m.x *= u_resolution.x / u_resolution.y;
 
-        // Interactive Cursor Ripple Push
+        // Distance from cursor
         float mouseDist = length(uv - m);
-        float mousePush = exp(-mouseDist * 4.0); // Smooth falloff
+        
+        // Premium Flashlight / Cursor Reveal Mask
+        // Smoothly fades out over a radius so the blue metal only appears near the cursor
+        float revealMask = smoothstep(0.55, 0.0, mouseDist);
+        float mousePush = exp(-mouseDist * 6.0); 
 
         // Displace liquid coordinates with cursor push & time
-        // INCREASED UV MULTIPLIERS FOR HIGHER DENSITY
         vec2 q = vec2(0.0);
         q.x = fbm(uv * 5.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5);
         q.y = fbm(uv * 5.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5);
@@ -83,58 +86,49 @@ export default function LiquidMetalBackground() {
 
         float f = fbm(uv * 4.0 + r * 2.0 + t * 0.5);
         
-        // Enhance flow based on cursor interaction
-        f = mix(f, f + mousePush * 0.8, 0.3);
-
-        // Colors matching Reference Image 3 (Deep Obsidian with vibrant Neon Blue/Cyan/Magenta edges)
-        vec3 colObsidian = vec3(0.005, 0.008, 0.015);  // #020305 Deep OLED Black
-        vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);       // #00D4FF Neon Cyan
-        vec3 colNeonBlue = vec3(0.0, 0.3, 1.0);        // #004DFF Electric Blue
-        vec3 colPurple   = vec3(0.4, 0.0, 0.9);        // Deep Magenta/Purple contrast
-
-        // Create metallic ridges and emissive valleys
-        float ridge = smoothstep(0.45, 0.55, f); // Sharper metallic transition
-        float edge = abs(f - 0.5) * 2.0; 
-        float glowMask = pow(1.0 - edge, 3.5); // Highlight the sharp ridges highly focused
-
-        // Base metallic surface
-        vec3 liquidSurface = mix(colObsidian, colNeonBlue * 0.15, ridge);
+        // Colors
+        vec3 colTitanium = vec3(0.015, 0.015, 0.020); // Glossy dark titanium
+        vec3 colMatte    = vec3(0.002, 0.002, 0.004); // Deep matte black void
         
-        // Add colorful flow currents
-        liquidSurface = mix(liquidSurface, colPurple * 0.5, smoothstep(0.4, 0.7, r.x));
-        liquidSurface = mix(liquidSurface, colNeonCyan * 0.7, smoothstep(0.5, 0.8, r.y));
+        vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);
+        vec3 colNeonBlue = vec3(0.0, 0.3, 1.0);
+        vec3 colPurple   = vec3(0.4, 0.0, 0.9);
 
-        // Specular & Emissive highlights along ridges
-        float spec = pow(glowMask, 5.0);
-        liquidSurface += colNeonCyan * spec * 2.0;
-        liquidSurface += colNeonBlue * pow(glowMask, 3.0) * 1.5;
+        // 1. Base Dark Space Environment
+        // A very subtle glossy liquid metal black that fills the screen
+        float darkGloss = pow(f, 3.0) * 0.05; // tiny bit of shine on the black metal
+        vec3 bgFinal = mix(colMatte, colTitanium, f * 0.7) + vec3(darkGloss);
 
-        // Interactive mouse glow burst
-        liquidSurface += colNeonCyan * mousePush * 0.4;
+        // 2. Vibrant signature blue liquid metal effect (Revealed by cursor)
+        vec3 liquidSurface = vec3(0.0);
+        if (revealMask > 0.0) {
+            float ridge = smoothstep(0.45, 0.55, f);
+            float edge = abs(f - 0.5) * 2.0; 
+            float glowMask = pow(1.0 - edge, 3.5);
 
-        // Soft Vignette for Spatial Focus
-        float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.8);
-        vignette = clamp(pow(vignette, 0.8), 0.0, 1.0);
-        
-        // Premium Volumetric Abyss Fade
-        // Instead of a hard math line, the horizon is organically displaced by the liquid FBM itself.
-        float hY = (gl_FragCoord.xy.y / u_resolution.y);
-        // Perturb the Y coordinate with our noise function so the horizon feels like rolling waves of liquid
-        float organicY = hY + (f * 0.15) - 0.05;
-        
-        // Smooth volumetric fade from the liquid ocean down into the cosmic abyss
-        float horizonMask = smoothstep(0.22, 0.45, organicY);
-        
-        // Deep subsurface glow where the ocean meets the void
-        float horizonGlow = smoothstep(0.15, 0.35, organicY) * smoothstep(0.55, 0.35, organicY);
-        
-        vec3 finalColor = liquidSurface * vignette * horizonMask;
-        
-        // Add a breathtaking bioluminescent rim where the liquid metal dissolves
-        vec3 glowColor = mix(colNeonCyan, colPurple, f);
-        finalColor += glowColor * pow(horizonGlow, 2.0) * 0.6 * vignette;
+            liquidSurface = mix(vec3(0.0), colNeonBlue * 0.3, ridge);
+            liquidSurface = mix(liquidSurface, colPurple * 0.6, smoothstep(0.4, 0.7, r.x));
+            liquidSurface = mix(liquidSurface, colNeonCyan * 0.9, smoothstep(0.5, 0.8, r.y));
 
-        gl_FragColor = vec4(finalColor, horizonMask); // Fully transparent below the waves
+            float spec = pow(glowMask, 5.0);
+            liquidSurface += colNeonCyan * spec * 3.0;
+            liquidSurface += colNeonBlue * pow(glowMask, 3.0) * 2.0;
+            liquidSurface += colNeonCyan * mousePush * 0.6;
+        }
+
+        // Multiply revealMask by f to make the flashlight edge organic and fluid instead of a perfect circle
+        float organicReveal = revealMask * smoothstep(0.1, 0.9, f + revealMask * 0.6);
+        
+        // Composite the two: dark space everywhere, vibrant liquid under the cursor
+        vec3 finalColor = bgFinal + liquidSurface * organicReveal;
+
+        // Overall Vignette for deep space immersion
+        float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.85);
+        vignette = clamp(pow(vignette, 0.9), 0.0, 1.0);
+        finalColor *= vignette;
+
+        // The background is completely opaque dark space, so we just use alpha=1.0
+        gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
 
