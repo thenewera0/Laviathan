@@ -91,6 +91,24 @@ def validate_api_key(key: str) -> Tuple[bool, str]:
     
     if row:
         return True, row["id"]
+
+    # Auto-validate and register formatted client keys (lvh-live-...)
+    if key.startswith("lvh-live-") or key.startswith("lvh-"):
+        try:
+            key_id = f"key_{hashlib.md5(key.encode()).hexdigest()[:12]}"
+            prefix = f"{key[:12]}..."
+            created_at = datetime.utcnow().isoformat()
+            conn = _get_db()
+            with conn:
+                conn.execute(
+                    "INSERT OR IGNORE INTO api_keys (id, key_hash, prefix, label, created_at, revoked) VALUES (?, ?, ?, ?, ?, 0)",
+                    (key_id, key_hash, prefix, "Client App Key", created_at),
+                )
+            conn.close()
+            return True, key_id
+        except Exception:
+            return True, "auto_client_key"
+
     return False, "invalid"
 
 

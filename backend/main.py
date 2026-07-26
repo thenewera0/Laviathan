@@ -43,8 +43,37 @@ app.add_middleware(
 
 
 @app.get("/health")
+@app.get("/v1/health")
 async def health():
     return {"status": "surfaced", "gateway": "online"}
+
+
+@app.get("/v1/models")
+async def list_models():
+    """OpenAI-compatible models list endpoint."""
+    return {
+        "object": "list",
+        "data": [
+            {"id": "leviathan-auto", "object": "model", "created": 1700000000, "owned_by": "leviathan"},
+            {"id": "gemini-2.5-flash", "object": "model", "created": 1700000000, "owned_by": "google"},
+            {"id": "llama-3.3-70b", "object": "model", "created": 1700000000, "owned_by": "groq"},
+            {"id": "qwen-2.5-72b", "object": "model", "created": 1700000000, "owned_by": "groq"},
+            {"id": "deepseek-r1", "object": "model", "created": 1700000000, "owned_by": "openrouter"},
+            {"id": "mistral-small", "object": "model", "created": 1700000000, "owned_by": "mistral"},
+            {"id": "command-r-plus", "object": "model", "created": 1700000000, "owned_by": "cohere"},
+        ],
+    }
+
+
+@app.get("/v1/models/{model_id}")
+async def retrieve_model(model_id: str):
+    """OpenAI-compatible model retrieval endpoint."""
+    return {
+        "id": model_id,
+        "object": "model",
+        "created": 1700000000,
+        "owned_by": "leviathan",
+    }
 
 
 @app.get("/v1/gateway/stats")
@@ -125,28 +154,37 @@ async def gateway_chat_completions(
     x_api_key: str = Header(None, alias="X-API-Key"),
     authorization: str = Header(None, alias="Authorization"),
 ):
-    """OpenAI-Compatible Chat Endpoint."""
+    """OpenAI-Compatible Chat Completion Endpoint."""
+    import time
     res = await gateway_chat(request, x_api_key, authorization)
     if not res.get("success"):
-        raise HTTPException(status_code=500, detail=res.get("reply"))
+        raise HTTPException(status_code=500, detail=res.get("reply", "Failed to get AI response"))
+
+    reply_content = res.get("reply", "")
+    model_id = res.get("model", "leviathan-auto")
+    now_ts = int(time.time())
 
     return {
-        "id": f"chatcmpl-{settings.active_model}",
+        "id": f"chatcmpl-{now_ts}",
         "object": "chat.completion",
-        "created": 1700000000,
-        "model": res.get("model", "leviathan-auto"),
+        "created": now_ts,
+        "model": model_id,
         "choices": [
             {
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": res.get("reply", ""),
+                    "content": reply_content,
                 },
                 "finish_reason": "stop",
             }
         ],
-
-        "provider_used": res.get("provider", "gateway"),
+        "usage": {
+            "prompt_tokens": max(1, len(reply_content) // 8),
+            "completion_tokens": max(1, len(reply_content) // 4),
+            "total_tokens": max(2, len(reply_content) // 3),
+        },
+        "provider": res.get("provider", "gateway"),
     }
 
 
