@@ -361,7 +361,7 @@ export default function Entity() {
       <group position={ORB_POS} scale={ORB_SCALE}>
         <EntityBody reducedMotion={reducedMotion} />
       </group>
-      <CelestialRings reducedMotion={reducedMotion} />
+      <SpiralGalaxy reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
           intensity={0.85}
