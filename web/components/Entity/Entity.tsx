@@ -358,7 +358,6 @@ export default function Entity() {
       dpr={[1, 1.5]} // OPTIMIZATION: Cap device pixel ratio to 1.5 to prevent massive post-processing lag on Retina
       style={{ position: "absolute", inset: 0 }}
     >
-      <BackGlow />
       <group position={ORB_POS} scale={ORB_SCALE}>
         <EntityBody reducedMotion={reducedMotion} />
       </group>

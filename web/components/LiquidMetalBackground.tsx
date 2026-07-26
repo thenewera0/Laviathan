@@ -71,9 +71,9 @@ export default function LiquidMetalBackground() {
         float mouseDist = length(uv - m);
         
         // Premium Flashlight / Cursor Reveal Mask
-        // Smoothly fades out over a radius so the blue metal only appears near the cursor
-        float revealMask = smoothstep(0.55, 0.0, mouseDist);
-        float mousePush = exp(-mouseDist * 6.0); 
+        // Smoothly fades out over a much smaller radius (tight flashlight)
+        float revealMask = smoothstep(0.35, 0.0, mouseDist); // OPTIMIZATION: Reduced from 0.55 to 0.35
+        float mousePush = exp(-mouseDist * 10.0); 
 
         // Displace liquid coordinates with cursor push & time
         vec2 q = vec2(0.0);

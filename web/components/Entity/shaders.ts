@@ -378,41 +378,52 @@ void main() {
   float ang = atan(p.y, p.x);
   float spin = uFlow * 0.15;
 
-  // Sharp, defined log-spiral arms with empty dark space between them
-  float phase = 2.5 * ang - 4.5 * log(r + 0.15) - spin;
+  // Realistic spiral arms: tighter winding, more arms, irregular
+  float phase = 3.0 * ang - 6.0 * log(r + 0.1) - spin;
   
-  // By using pow(..., 6.0), the arms become incredibly sharp and the gaps become totally transparent
-  float arms = pow(max(0.0, cos(phase)), 6.0)
-             + 0.6 * pow(max(0.0, cos(phase + 2.094)), 6.0)
-             + 0.4 * pow(max(0.0, cos(phase + 4.188)), 6.0);
+  // Create 4 asymmetrical arms
+  float arms = pow(max(0.0, cos(phase)), 4.0)
+             + 0.7 * pow(max(0.0, cos(phase + 1.57)), 5.0)
+             + 0.5 * pow(max(0.0, cos(phase + 3.14)), 4.5)
+             + 0.3 * pow(max(0.0, cos(phase + 4.71)), 6.0);
 
   float rad = smoothstep(1.0, 0.05, R);
   float density = arms * rad;
 
-  // colour: electric blue-white core -> neon cyan -> cobalt blue arms, molten gold flecks
-  vec3 arm  = vec3(0.01, 0.10, 0.60); // deeper, darker cobalt blue for contrast
-  vec3 mid  = vec3(0.00, 0.70, 1.00); // vibrant cyan
-  vec3 core = vec3(0.90, 0.98, 1.00); // intensely bright white/blue
-  vec3 gold = vec3(1.00, 0.65, 0.15); // bright cosmic gold
+  // Dark dust lanes (realistic galaxies have black/brown dust blocking light)
+  float dustNoise = snoise(vec3(p * 3.0, spin * 0.1));
+  float dustLanes = smoothstep(-0.2, 0.8, dustNoise); 
+  density *= (0.3 + 0.7 * dustLanes); // Carve out dark organic gaps
 
-  vec3 col = mix(arm, mid, smoothstep(0.7, 0.2, R));
-  col = mix(col, core, smoothstep(0.15, 0.0, R));
+  // Star clusters (high frequency noise for sparkling star clouds)
+  float starClouds = snoise(vec3(p * 15.0, spin * 0.5));
+  starClouds = pow(max(0.0, starClouds), 3.0) * 1.5;
 
-  // blazing life-core volumetric explosion
-  float coreGlow = pow(smoothstep(0.35, 0.0, R), 3.0);
-  col += core * coreGlow * (3.0 + uAudio * 1.5);
+  // Colors: more realistic dark space blues, stark white stars, warm golden core
+  vec3 arm  = vec3(0.01, 0.05, 0.20); // very dark deep space blue
+  vec3 mid  = vec3(0.05, 0.30, 0.80); // vibrant blue nebula
+  vec3 core = vec3(1.00, 0.95, 0.85); // bright warm white core
+  vec3 gold = vec3(0.90, 0.50, 0.10); // dusty gold inner regions
 
-  // Organic gas swirls strictly clamped to the spiral arms
-  float nb = snoise(vec3(p * 2.0, spin * 0.25));
-  float nb2 = snoise(vec3(p * 1.2, spin * 0.12));
-  vec3 nebula = mix(mid, gold, 0.5 + 0.5 * nb2);
-  
-  // Gas only exists where the arms are, plus a tiny bit of diffusion
-  float nebAmt = smoothstep(0.4, 1.0, nb) * rad * (density + 0.1);
-  col += nebula * nebAmt * 2.0;
+  vec3 col = mix(arm, mid, smoothstep(0.8, 0.2, R));
+  col = mix(col, gold, smoothstep(0.3, 0.05, R)); // inner gold transition
+  col = mix(col, core, smoothstep(0.1, 0.0, R));
 
-  // The critical fix: alpha MUST drop to 0 in the gaps to reveal the dark space
-  float alpha = clamp((density * 1.8 + coreGlow * 3.5 + nebAmt * 1.2), 0.0, 1.0) * smoothstep(1.0, 0.5, R);
+  // Core glow: massively reduced size for realism (not overwhelming)
+  float coreGlow = pow(smoothstep(0.15, 0.0, R), 4.0);
+  col += core * coreGlow * (2.0 + uAudio * 1.0);
+
+  // Add star clouds strictly along the arms
+  col += vec3(0.8, 0.9, 1.0) * starClouds * density * 2.0;
+
+  // Nebula gas swirling
+  float nb = snoise(vec3(p * 2.5, spin * 0.2));
+  vec3 nebula = mix(mid, vec3(0.1, 0.6, 0.9), 0.5 + 0.5 * nb);
+  float nebAmt = smoothstep(0.4, 1.0, nb) * density;
+  col += nebula * nebAmt * 1.5;
+
+  // Alpha perfectly fades to 0 in gaps and dust lanes, ensuring high contrast
+  float alpha = clamp((density * 1.5 + coreGlow * 2.5 + nebAmt + starClouds * density), 0.0, 1.0) * smoothstep(1.0, 0.7, R);
   
   gl_FragColor = vec4(col, alpha);
 }
