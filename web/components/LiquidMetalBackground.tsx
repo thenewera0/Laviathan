@@ -19,120 +19,72 @@ export default function LiquidMetalBackground() {
       }
     `;
 
-    // Smooth Bioluminescent Liquid Metal & Emissive Blue Energy River Shader (Reference Image 2)
+    // High-Contrast Procedural Liquid Metal & Emissive Electric Blue River Shader (Reference Image 2)
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution;
       uniform float u_time;
 
-      // Smooth Simplex 3D Noise Functions
-      vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
-      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-
-      float snoise(vec3 v) {
-        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-        vec3 i  = floor(v + dot(v, C.yyy));
-        vec3 x0 = v - i + dot(i, C.xxx);
-        vec3 g = step(x0.yzx, x0.xyz);
-        vec3 l = 1.0 - g;
-        vec3 i1 = min(g.xyz, l.zxy);
-        vec3 i2 = max(g.xyz, l.zxy);
-        vec3 x1 = x0 - i1 + C.xxx;
-        vec3 x2 = x0 - i2 + C.yyy;
-        vec3 x3 = x0 - D.yyy;
-        i = mod(i, 289.0);
-        vec4 p = permute(permute(permute(
-                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                + i.x + vec4(0.0, i.x, i2.x, 1.0));
-        float n_ = 0.142857142857;
-        vec3 ns = n_ * D.wyz - D.xzx;
-        vec4 j = p - 49.0 * floor(p * ns.z);
-        vec4 x_ = floor(j * ns.z);
-        vec4 y_ = floor(j - 7.0 * x_);
-        vec4 x = x_ *ns.x + ns.yyyy;
-        vec4 y = y_ *ns.x + ns.yyyy;
-        vec4 h = 1.0 - abs(x) - abs(y);
-        vec4 b0 = vec4(x.xy, y.xy);
-        vec4 b1 = vec4(x.zw, y.zw);
-        vec4 s0 = floor(b0)*2.0 + 1.0;
-        vec4 s1 = floor(b1)*2.0 + 1.0;
-        vec4 sh = -step(h, vec4(0.0));
-        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-        vec3 p0 = vec3(a0.xy, h.x);
-        vec3 p1 = vec3(a0.zw, h.y);
-        vec3 p2 = vec3(a1.xy, h.z);
-        vec3 p3 = vec3(a1.zw, h.w);
-        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-        m = m * m;
-        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
-      }
-
-      // Smooth low-frequency FBM (No harsh high-frequency noise)
-      float fbmSmooth(vec3 p) {
-        float value = 0.0;
-        float amplitude = 0.55;
-        for (int i = 0; i < 3; i++) {
-          value += amplitude * snoise(p);
-          p *= 1.85;
-          amplitude *= 0.45;
-        }
-        return value;
+      // Smooth Trigonometric Sinusoidal Domain Warping (100% Noise-Free & Silk-Smooth)
+      float liquidMap(vec2 p, float t) {
+        float wave1 = sin(p.x * 2.2 + t * 0.7) + cos(p.y * 1.8 - t * 0.5);
+        float wave2 = sin(p.x * 3.5 - t * 0.9 + wave1 * 0.8) + cos(p.y * 3.1 + t * 0.6 + wave1);
+        float wave3 = sin(p.x * 1.2 + wave2 * 1.2) + cos(p.y * 1.4 + wave2 * 0.9);
+        return (wave1 + wave2 * 0.5 + wave3 * 0.25) / 2.75;
       }
 
       void main() {
         vec2 st = gl_FragCoord.xy / u_resolution.xy;
         st.x *= u_resolution.x / u_resolution.y;
 
-        float t = u_time * 0.025; // Ultra-slow silk fluid motion
+        float t = u_time * 0.035; // Slow continuous fluid flow
 
-        // Smooth Domain Warping for organic liquid metal topology
-        vec3 p = vec3(st * 1.5, t);
-        vec3 q = vec3(fbmSmooth(p + vec3(0.0, 0.0, t)), fbmSmooth(p + vec3(3.2, 1.1, t)), t);
-        vec3 r = vec3(fbmSmooth(p + 3.0 * q + vec3(1.4, 4.2, t)), fbmSmooth(p + 3.0 * q + vec3(5.3, 2.1, t)), t);
+        // Domain Warping for organic liquid metal topology
+        vec2 p = st * 2.0;
+        float n1 = liquidMap(p, t);
+        float n2 = liquidMap(p + vec2(n1 * 0.6, n1 * 0.4), t * 1.2);
+        float surface = liquidMap(p + 1.5 * vec2(n2, n1), t * 0.8);
 
-        float n = fbmSmooth(p + 2.5 * r);
+        // Dark Obsidian & Liquid Metal Palette
+        vec3 colObsidian   = vec3(0.008, 0.012, 0.02);   // #020305 Deep OLED Black
+        vec3 colNavyMetal  = vec3(0.031, 0.066, 0.118);  // #08111E Metallic Navy
+        vec3 colSteelMetal = vec3(0.102, 0.160, 0.231);  // #1A283B Liquid Aluminium
+        vec3 colMetalSpec  = vec3(0.478, 0.553, 0.667);  // #7A8DAA Specular Highlight
 
-        // Dark Liquid Obsidian & Metallic Surface Palette
-        vec3 colBg = vec3(0.008, 0.012, 0.02);      // #020305
-        vec3 colMetalDark = vec3(0.03, 0.065, 0.12); // #08111E
-        vec3 colMetalSpec = vec3(0.48, 0.55, 0.67);  // #7A8DAA Metallic Reflection
+        // Base Liquid Metal Surface Interpolation
+        float facet = smoothstep(-0.6, 0.6, surface);
+        vec3 liquidSurface = mix(colObsidian, colNavyMetal, facet);
+        liquidSurface = mix(liquidSurface, colSteelMetal, pow(clamp(facet, 0.0, 1.0), 2.0) * 0.7);
 
-        float metalFacet = smoothstep(-0.2, 0.8, n);
-        vec3 liquidSurface = mix(colBg, colMetalDark, metalFacet * 0.85);
+        // Metallic Specular Reflections along liquid folds
+        float spec = pow(clamp(surface * 1.35, 0.0, 1.0), 4.5);
+        liquidSurface += colMetalSpec * spec * 0.5;
 
-        // Smooth Metallic Specular Highlights along liquid ridges
-        float specHighlight = pow(clamp(n * 1.2, 0.0, 1.0), 4.0);
-        liquidSurface += colMetalSpec * specHighlight * 0.35;
+        // High-Contrast Emissive Electric Blue & Cyan Energy River (Reference Image 2)
+        // Volumetric Curved River flowing vertically across space
+        float riverPath = st.x - 0.52 - 0.22 * sin(st.y * 2.8 + t * 0.9) - 0.12 * sin(st.y * 5.2 - t * 1.1);
+        float riverWidth = 0.09 + 0.04 * sin(st.y * 3.5 + t);
+        float riverMask = smoothstep(riverWidth, 0.0, abs(riverPath));
 
-        // Curved Emissive Blue & Cyan Energy River Stream
-        float riverDistance = abs(st.x - 0.5 - 0.2 * sin(st.y * 2.5 + t * 0.7) - 0.08 * fbmSmooth(vec3(st * 2.0, t)));
-        float riverWidth = 0.12 + 0.06 * sin(st.y * 4.0 + t);
-        float riverMask = smoothstep(riverWidth, 0.0, riverDistance);
+        // Emissive Electric Blue & Cyan Colors (Reference Image 2)
+        vec3 colPrimaryBlue  = vec3(0.122, 0.482, 1.0);  // #1F7BFF
+        vec3 colElectricBlue = vec3(0.196, 0.780, 1.0);  // #32C7FF
+        vec3 colEmissiveCyan = vec3(0.353, 0.984, 1.0);  // #5AFBFF
 
-        // Electric Blue & Cyan Energy Palette (Reference Image 2)
-        vec3 colElectricBlue = vec3(0.12, 0.48, 1.0);  // #1F7BFF
-        vec3 colBrightCyan   = vec3(0.2, 0.78, 1.0);   // #32C7FF
-        vec3 colPureCyan     = vec3(0.35, 0.98, 1.0);  // #5AFBFF
+        vec3 riverColor = mix(colPrimaryBlue, colElectricBlue, riverMask);
+        riverColor = mix(riverColor, colEmissiveCyan, pow(riverMask, 2.5));
 
-        vec3 riverColor = mix(colElectricBlue, colBrightCyan, riverMask);
-        riverColor = mix(riverColor, colPureCyan, pow(riverMask, 2.0));
-
-        // Soft Volumetric Glow (No Grain)
-        float softGlow = smoothstep(riverWidth * 3.5, 0.0, riverDistance);
-        vec3 emissiveGlow = colElectricBlue * softGlow * 1.1;
+        // Soft Outer Volumetric Glow (5-10 Intensity)
+        float outerGlow = smoothstep(riverWidth * 4.5, 0.0, abs(riverPath));
+        vec3 volumetricGlow = colPrimaryBlue * outerGlow * 1.25;
 
         // Final Composite Surface
-        vec3 finalColor = liquidSurface + riverColor * riverMask * 2.4 + emissiveGlow;
+        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.2 + volumetricGlow;
 
-        // Smooth Vignette
+        // Soft Vignette for Spatial Focus
         vec2 uv = gl_FragCoord.xy / u_resolution.xy;
         float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-        vignette = clamp(pow(16.0 * vignette, 0.3), 0.0, 1.0);
+        vignette = clamp(pow(16.0 * vignette, 0.28), 0.0, 1.0);
         finalColor *= vignette;
 
         gl_FragColor = vec4(finalColor, 1.0);

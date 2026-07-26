@@ -301,21 +301,6 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
               side={THREE.DoubleSide}
             />
           </mesh>
-          <points>
-            <bufferGeometry>
-              <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-              <bufferAttribute attach="attributes-color" args={[colors, 3]} />
-            </bufferGeometry>
-            <pointsMaterial
-              size={0.008}
-              vertexColors
-              transparent
-              opacity={0.45}
-              sizeAttenuation
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </points>
         </group>
       </group>
 
@@ -363,7 +348,6 @@ export default function Entity() {
         <EntityBody reducedMotion={reducedMotion} />
       </group>
       <SpiralGalaxy reducedMotion={reducedMotion} />
-      <MarineSnow reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
           intensity={0.85}
