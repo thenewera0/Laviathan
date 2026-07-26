@@ -378,44 +378,34 @@ void main() {
   float ang = atan(p.y, p.x);
   float spin = uFlow * 0.12;
 
-  // two interleaved log-spiral arms -> dense, galactic
+  // two interleaved log-spiral arms -> dense, glowing bioluminescent fluid disc
   float phase = 2.5 * ang - 4.0 * log(r + 0.2) - spin;
-  float arms = pow(0.5 + 0.5 * cos(phase), 2.0)
-             + 0.6 * pow(0.5 + 0.5 * cos(phase + 2.094), 2.0);
+  float arms = pow(0.5 + 0.5 * cos(phase), 1.6)
+             + 0.7 * pow(0.5 + 0.5 * cos(phase + 2.094), 1.6);
 
-  // multi-scale dust grain for real, non-uniform density
-  float g1 = snoise(vec3(p * 2.2, spin * 0.5));
-  float g2 = snoise(vec3(p * 7.0, spin));
-  float grain = (0.5 + 0.5 * g1) * (0.55 + 0.45 * (0.5 + 0.5 * g2));
+  float rad = smoothstep(1.0, 0.1, R);
+  float density = arms * rad;
 
-  float rad = smoothstep(1.0, 0.14, R);
-  float density = arms * grain * rad;
-
-  // colour: blazing blue-white core -> cyan -> deep-blue arms, sparse warm flecks
-  vec3 arm  = vec3(0.08, 0.30, 0.85);
-  vec3 mid  = vec3(0.16, 0.55, 1.00);
-  vec3 core = vec3(0.62, 0.86, 1.00);
-  vec3 warm = vec3(0.95, 0.62, 0.30);
-  vec3 col = mix(arm, mid, smoothstep(0.85, 0.2, R));
-  col = mix(col, core, smoothstep(0.16, 0.0, R));
-  col += warm * pow(max(g2, 0.0), 2.0) * 0.14 * smoothstep(0.9, 0.3, R);
+  // colour: electric blue-white core -> neon cyan -> cobalt blue arms, molten gold flecks
+  vec3 arm  = vec3(0.00, 0.42, 1.00); // #0066ff
+  vec3 mid  = vec3(0.00, 0.83, 1.00); // #00d4ff
+  vec3 core = vec3(0.75, 0.95, 1.00); // #c2f0ff
+  vec3 gold = vec3(0.96, 0.62, 0.04); // #f59e0b
+  vec3 col = mix(arm, mid, smoothstep(0.85, 0.15, R));
+  col = mix(col, core, smoothstep(0.18, 0.0, R));
 
   // blazing life-core
-  float coreGlow = pow(smoothstep(0.26, 0.0, R), 2.6);
-  col += vec3(0.5, 0.82, 1.05) * coreGlow * (2.2 + uAudio * 1.0);
+  float coreGlow = pow(smoothstep(0.35, 0.0, R), 2.2);
+  col += vec3(0.4, 0.85, 1.0) * coreGlow * (2.8 + uAudio * 1.2);
 
-  // nebula clouds — coloured gas (pink HII, teal, gold) drifting through arms
-  float nb = snoise(vec3(p * 1.3, spin * 0.3));
-  float nb2 = snoise(vec3(p * 0.7, spin * 0.15));
-  vec3 pink = vec3(0.95, 0.35, 0.62);
-  vec3 teal = vec3(0.22, 0.90, 0.85);
-  vec3 gold = vec3(1.00, 0.74, 0.36);
-  vec3 nebula = mix(pink, teal, 0.5 + 0.5 * nb2);
-  nebula = mix(nebula, gold, smoothstep(0.45, 0.95, nb));
-  float nebAmt = smoothstep(0.4, 0.95, nb) * rad;
-  col += nebula * nebAmt * (0.4 + density) * 1.2;
+  // nebula clouds — coloured fluid gas drifting through arms
+  float nb = snoise(vec3(p * 1.2, spin * 0.2));
+  float nb2 = snoise(vec3(p * 0.6, spin * 0.1));
+  vec3 nebula = mix(mid, gold, 0.5 + 0.5 * nb2);
+  float nebAmt = smoothstep(0.35, 0.9, nb) * rad;
+  col += nebula * nebAmt * (0.5 + density) * 1.4;
 
-  float alpha = clamp(density * 1.5 + coreGlow + nebAmt * 0.5, 0.0, 1.0);
+  float alpha = clamp(density * 1.6 + coreGlow * 2.2 + nebAmt * 0.7, 0.0, 1.0);
   gl_FragColor = vec4(col, alpha);
 }
 `;
@@ -437,11 +427,11 @@ varying vec2 vUv;
 void main() {
   float x = abs(vUv.x - 0.5) * 2.0;   // 0 center .. 1 edge
   float up = vUv.y;                   // 0 base (core) .. 1 top (orb)
-  float horiz = pow(smoothstep(1.0, 0.0, x), 1.6);
-  float vert = mix(1.0, 0.15, up) * smoothstep(0.0, 0.12, up);
-  float flick = 0.82 + 0.18 * sin(uFlow * 3.0 + up * 7.0);
-  vec3 col = mix(vec3(0.80, 0.92, 1.05), vec3(0.35, 0.66, 1.05), up);
-  float a = horiz * vert * flick * (0.7 + uAudio * 0.5);
+  float horiz = pow(smoothstep(1.0, 0.0, x), 1.8);
+  float vert = mix(1.0, 0.2, up) * smoothstep(0.0, 0.1, up);
+  float flick = 0.85 + 0.15 * sin(uFlow * 3.0 + up * 7.0);
+  vec3 col = mix(vec3(0.4, 0.88, 1.0), vec3(0.0, 0.55, 1.0), up);
+  float a = horiz * vert * flick * (0.85 + uAudio * 0.6);
   gl_FragColor = vec4(col, a);
 }
 `;

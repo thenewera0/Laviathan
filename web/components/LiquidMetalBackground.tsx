@@ -19,72 +19,77 @@ export default function LiquidMetalBackground() {
       }
     `;
 
-    // High-Contrast Procedural Liquid Metal & Emissive Electric Blue River Shader (Reference Image 2)
+    // Sculpted Liquid Metal & Neon Blue Energy Stream Shader (Reference Image 2)
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution;
       uniform float u_time;
 
-      // Smooth Trigonometric Sinusoidal Domain Warping (100% Noise-Free & Silk-Smooth)
-      float liquidMap(vec2 p, float t) {
-        float wave1 = sin(p.x * 2.2 + t * 0.7) + cos(p.y * 1.8 - t * 0.5);
-        float wave2 = sin(p.x * 3.5 - t * 0.9 + wave1 * 0.8) + cos(p.y * 3.1 + t * 0.6 + wave1);
-        float wave3 = sin(p.x * 1.2 + wave2 * 1.2) + cos(p.y * 1.4 + wave2 * 0.9);
-        return (wave1 + wave2 * 0.5 + wave3 * 0.25) / 2.75;
+      // Organic Liquid Metal Displacement Map
+      float map(vec3 p) {
+        vec3 q = p;
+        q.x += sin(p.y * 1.8 + u_time * 0.4) * 0.4;
+        q.y += cos(p.x * 1.5 + u_time * 0.3) * 0.4;
+        
+        float d1 = sin(q.x * 2.2) * cos(q.y * 2.2) * sin(q.z * 2.2);
+        float d2 = sin(q.x * 4.5 + u_time * 0.6) * cos(q.y * 4.5) * 0.25;
+        return d1 + d2;
       }
 
       void main() {
         vec2 st = gl_FragCoord.xy / u_resolution.xy;
         st.x *= u_resolution.x / u_resolution.y;
 
-        float t = u_time * 0.035; // Slow continuous fluid flow
+        float t = u_time * 0.03; // Slow continuous fluid motion
 
-        // Domain Warping for organic liquid metal topology
-        vec2 p = st * 2.0;
-        float n1 = liquidMap(p, t);
-        float n2 = liquidMap(p + vec2(n1 * 0.6, n1 * 0.4), t * 1.2);
-        float surface = liquidMap(p + 1.5 * vec2(n2, n1), t * 0.8);
+        // Coordinates & Domain Warping
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+        vec3 p = vec3(uv * 2.8, t);
 
-        // Dark Obsidian & Liquid Metal Palette
+        float n1 = map(p);
+        float n2 = map(p + vec3(n1 * 0.8, n1 * 0.5, t * 0.5));
+        float surface = map(p + 1.8 * vec3(n2, n1, t * 0.2));
+
+        // Colors matching Reference Image 2
         vec3 colObsidian   = vec3(0.008, 0.012, 0.02);   // #020305 Deep OLED Black
-        vec3 colNavyMetal  = vec3(0.031, 0.066, 0.118);  // #08111E Metallic Navy
-        vec3 colSteelMetal = vec3(0.102, 0.160, 0.231);  // #1A283B Liquid Aluminium
-        vec3 colMetalSpec  = vec3(0.478, 0.553, 0.667);  // #7A8DAA Specular Highlight
+        vec3 colDarkNavy   = vec3(0.03, 0.065, 0.12);    // #08111E Metallic Navy
+        vec3 colMetalSpec  = vec3(0.48, 0.55, 0.67);    // #7A8DAA Specular Highlight
+        vec3 colCopperGold = vec3(0.85, 0.52, 0.12);    // #D97706 Copper-Gold Reflection
 
-        // Base Liquid Metal Surface Interpolation
-        float facet = smoothstep(-0.6, 0.6, surface);
-        vec3 liquidSurface = mix(colObsidian, colNavyMetal, facet);
-        liquidSurface = mix(liquidSurface, colSteelMetal, pow(clamp(facet, 0.0, 1.0), 2.0) * 0.7);
+        // Liquid Metal Surface
+        float facet = smoothstep(-0.5, 0.7, surface);
+        vec3 liquidSurface = mix(colObsidian, colDarkNavy, facet * 0.85);
 
-        // Metallic Specular Reflections along liquid folds
-        float spec = pow(clamp(surface * 1.35, 0.0, 1.0), 4.5);
-        liquidSurface += colMetalSpec * spec * 0.5;
+        // Metallic Specular Reflection + Copper Gold Ridge Lighting (Image 2)
+        float spec = pow(clamp(surface * 1.4, 0.0, 1.0), 4.0);
+        float goldReflect = pow(clamp((surface + 0.3) * 1.2, 0.0, 1.0), 3.0);
+        liquidSurface += colMetalSpec * spec * 0.4;
+        liquidSurface += colCopperGold * goldReflect * 0.25;
 
-        // High-Contrast Emissive Electric Blue & Cyan Energy River (Reference Image 2)
-        // Volumetric Curved River flowing vertically across space
-        float riverPath = st.x - 0.52 - 0.22 * sin(st.y * 2.8 + t * 0.9) - 0.12 * sin(st.y * 5.2 - t * 1.1);
-        float riverWidth = 0.09 + 0.04 * sin(st.y * 3.5 + t);
-        float riverMask = smoothstep(riverWidth, 0.0, abs(riverPath));
+        // Curved Neon Electric Blue & Cyan Energy Stream (Image 2)
+        // Flows down the central crevices of the liquid metal
+        float riverX = uv.x - 0.1 * sin(uv.y * 3.5 + t * 1.5) - 0.05 * cos(uv.y * 7.0 - t);
+        float riverDist = abs(riverX);
+        float riverMask = smoothstep(0.18, 0.0, riverDist);
 
-        // Emissive Electric Blue & Cyan Colors (Reference Image 2)
-        vec3 colPrimaryBlue  = vec3(0.122, 0.482, 1.0);  // #1F7BFF
-        vec3 colElectricBlue = vec3(0.196, 0.780, 1.0);  // #32C7FF
-        vec3 colEmissiveCyan = vec3(0.353, 0.984, 1.0);  // #5AFBFF
+        // Neon Blue & Cyan Emissive Colors
+        vec3 colNeonBlue = vec3(0.0, 0.53, 1.0);  // #0088FF Electric Blue
+        vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);  // #00D4FF Neon Cyan
+        vec3 colCoreWhite = vec3(0.8, 0.98, 1.0); // #CCFAFF Core Emissive White
 
-        vec3 riverColor = mix(colPrimaryBlue, colElectricBlue, riverMask);
-        riverColor = mix(riverColor, colEmissiveCyan, pow(riverMask, 2.5));
+        vec3 riverColor = mix(colNeonBlue, colNeonCyan, riverMask);
+        riverColor = mix(riverColor, colCoreWhite, pow(riverMask, 3.0));
 
-        // Soft Outer Volumetric Glow (5-10 Intensity)
-        float outerGlow = smoothstep(riverWidth * 4.5, 0.0, abs(riverPath));
-        vec3 volumetricGlow = colPrimaryBlue * outerGlow * 1.25;
+        // Soft Outer Volumetric Glow
+        float outerGlow = smoothstep(0.45, 0.0, riverDist);
+        vec3 emissiveGlow = colNeonBlue * outerGlow * 1.35;
 
-        // Final Composite Surface
-        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.2 + volumetricGlow;
+        // Final Surface Composite
+        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.5 + emissiveGlow;
 
         // Soft Vignette for Spatial Focus
-        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-        float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-        vignette = clamp(pow(16.0 * vignette, 0.28), 0.0, 1.0);
+        float vignette = (1.0 - length(uv * 0.55));
+        vignette = clamp(pow(vignette, 1.5), 0.0, 1.0);
         finalColor *= vignette;
 
         gl_FragColor = vec4(finalColor, 1.0);
