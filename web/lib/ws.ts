@@ -53,8 +53,18 @@ export type ServerMessage =
   | { type: "error"; message: string }
   | ServerAction;
 
-const WS_URL =
-  process.env.NEXT_PUBLIC_LEVIATHAN_WS ?? "ws://localhost:8000/ws";
+export function getWsUrl(): string {
+  if (process.env.NEXT_PUBLIC_LEVIATHAN_WS && process.env.NEXT_PUBLIC_LEVIATHAN_WS.trim() !== "") {
+    return process.env.NEXT_PUBLIC_LEVIATHAN_WS;
+  }
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "ws://localhost:8000/ws";
+    }
+  }
+  return "wss://leviathan-core.onrender.com/ws";
+}
 
 export class LeviathanSocket {
   private ws: WebSocket | null = null;
@@ -68,7 +78,8 @@ export class LeviathanSocket {
 
   connect() {
     this.closed = false;
-    this.ws = new WebSocket(WS_URL);
+    const wsUrl = getWsUrl();
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       this.retry = 0;

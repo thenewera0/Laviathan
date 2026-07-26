@@ -1,16 +1,16 @@
 /**
  * Smart API Base URL Resolver & Fallback Fetcher for Leviathan AI.
- * Automatically resolves local vs Render Cloud vs custom host endpoints.
+ * Automatically resolves local vs 24x7 Render Cloud backend (https://leviathan-core.onrender.com).
  */
 
 export function getApiBaseUrl(): string {
-  if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_LEVIATHAN_API || "http://localhost:8000";
-  }
-
   // 1. Explicit environment variable set at build/runtime
   if (process.env.NEXT_PUBLIC_LEVIATHAN_API && process.env.NEXT_PUBLIC_LEVIATHAN_API.trim() !== "") {
     return process.env.NEXT_PUBLIC_LEVIATHAN_API.replace(/\/+$/, "");
+  }
+
+  if (typeof window === "undefined") {
+    return "https://leviathan-core.onrender.com";
   }
 
   const hostname = window.location.hostname;
@@ -20,8 +20,8 @@ export function getApiBaseUrl(): string {
     return "http://localhost:8000";
   }
 
-  // 3. If running on Render static web host
-  return window.location.origin.replace(/\/+$/, "");
+  // 3. 24x7 Cloud Backend on Render
+  return "https://leviathan-core.onrender.com";
 }
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}): Promise<Response> {
@@ -35,7 +35,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
   } catch (err) {
     console.warn(`Fetch to primary API (${primaryUrl}) encountered network issue. Trying fallbacks...`, err);
 
-    // Fallback 1: Localhost 8000
+    // Fallback 1: Localhost 8000 if primary is cloud
     if (primaryBase !== "http://localhost:8000") {
       try {
         const res = await fetch(`http://localhost:8000${cleanEndpoint}`, options);

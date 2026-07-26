@@ -337,33 +337,33 @@ export default function ApiKeysManager() {
 
         <div className="bg-black/70 border border-white/10 rounded-xl p-4 font-mono text-xs text-foam/80 overflow-x-auto leading-relaxed">
           {activeCodeTab === "curl" && (
-            <pre>{`curl -X POST http://localhost:8000/v1/chat \\
-  -H "X-API-Key: ${createdKey || "lvh-live-your_generated_key"}" \\
+            <pre>{`curl -X POST https://leviathan-core.onrender.com/v1/chat/completions \\
+  -H "Authorization: Bearer ${createdKey || "lvh-live-your_generated_key"}" \\
   -H "Content-Type: application/json" \\
-  -d '{"prompt": "Generate full stack integration route", "model": "llama-3.3-70b-versatile"}'`}</pre>
+  -d '{"model": "leviathan-auto", "messages": [{"role": "user", "content": "Hello Leviathan"}]}'`}</pre>
           )}
 
           {activeCodeTab === "fetch" && (
-            <pre>{`const response = await fetch("http://localhost:8000/v1/chat", {
+            <pre>{`const response = await fetch("https://leviathan-core.onrender.com/v1/chat/completions", {
   method: "POST",
   headers: {
-    "X-API-Key": "${createdKey || "lvh-live-your_generated_key"}",
+    "Authorization": "Bearer ${createdKey || "lvh-live-your_generated_key"}",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    prompt: "Write landing page copy",
-    model: "gemini-2.5-flash"
+    model: "leviathan-auto",
+    messages: [{ role: "user", content: "Hello Leviathan!" }]
   }),
 });
 const data = await response.json();
-console.log(data.reply);`}</pre>
+console.log(data.choices[0].message.content);`}</pre>
           )}
 
           {activeCodeTab === "python" && (
             <pre>{`import requests
 
 resp = requests.post(
-    "http://localhost:8000/v1/chat",
+    "https://leviathan-core.onrender.com/v1/chat",
     headers={"X-API-Key": "${createdKey || "lvh-live-your_generated_key"}"},
     json={"prompt": "Explain quantum computing in 2 sentences"}
 )
@@ -373,8 +373,9 @@ print(resp.json()["reply"])`}</pre>
           {activeCodeTab === "openai" && (
             <pre>{`from openai import OpenAI
 
+# 24x7 Cloud Gateway (or use http://localhost:8000/v1 when running locally)
 client = OpenAI(
-    base_url="http://localhost:8000/v1",
+    base_url="https://leviathan-core.onrender.com/v1",
     api_key="${createdKey || "lvh-live-your_generated_key"}"
 )
 
