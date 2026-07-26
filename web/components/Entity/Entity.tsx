@@ -247,7 +247,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   );
 
   const { positions, colors } = useMemo(() => {
-    const N = 45000; // MASSIVE density boost for a premium $100k volumetric look
+    const N = 25000; // OPTIMIZATION: Reduced from 45k to 25k to fix loading time and frame drops, still highly dense
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
@@ -354,8 +354,8 @@ export default function Entity() {
     <Canvas
       camera={{ position: CAM_POS, fov: 40 }}
       onCreated={({ camera }) => camera.lookAt(...CAM_LOOK)}
-      gl={{ antialias: true, alpha: true }}
-      dpr={[1, 2]}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} // OPTIMIZATION: Request high power GPU
+      dpr={[1, 1.5]} // OPTIMIZATION: Cap device pixel ratio to 1.5 to prevent massive post-processing lag on Retina
       style={{ position: "absolute", inset: 0 }}
     >
       <BackGlow />
