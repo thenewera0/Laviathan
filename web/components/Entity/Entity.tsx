@@ -101,7 +101,11 @@ function EntityBody({ reducedMotion }: { reducedMotion: boolean }) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     lastPointer.current.x = pointer.x;
     lastPointer.current.y = pointer.y;
-    if (dist > 0.001) {
+    
+    const isStateActive = entityState === 'listening' || entityState === 'thinking' || entityState === 'speaking';
+    const isInteracting = dist > 0.001 || audioLevel > 0.05 || isStateActive;
+    
+    if (isInteracting) {
       cursorActivity.current = damp(cursorActivity.current, 1.0, 10, dt);
     } else {
       cursorActivity.current = damp(cursorActivity.current, 0.0, 2.0, dt);
@@ -273,13 +277,13 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
       
       let r, theta, yOffset;
       if (isBackground) {
-        // Massive volume for background stars
-        r = Math.random() * RGAL * 3.5; 
+        // Uniform distribution across the disk to prevent a vertical pillar of stars at the center
+        r = Math.sqrt(Math.random()) * RGAL * 3.5; 
         theta = Math.random() * Math.PI * 2;
         yOffset = (Math.random() - 0.5) * 8.0; // Huge depth
       } else {
-        // Realistic disk clustering (denser in the center)
-        r = Math.pow(Math.random(), 0.6) * RGAL; 
+        // Realistic disk clustering (denser in the center but avoiding a singularity)
+        r = Math.pow(Math.random(), 0.5) * RGAL + 0.1; 
         const arm = i % 2; // 2 main arms
         const armAngle = (arm * 2 * Math.PI) / 2;
         const spread = randn() * 0.5 * (0.35 + r / RGAL); // Dust spread
@@ -340,14 +344,19 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     lastPointer.current.x = pointer.x;
     lastPointer.current.y = pointer.y;
-    if (dist > 0.001) {
+    
+    const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
+    const { entityState } = useLeviathan.getState();
+    const isStateActive = entityState === 'listening' || entityState === 'thinking' || entityState === 'speaking';
+    const isInteracting = dist > 0.001 || a > 0.05 || isStateActive;
+
+    if (isInteracting) {
       cursorActivity.current = damp(cursorActivity.current, 1.0, 10, dt);
     } else {
       cursorActivity.current = damp(cursorActivity.current, 0.0, 2.0, dt);
     }
     uniforms.uCursorActive.value = cursorActivity.current;
 
-    const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
     uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
     if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.04;
   });
