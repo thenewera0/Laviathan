@@ -247,6 +247,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   );
 
   const { positions, colors } = useMemo(() => {
+    const NUM_STARS = 50000; // ULTRA HD: Doubled star count for extreme realism
     const pos = new Float32Array(NUM_STARS * 3);
     const col = new Float32Array(NUM_STARS * 3);
     const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
@@ -351,12 +352,6 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
           </points>
         </group>
       </group>
-
-      {/* blazing blue life-core */}
-      <mesh>
-        <sphereGeometry args={[0.13, 24, 24]} />
-        <meshBasicMaterial color="#32C7FF" />
-      </mesh>
 
       {/* column of light rising into the orb */}
       <mesh position={[0, 0.85, 0]}>
