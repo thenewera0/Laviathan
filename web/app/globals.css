@@ -4,12 +4,11 @@
 
 :root {
   color-scheme: dark;
-  --bg-space: #0b0f24;
-  --panel-bg: rgba(13, 19, 38, 0.88);
-  --accent-cyan: #22d3ee;
-  --accent-[#38bdf8]: #38bdf8;
-  --accent-pink: #f472b6;
-  --accent-purple: #c084fc;
+  --bg-space: #040711;
+  --panel-bg: rgba(8, 13, 26, 0.88);
+  --accent-cyan: #00d4ff;
+  --accent-[#38bdf8]: #0099ff;
+  --accent-gold: #f59e0b;
   --foam: #ffffff;
 }
 
@@ -22,24 +21,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Supernova Lumina Background — Radiant sci-fi cosmic nebulae */
+/* Fluid Bioluminescent Cobalt & Molten Gold Liquid Background (Reference Image 2) */
 body {
   background:
-    radial-gradient(75vmax 75vmax at 50% 25%, rgba(236, 72, 153, 0.22), transparent 70%),
-    radial-gradient(85vmax 70vmax at 85% 90%, rgba(147, 51, 234, 0.26), transparent 65%),
-    radial-gradient(65vmax 65vmax at 10% 75%, rgba(6, 182, 212, 0.25), transparent 60%),
-    radial-gradient(45vmax 45vmax at 50% 60%, rgba(245, 158, 11, 0.12), transparent 50%),
-    #0b0f24;
+    radial-gradient(85vmax 75vmax at 50% 20%, rgba(0, 153, 255, 0.28), transparent 70%),
+    radial-gradient(90vmax 80vmax at 80% 85%, rgba(0, 212, 255, 0.22), transparent 65%),
+    radial-gradient(70vmax 70vmax at 15% 75%, rgba(245, 158, 11, 0.16), transparent 60%),
+    radial-gradient(50vmax 50vmax at 50% 65%, rgba(2, 132, 199, 0.25), transparent 50%),
+    #040711;
 }
 
-/* Sci-Fi Tactical Grid HUD Overlay */
+/* Sci-Fi Fluid Grid HUD Overlay */
 .scifi-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 114, 182, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 153, 255, 0.04) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(circle at 50% 46%, transparent 35%, black 90%);
   -webkit-mask-image: radial-gradient(circle at 50% 46%, transparent 35%, black 90%);
@@ -53,27 +52,27 @@ body {
 }
 
 ::selection {
-  background: rgba(244, 114, 182, 0.35);
+  background: rgba(0, 212, 255, 0.35);
   color: #ffffff;
 }
 
-/* Custom Radiant Sci-Fi Scrollbars */
+/* Custom Cobalt Liquid Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(11, 15, 36, 0.8);
+  background: rgba(4, 7, 17, 0.9);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #f472b6, #c084fc 50%, #38bdf8);
+  background: linear-gradient(180deg, #00d4ff, #0099ff 50%, #f59e0b);
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #ec4899, #a855f7 50%, #22d3ee);
-  box-shadow: 0 0 14px rgba(244, 114, 182, 0.9);
+  background: linear-gradient(180deg, #38bdf8, #0284c7 50%, #d97706);
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.9);
 }
 
 /* Starfield energy dust field */
@@ -82,15 +81,15 @@ body {
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(1.5px 1.5px at 20% 30%, rgba(244, 114, 182, 0.7), transparent),
-    radial-gradient(1.5px 1.5px at 70% 20%, rgba(165, 243, 252, 0.7), transparent),
-    radial-gradient(1.5px 1.5px at 40% 70%, rgba(216, 180, 254, 0.7), transparent),
-    radial-gradient(1.5px 1.5px at 85% 60%, rgba(253, 230, 138, 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 55% 85%, rgba(244, 114, 182, 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 15% 80%, rgba(165, 243, 252, 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 90% 35%, rgba(216, 180, 254, 0.7), transparent);
+    radial-gradient(1.5px 1.5px at 20% 30%, rgba(0, 212, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 70% 20%, rgba(56, 189, 248, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 40% 70%, rgba(245, 158, 11, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 85% 60%, rgba(0, 212, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 55% 85%, rgba(56, 189, 248, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 15% 80%, rgba(245, 158, 11, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 90% 35%, rgba(0, 212, 255, 0.7), transparent);
   background-size: 100% 100%;
-  opacity: 0.75;
+  opacity: 0.7;
   mask-image: radial-gradient(circle at 50% 46%, transparent 18%, black 85%);
   -webkit-mask-image: radial-gradient(circle at 50% 46%, transparent 18%, black 85%);
 }
@@ -101,27 +100,27 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(35vmax 35vmax at 50% 44%, rgba(236, 72, 153, 0.18), transparent 65%),
-    radial-gradient(28vmax 28vmax at 50% 44%, rgba(6, 182, 212, 0.16), transparent 60%);
+    radial-gradient(35vmax 35vmax at 50% 44%, rgba(0, 212, 255, 0.22), transparent 65%),
+    radial-gradient(28vmax 28vmax at 50% 44%, rgba(245, 158, 11, 0.14), transparent 60%);
   mask-image: radial-gradient(circle at 50% 44%, black 20%, transparent 75%);
   -webkit-mask-image: radial-gradient(circle at 50% 44%, black 20%, transparent 75%);
 }
 
-/* ---- SCI-FI HOLOGRAPHIC PANELS ---------------------------------------- */
+/* ---- SCI-FI HOLOGRAPHIC FLUID PANELS ---------------------------------------- */
 .glass,
 .glass-panel {
   position: relative;
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02) 60%),
-    rgba(13, 19, 38, 0.88);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 60%),
+    rgba(8, 13, 26, 0.92);
   backdrop-filter: blur(28px) saturate(1.4);
   -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(0, 212, 255, 0.22);
   box-shadow:
-    0 30px 80px -20px rgba(0, 0, 0, 0.85),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9),
     0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
-    0 0 45px -15px rgba(236, 72, 153, 0.3) inset;
+    0 0 45px -15px rgba(0, 212, 255, 0.25) inset;
 }
 
 .glass::before,
@@ -133,9 +132,9 @@ body {
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(244, 114, 182, 0.65),
-    rgba(192, 132, 252, 0.5) 40%,
-    rgba(34, 211, 238, 0.55) 80%
+    rgba(0, 212, 255, 0.7),
+    rgba(0, 153, 255, 0.5) 50%,
+    rgba(245, 158, 11, 0.5) 90%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -156,33 +155,33 @@ body {
   right: -1px;
   width: 10px;
   height: 10px;
-  border-top: 2px solid #22d3ee;
-  border-right: 2px solid #22d3ee;
+  border-top: 2px solid #00d4ff;
+  border-right: 2px solid #00d4ff;
   pointer-events: none;
 }
 
-/* Radiant Text Gradients */
+/* Bioluminescent Fluid Text Gradients */
 .celestial-text-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, #f472b6 35%, #c084fc 70%, #38bdf8 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #00d4ff 40%, #0099ff 70%, #f59e0b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .supernova-text-gradient {
-  background: linear-gradient(135deg, #fb7185 0%, #a855f7 50%, #38bdf8 100%);
+  background: linear-gradient(135deg, #00d4ff 0%, #38bdf8 50%, #f59e0b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 /* Vibrant Glow Effects */
-.glow-pink {
-  box-shadow: 0 0 25px rgba(244, 114, 182, 0.5);
+.glow-[#00d4ff] {
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
 }
 .glow-cyan {
-  box-shadow: 0 0 25px rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
 }
-.glow-violet {
-  box-shadow: 0 0 25px rgba(192, 132, 252, 0.5);
+.glow-gold {
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
 }
 
 /* Floating Animations */
@@ -204,7 +203,7 @@ body {
 .panel-enter { animation: panel-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #f472b6); }
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #00d4ff); }
   50% { opacity: 0.3; }
 }
 .status-live { animation: pulse-dot 2.4s ease-in-out infinite; }

@@ -19,7 +19,7 @@ export default function SidebarRight() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null!);
 
-  // Multi-band Sci-Fi Spectrum Equalizer Waveform
+  // Bioluminescent Cobalt & Copper Gold Spectrum Equalizer (Reference Image 2)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -38,19 +38,19 @@ export default function SidebarRight() {
       phase += 0.08;
       const amp = 10 + (audioLevel || (entityState === "listening" ? 15 : 5));
 
-      // Dual Wave Glow Gradients
-      const gradCyan = ctx.createLinearGradient(0, 0, w, 0);
-      gradCyan.addColorStop(0, "#22d3ee");
-      gradCyan.addColorStop(0.5, "#a855f7");
-      gradCyan.addColorStop(1, "#f472b6");
+      // Cobalt Sapphire Fluid Gradient
+      const gradCobalt = ctx.createLinearGradient(0, 0, w, 0);
+      gradCobalt.addColorStop(0, "#00d4ff");
+      gradCobalt.addColorStop(0.5, "#0099ff");
+      gradCobalt.addColorStop(1, "#38bdf8");
 
-      // Primary Wave
+      // Primary Wave (Cobalt)
       ctx.save();
       ctx.shadowBlur = 12;
-      ctx.shadowColor = "rgba(34,211,238,0.8)";
+      ctx.shadowColor = "rgba(0, 212, 255, 0.8)";
       ctx.beginPath();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = gradCyan;
+      ctx.strokeStyle = gradCobalt;
 
       for (let x = 0; x < w; x++) {
         const env = Math.sin((x / w) * Math.PI);
@@ -60,13 +60,13 @@ export default function SidebarRight() {
       ctx.stroke();
       ctx.restore();
 
-      // Secondary Wave (Magenta)
+      // Secondary Wave (Molten Gold Highlight)
       ctx.save();
       ctx.shadowBlur = 10;
-      ctx.shadowColor = "rgba(244,114,182,0.7)";
+      ctx.shadowColor = "rgba(245, 158, 11, 0.7)";
       ctx.beginPath();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(244,114,182,0.6)";
+      ctx.strokeStyle = "rgba(245, 158, 11, 0.75)";
 
       for (let x = 0; x < w; x++) {
         const env = Math.sin((x / w) * Math.PI);
@@ -76,10 +76,10 @@ export default function SidebarRight() {
       ctx.stroke();
       ctx.restore();
 
-      // Audio Spectrum Equalizer Bars Background
+      // Equalizer Bars
       const numBars = 20;
       const barWidth = w / numBars - 2;
-      ctx.fillStyle = "rgba(34, 211, 238, 0.12)";
+      ctx.fillStyle = "rgba(0, 212, 255, 0.15)";
 
       for (let i = 0; i < numBars; i++) {
         const barHeight = Math.abs(Math.sin(phase + i * 0.5)) * amp * 0.8;
@@ -102,14 +102,14 @@ export default function SidebarRight() {
   const battVal = dv && typeof dv.battery === "number" ? Math.round(dv.battery) : 88;
 
   const vitalsGauges = [
-    { label: "CPU", value: `${cpuPct}%`, pct: cpuPct, color: "#22d3ee" },
-    { label: "MEM", value: `${memPct}%`, pct: memPct, color: "#a855f7" },
-    { label: "DISK", value: `${diskPct}%`, pct: diskPct, color: "#f472b6" },
-    { label: "BATT", value: `${battVal}%`, pct: battVal, color: "#34d399" },
+    { label: "CPU", value: `${cpuPct}%`, pct: cpuPct, color: "#00d4ff" },
+    { label: "MEM", value: `${memPct}%`, pct: memPct, color: "#0099ff" },
+    { label: "DISK", value: `${diskPct}%`, pct: diskPct, color: "#38bdf8" },
+    { label: "BATT", value: `${battVal}%`, pct: battVal, color: "#f59e0b" },
   ];
 
   const boltIcon = (
-    <span className="text-[#22d3ee] font-bold">⚡</span>
+    <span className="text-[#00d4ff] font-bold">⚡</span>
   );
 
   const liveOps =
@@ -120,7 +120,7 @@ export default function SidebarRight() {
           title: t.label,
           status: t.status === "running" ? "In Progress" : t.status === "done" ? "Completed" : "Failed",
           time: "just now",
-          tone: t.status === "failed" ? "text-rose-400" : t.status === "done" ? "text-[#34d399]" : "text-[#22d3ee]",
+          tone: t.status === "failed" ? "text-rose-400" : t.status === "done" ? "text-[#34d399]" : "text-[#00d4ff]",
         }))
       : activity.length > 0
         ? activity.map((a) => ({
@@ -129,7 +129,7 @@ export default function SidebarRight() {
             title: a.text,
             status: "done",
             time: relTime(a.at),
-            tone: "text-[#22d3ee]",
+            tone: "text-[#00d4ff]",
           }))
         : [
             {
@@ -148,17 +148,17 @@ export default function SidebarRight() {
       {/* ACTIVE OPERATIONS */}
       <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#22d3ee] uppercase">
+          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
             // ACTIVE OPERATIONS [01]
           </span>
-          <span className="h-2 w-2 rounded-full bg-[#22d3ee] shadow-[0_0_8px_#22d3ee] animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-[#00d4ff] shadow-[0_0_8px_#00d4ff] animate-pulse" />
         </div>
 
         <div className="flex flex-col gap-2.5 max-h-44 overflow-y-auto">
           {liveOps.slice(0, 4).map((op) => (
             <div
               key={op.id}
-              className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#0d1326]/80 border border-white/10 hover:border-[#22d3ee]/50 transition-all"
+              className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#080d1c]/80 border border-white/10 hover:border-[#00d4ff]/50 transition-all"
             >
               <span className="mt-0.5">{op.icon}</span>
               <div className="flex flex-col min-w-0 flex-1">
@@ -178,26 +178,26 @@ export default function SidebarRight() {
       {/* AUDIO WAVEFORM SPECTRUM */}
       <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#f472b6] uppercase">
+          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
             // AUDIO SPECTRUM [02]
           </span>
-          <span className="font-mono text-[9px] text-white/40">44.1 kHz</span>
+          <span className="font-mono text-[9px] text-[#f59e0b]">44.1 kHz</span>
         </div>
 
-        <div className="relative h-20 w-full overflow-hidden rounded-xl bg-[#080d1c]/90 border border-white/10 flex items-center justify-center p-2">
+        <div className="relative h-20 w-full overflow-hidden rounded-xl bg-[#040814]/90 border border-white/10 flex items-center justify-center p-2">
           <canvas ref={canvasRef} width={280} height={70} className="w-full h-full" />
         </div>
 
         <div className="flex items-center justify-between font-mono text-[9px] text-white/50 px-1">
           <span>STATUS: {entityState.toUpperCase()}</span>
-          <span className="text-[#f472b6]">{audioLevel > 0 ? `${Math.round(audioLevel * 100)} RMS` : "STANDBY"}</span>
+          <span className="text-[#00d4ff]">{audioLevel > 0 ? `${Math.round(audioLevel * 100)} RMS` : "STANDBY"}</span>
         </div>
       </div>
 
       {/* CORE VITALS TELEMETRY GAUGES */}
       <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#a855f7] uppercase">
+          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
             // CORE VITALS TELEMETRY [03]
           </span>
           <span className="font-mono text-[9px] text-[#34d399]">HEALTH: 100%</span>
@@ -208,7 +208,7 @@ export default function SidebarRight() {
             const strokeDashoffset = 100 - g.pct;
 
             return (
-              <div key={idx} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-[#0d1326]/80 border border-white/10">
+              <div key={idx} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-[#080d1c]/80 border border-white/10">
                 {/* Circular SVG Gauge Arc */}
                 <div className="relative w-11 h-11 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">

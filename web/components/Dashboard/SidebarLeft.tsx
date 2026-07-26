@@ -55,10 +55,10 @@ export default function SidebarLeft({
       {/* Navigation Section */}
       <div className="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-data text-[9px] font-bold tracking-[0.3em] text-[#22d3ee] uppercase">
+          <span className="font-data text-[9px] font-bold tracking-[0.3em] text-[#00d4ff] uppercase">
             // TACTICAL SYSTEM NAV
           </span>
-          <span className="font-mono text-[9px] text-foam/40">SYS.v2.5</span>
+          <span className="font-mono text-[9px] text-white/40">SYS.v2.5</span>
         </div>
 
         <nav className="flex flex-col gap-1.5">
@@ -70,17 +70,17 @@ export default function SidebarLeft({
                 onClick={() => onSelectTab(item.id)}
                 className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.16em] transition-all duration-300 ${
                   isActive
-                    ? "bg-gradient-to-r from-[#f472b6]/35 via-[#c084fc]/25 to-[#38bdf8]/35 text-white font-bold border-l-2 border-[#22d3ee] shadow-[0_0_20px_rgba(34,211,238,0.4)] scifi-bracket"
+                    ? "bg-gradient-to-r from-[#00d4ff]/35 via-[#0099ff]/25 to-[#f59e0b]/20 text-white font-bold border-l-2 border-[#00d4ff] shadow-[0_0_20px_rgba(0,212,255,0.4)] scifi-bracket"
                     : "text-white/60 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={isActive ? "text-[#22d3ee] drop-shadow-[0_0_8px_#22d3ee]" : "text-white/40 group-hover:text-white"}>
+                  <span className={isActive ? "text-[#00d4ff] drop-shadow-[0_0_8px_#00d4ff]" : "text-white/40 group-hover:text-white"}>
                     {item.icon}
                   </span>
                   <span className="truncate">{item.id}</span>
                 </div>
-                <span className="font-mono text-[9px] text-white/40 group-hover:text-[#22d3ee]">
+                <span className="font-mono text-[9px] text-white/40 group-hover:text-[#00d4ff]">
                   [{item.code}]
                 </span>
               </button>
@@ -94,9 +94,9 @@ export default function SidebarLeft({
         <div className="flex flex-col gap-2">
           <div className="glass-panel flex items-center gap-3 p-3 border border-white/15">
             <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
-              <span className={`status-live absolute inset-0 rounded-full border ${isError ? "border-rose-500" : "border-[#22d3ee]"} opacity-50`} />
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#22d3ee]"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${isError ? "bg-rose-500" : "bg-[#22d3ee]"} shadow-[0_0_10px_#22d3ee]`} />
+              <span className={`status-live absolute inset-0 rounded-full border ${isError ? "border-rose-500" : "border-[#00d4ff]"} opacity-50`} />
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#00d4ff]"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${isError ? "bg-rose-500" : "bg-[#00d4ff]"} shadow-[0_0_10px_#00d4ff]`} />
               </span>
             </div>
 
@@ -104,7 +104,7 @@ export default function SidebarLeft({
               <span className="font-data text-[11px] font-bold tracking-wider text-white truncate">
                 LEVIATHAN CORE
               </span>
-              <span className={`font-mono text-[9px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#22d3ee]"}`}>
+              <span className={`font-mono text-[9px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#00d4ff]"}`}>
                 {isError ? "SYS_ERROR" : "ONLINE // AES-256"}
               </span>
             </div>
@@ -113,19 +113,19 @@ export default function SidebarLeft({
 
         {deviceLinks.length > 0 && (
           <div className="flex flex-col gap-2">
-            <span className="font-data text-[9px] font-bold tracking-[0.25em] text-[#22d3ee] uppercase">
+            <span className="font-data text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
               // ACTIVE PAIRING LINKS
             </span>
             <div className="flex flex-col gap-1.5">
               {deviceLinks.map((l) => (
                 <div key={l.url} className="glass-panel flex flex-col gap-1 p-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#22d3ee]">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#00d4ff]">
                       {l.purpose} · LIVE
                     </span>
                     <button
                       onClick={() => copyLink(l.url)}
-                      className="font-data text-[9px] uppercase tracking-wider text-white/60 transition-colors hover:text-[#22d3ee]"
+                      className="font-data text-[9px] uppercase tracking-wider text-white/60 transition-colors hover:text-[#00d4ff]"
                     >
                       {copiedUrl === l.url ? "copied ✓" : "copy"}
                     </button>
@@ -134,7 +134,7 @@ export default function SidebarLeft({
                     href={l.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="break-all font-mono text-[10px] leading-4 text-white/60 underline decoration-white/20 underline-offset-2 transition-colors hover:text-[#22d3ee]"
+                    className="break-all font-mono text-[10px] leading-4 text-white/60 underline decoration-white/20 underline-offset-2 transition-colors hover:text-[#00d4ff]"
                   >
                     {l.url.replace(/^https?:\/\//, "")}
                   </a>
@@ -147,7 +147,7 @@ export default function SidebarLeft({
         <div className="flex flex-col gap-1 border-t border-white/10 pt-3 font-mono text-[10px] tracking-widest text-white/50">
           <div className="flex items-center justify-between">
             <span className="text-white/35 uppercase">SYS.TIME</span>
-            <span className="font-bold text-[#22d3ee]">{timeStr || "19:45:32"}</span>
+            <span className="font-bold text-[#00d4ff]">{timeStr || "19:45:32"}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-white/35 uppercase">SYS.DATE</span>

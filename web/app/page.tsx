@@ -17,7 +17,6 @@ import HudFrame from "@/components/HudFrame";
 import MediaLayer from "@/components/MediaLayer";
 import MemoryPanel from "@/components/MemoryPanel";
 import SchedulesPanel from "@/components/SchedulesPanel";
-import SciFiReticle from "@/components/SciFiReticle";
 import SystemDashboard from "@/components/SystemDashboard";
 import { captureFrame, captureScreen } from "@/lib/camera";
 import { GestureEngine, type GestureName } from "@/lib/gestures";
@@ -340,7 +339,6 @@ export default function Home() {
           {/* Central Command Input & Right Sidebar — Voice Command Mode */}
           {activeTab === "VOICE COMMAND" && (
             <>
-              <SciFiReticle />
               <SidebarRight />
               <CommandInput
                 onSubmitText={handleSendText}
