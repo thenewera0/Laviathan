@@ -307,10 +307,10 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
               <bufferAttribute attach="attributes-color" args={[colors, 3]} />
             </bufferGeometry>
             <pointsMaterial
-              size={0.02}
+              size={0.008}
               vertexColors
               transparent
-              opacity={0.95}
+              opacity={0.45}
               sizeAttenuation
               depthWrite={false}
               blending={THREE.AdditiveBlending}
@@ -322,7 +322,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
       {/* blazing blue life-core */}
       <mesh>
         <sphereGeometry args={[0.13, 24, 24]} />
-        <meshBasicMaterial color="#cfe6ff" />
+        <meshBasicMaterial color="#32C7FF" />
       </mesh>
 
       {/* column of light rising into the orb */}
@@ -372,11 +372,10 @@ export default function Entity() {
           mipmapBlur
         />
         <ChromaticAberration
-          offset={new THREE.Vector2(0.0007, 0.0004)}
+          offset={new THREE.Vector2(0.0004, 0.0002)}
           radialModulation={false}
           modulationOffset={0}
         />
-        <Noise opacity={0.02} />
         <Vignette eskil={false} offset={0.18} darkness={0.72} />
       </EffectComposer>
     </Canvas>

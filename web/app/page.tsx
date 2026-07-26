@@ -333,8 +333,7 @@ export default function Home() {
 
       {surfaced ? (
         <>
-          {/* Deep-universe backdrop + ambient core bloom */}
-          <div className="starfield" />
+          {/* Ambient core bloom */}
           <div className="orb-halo" />
           {/* Dashboard HUD & Frame */}
           <HudFrame />

@@ -8,7 +8,7 @@ export default function LiquidMetalBackground() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl", { antialias: true, alpha: true, depth: false });
     if (!gl) return;
 
     // Full screen quad vertex shader
@@ -19,13 +19,13 @@ export default function LiquidMetalBackground() {
       }
     `;
 
-    // Procedural Liquid Metal & Emissive Blue Energy River Fragment Shader
+    // Smooth Bioluminescent Liquid Metal & Emissive Blue Energy River Shader (Reference Image 2)
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution;
       uniform float u_time;
 
-      // Simplex 3D Noise Functions
+      // Smooth Simplex 3D Noise Functions
       vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
       vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
 
@@ -72,14 +72,14 @@ export default function LiquidMetalBackground() {
         return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
       }
 
-      // Fractal Brownian Motion (FBM)
-      float fbm(vec3 p) {
+      // Smooth low-frequency FBM (No harsh high-frequency noise)
+      float fbmSmooth(vec3 p) {
         float value = 0.0;
-        float amplitude = 0.5;
-        for (int i = 0; i < 4; i++) {
+        float amplitude = 0.55;
+        for (int i = 0; i < 3; i++) {
           value += amplitude * snoise(p);
-          p *= 2.02;
-          amplitude *= 0.5;
+          p *= 1.85;
+          amplitude *= 0.45;
         }
         return value;
       }
@@ -88,59 +88,57 @@ export default function LiquidMetalBackground() {
         vec2 st = gl_FragCoord.xy / u_resolution.xy;
         st.x *= u_resolution.x / u_resolution.y;
 
-        float t = u_time * 0.035; // Slow fluid movement
+        float t = u_time * 0.025; // Ultra-slow silk fluid motion
 
-        // Domain Warping for organic liquid metal topology
-        vec3 p = vec3(st * 2.2, t);
-        vec3 q = vec3(fbm(p + vec3(0.0, 0.0, t)), fbm(p + vec3(5.2, 1.3, t)), t);
-        vec3 r = vec3(fbm(p + 4.0 * q + vec3(1.7, 9.2, t)), fbm(p + 4.0 * q + vec3(8.3, 2.8, t)), t);
+        // Smooth Domain Warping for organic liquid metal topology
+        vec3 p = vec3(st * 1.5, t);
+        vec3 q = vec3(fbmSmooth(p + vec3(0.0, 0.0, t)), fbmSmooth(p + vec3(3.2, 1.1, t)), t);
+        vec3 r = vec3(fbmSmooth(p + 3.0 * q + vec3(1.4, 4.2, t)), fbmSmooth(p + 3.0 * q + vec3(5.3, 2.1, t)), t);
 
-        float n = fbm(p + 3.5 * r);
+        float n = fbmSmooth(p + 2.5 * r);
 
-        // Dark Liquid Obsidian & Metallic Aluminium Surface Base
-        vec3 colBg = vec3(0.008, 0.012, 0.02); // #020305
+        // Dark Liquid Obsidian & Metallic Surface Palette
+        vec3 colBg = vec3(0.008, 0.012, 0.02);      // #020305
         vec3 colMetalDark = vec3(0.03, 0.065, 0.12); // #08111E
-        vec3 colMetalSpec = vec3(0.48, 0.55, 0.67); // #7A8DAA Metallic Reflection
+        vec3 colMetalSpec = vec3(0.48, 0.55, 0.67);  // #7A8DAA Metallic Reflection
 
-        float metalFacet = smoothstep(0.1, 0.85, n);
-        vec3 liquidSurface = mix(colBg, colMetalDark, metalFacet * 0.9);
+        float metalFacet = smoothstep(-0.2, 0.8, n);
+        vec3 liquidSurface = mix(colBg, colMetalDark, metalFacet * 0.85);
 
-        // Add Metallic Specular Highlight Highlights along the ridges
-        float specHighlight = pow(clamp(n * 1.3, 0.0, 1.0), 5.0);
-        liquidSurface += colMetalSpec * specHighlight * 0.45;
+        // Smooth Metallic Specular Highlights along liquid ridges
+        float specHighlight = pow(clamp(n * 1.2, 0.0, 1.0), 4.0);
+        liquidSurface += colMetalSpec * specHighlight * 0.35;
 
-        // Emissive Electric Blue & Cyan River Stream
-        // Vertical flowing river curving through the liquid metal crevices
-        float riverDistance = abs(st.x - 0.55 - 0.25 * sin(st.y * 3.1415 + t * 0.8) - 0.1 * fbm(vec3(st * 3.0, t)));
-        float riverWidth = 0.08 + 0.05 * sin(st.y * 5.0 + t);
+        // Curved Emissive Blue & Cyan Energy River Stream
+        float riverDistance = abs(st.x - 0.5 - 0.2 * sin(st.y * 2.5 + t * 0.7) - 0.08 * fbmSmooth(vec3(st * 2.0, t)));
+        float riverWidth = 0.12 + 0.06 * sin(st.y * 4.0 + t);
         float riverMask = smoothstep(riverWidth, 0.0, riverDistance);
 
-        // Electric Blue Energy River Gradient Palette
+        // Electric Blue & Cyan Energy Palette (Reference Image 2)
         vec3 colElectricBlue = vec3(0.12, 0.48, 1.0);  // #1F7BFF
         vec3 colBrightCyan   = vec3(0.2, 0.78, 1.0);   // #32C7FF
         vec3 colPureCyan     = vec3(0.35, 0.98, 1.0);  // #5AFBFF
 
         vec3 riverColor = mix(colElectricBlue, colBrightCyan, riverMask);
-        riverColor = mix(riverColor, colPureCyan, pow(riverMask, 2.5));
+        riverColor = mix(riverColor, colPureCyan, pow(riverMask, 2.0));
 
-        // Volumetric Glow & Emissive Bloom
-        float softGlow = smoothstep(riverWidth * 4.0, 0.0, riverDistance);
-        vec3 emissiveGlow = colElectricBlue * softGlow * 1.2;
+        // Soft Volumetric Glow (No Grain)
+        float softGlow = smoothstep(riverWidth * 3.5, 0.0, riverDistance);
+        vec3 emissiveGlow = colElectricBlue * softGlow * 1.1;
 
-        // Final Composite Layering
-        vec3 finalColor = liquidSurface + riverColor * riverMask * 2.8 + emissiveGlow;
+        // Final Composite Surface
+        vec3 finalColor = liquidSurface + riverColor * riverMask * 2.4 + emissiveGlow;
 
-        // Soft Vignette for Cinematic Focus
+        // Smooth Vignette
         vec2 uv = gl_FragCoord.xy / u_resolution.xy;
         float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-        vignette = clamp(pow(16.0 * vignette, 0.35), 0.0, 1.0);
+        vignette = clamp(pow(16.0 * vignette, 0.3), 0.0, 1.0);
         finalColor *= vignette;
 
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
 
-    // Compile Shader helper
     const createShader = (gl: WebGLRenderingContext, type: number, source: string) => {
       const shader = gl.createShader(type);
       if (!shader) return null;
@@ -171,7 +169,6 @@ export default function LiquidMetalBackground() {
 
     gl.useProgram(program);
 
-    // Fullscreen triangle buffer
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(
@@ -191,8 +188,9 @@ export default function LiquidMetalBackground() {
     let startTime = performance.now();
 
     const resize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.floor(window.innerWidth * dpr);
+      const h = Math.floor(window.innerHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
