@@ -327,6 +327,66 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   );
 }
 
+// 3D Glowing Celestial Concentric Orbital Rings surrounding the Leviathan Core
+function CelestialRings({ reducedMotion }: { reducedMotion: boolean }) {
+  const ring1 = useRef<THREE.Mesh>(null!);
+  const ring2 = useRef<THREE.Mesh>(null!);
+  const ring3 = useRef<THREE.Mesh>(null!);
+
+  useFrame((_, dt) => {
+    if (reducedMotion) return;
+    if (ring1.current) {
+      ring1.current.rotation.z += dt * 0.35;
+      ring1.current.rotation.y += dt * 0.15;
+    }
+    if (ring2.current) {
+      ring2.current.rotation.z -= dt * 0.25;
+      ring2.current.rotation.x += dt * 0.20;
+    }
+    if (ring3.current) {
+      ring3.current.rotation.y += dt * 0.30;
+      ring3.current.rotation.z += dt * 0.12;
+    }
+  });
+
+  return (
+    <group position={ORB_POS} scale={ORB_SCALE}>
+      {/* Inner Ring — Electric Cyan */}
+      <mesh ref={ring1} rotation={[1.2, 0.4, 0]}>
+        <torusGeometry args={[1.45, 0.018, 32, 120]} />
+        <meshBasicMaterial
+          color="#5AFBFF"
+          transparent
+          opacity={0.88}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Middle Ring — Bright Electric Blue */}
+      <mesh ref={ring2} rotation={[0.7, -0.6, 0.4]}>
+        <torusGeometry args={[1.85, 0.014, 32, 120]} />
+        <meshBasicMaterial
+          color="#32C7FF"
+          transparent
+          opacity={0.78}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Outer Ring — Deep Electric Blue */}
+      <mesh ref={ring3} rotation={[-0.5, 1.1, -0.2]}>
+        <torusGeometry args={[2.35, 0.010, 32, 120]} />
+        <meshBasicMaterial
+          color="#1F7BFF"
+          transparent
+          opacity={0.68}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 export default function Entity() {
   const reducedMotion = useMemo(
     () =>
@@ -347,6 +407,7 @@ export default function Entity() {
       <group position={ORB_POS} scale={ORB_SCALE}>
         <EntityBody reducedMotion={reducedMotion} />
       </group>
+      <CelestialRings reducedMotion={reducedMotion} />
       <SpiralGalaxy reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom

@@ -6,12 +6,13 @@
   color-scheme: dark;
   --bg-space: #020305;
   --surface-secondary: #08111E;
-  --card-bg: rgba(8, 17, 30, 0.65);
+  --card-bg: rgba(8, 17, 30, 0.75);
   --accent-primary-blue: #1F7BFF;
   --accent-electric-blue: #32C7FF;
   --accent-cyan: #5AFBFF;
   --soft-white: #F5FBFF;
   --metal-reflection: #7A8DAA;
+  --copper-gold: #D97706;
   --deep-shadow: #000814;
   --foam: #ffffff;
 }
@@ -76,40 +77,44 @@ h1, h2, h3, h4, .font-heading {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(42vmax 42vmax at 50% 44%, rgba(31, 123, 255, 0.2), transparent 70%),
-    radial-gradient(30vmax 30vmax at 50% 44%, rgba(90, 251, 255, 0.15), transparent 60%);
+    radial-gradient(42vmax 42vmax at 50% 44%, rgba(31, 123, 255, 0.22), transparent 70%),
+    radial-gradient(30vmax 30vmax at 50% 44%, rgba(90, 251, 255, 0.18), transparent 60%);
   mask-image: radial-gradient(circle at 50% 44%, black 20%, transparent 75%);
   -webkit-mask-image: radial-gradient(circle at 50% 44%, black 20%, transparent 75%);
 }
 
-/* ---- PREMIUM FUTURISTIC GLASSMORPHISM CARDS ---------------------------------------- */
+/* ---- PREMIUM FUTURISTIC GLASSMORPHISM CARDS ACROSS ENTIRE LEVIATHAN ---------------- */
 .glass,
-.glass-panel {
+.glass-panel,
+.studio-card,
+.border-panel {
   position: relative;
   border-radius: 18px;
-  background: rgba(8, 17, 30, 0.65);
-  backdrop-filter: blur(32px) saturate(1.5);
-  -webkit-backdrop-filter: blur(32px) saturate(1.5);
-  border: 1px solid rgba(0, 212, 255, 0.22);
+  background: rgba(8, 17, 30, 0.75) !important;
+  backdrop-filter: blur(32px) saturate(1.6);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  border: 1px solid rgba(0, 212, 255, 0.35) !important;
   box-shadow:
-    0 25px 70px rgba(0, 0, 0, 0.75),
-    0 0 35px rgba(31, 123, 255, 0.18),
-    0 1px 0 0 rgba(255, 255, 255, 0.12) inset;
+    0 25px 80px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(0, 212, 255, 0.22),
+    0 1px 0 0 rgba(255, 255, 255, 0.15) inset;
   transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .glass:hover,
-.glass-panel:hover {
-  border-color: rgba(90, 251, 255, 0.45);
+.glass-panel:hover,
+.studio-card:hover {
+  border-color: rgba(90, 251, 255, 0.55) !important;
   box-shadow:
-    0 35px 90px rgba(0, 0, 0, 0.85),
-    0 0 70px rgba(50, 199, 255, 0.4),
-    0 1px 0 0 rgba(255, 255, 255, 0.2) inset;
-  transform: translateY(-2px) scale(1.015);
+    0 35px 95px rgba(0, 0, 0, 0.9),
+    0 0 75px rgba(50, 199, 255, 0.45),
+    0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
+  transform: translateY(-2px) scale(1.012);
 }
 
 .glass::before,
-.glass-panel::before {
+.glass-panel::before,
+.studio-card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -117,9 +122,9 @@ h1, h2, h3, h4, .font-heading {
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(90, 251, 255, 0.5),
-    rgba(31, 123, 255, 0.35) 50%,
-    rgba(122, 141, 170, 0.2) 90%
+    rgba(90, 251, 255, 0.55),
+    rgba(31, 123, 255, 0.4) 50%,
+    rgba(217, 119, 6, 0.3) 90%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -129,7 +134,7 @@ h1, h2, h3, h4, .font-heading {
   pointer-events: none;
 }
 
-/* Sci-Fi Corner Brackets */
+/* Sci-Fi Corner Brackets on all panels */
 .scifi-bracket {
   position: relative;
 }

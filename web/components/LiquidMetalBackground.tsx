@@ -4,12 +4,20 @@ import { useEffect, useRef } from "react";
 
 export default function LiquidMetalBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
+  const mouseRef = useRef({ x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const gl = canvas.getContext("webgl", { antialias: true, alpha: true, depth: false });
     if (!gl) return;
+
+    // Track Cursor Motion
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current.targetX = e.clientX / window.innerWidth;
+      mouseRef.current.targetY = 1.0 - e.clientY / window.innerHeight; // Invert Y for WebGL
+    };
+    window.addEventListener("mousemove", handleMouseMove);
 
     // Full screen quad vertex shader
     const vsSource = `
@@ -19,10 +27,11 @@ export default function LiquidMetalBackground() {
       }
     `;
 
-    // Sculpted Liquid Metal & Neon Blue Energy Stream Shader (Reference Image 2)
+    // Interactive Sculpted Liquid Metal & Neon Blue Energy Stream Shader (Reference Image 2)
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution;
+      uniform vec2 u_mouse;
       uniform float u_time;
 
       // Organic Liquid Metal Displacement Map
@@ -40,11 +49,20 @@ export default function LiquidMetalBackground() {
         vec2 st = gl_FragCoord.xy / u_resolution.xy;
         st.x *= u_resolution.x / u_resolution.y;
 
-        float t = u_time * 0.03; // Slow continuous fluid motion
+        float t = u_time * 0.035; // Slow continuous fluid motion
 
-        // Coordinates & Domain Warping
+        // Mouse Position in Normalized Aspect Space
+        vec2 m = u_mouse;
+        m.x *= u_resolution.x / u_resolution.y;
+
+        // Interactive Cursor Ripple Push
         vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
-        vec3 p = vec3(uv * 2.8, t);
+        vec2 mouseUV = m - vec2(0.5 * u_resolution.x / u_resolution.y, 0.5);
+        float mouseDist = length(uv - mouseUV);
+        float mousePush = smoothstep(0.45, 0.0, mouseDist);
+
+        // Displace liquid coordinates with cursor push
+        vec3 p = vec3(uv * 2.8 + (uv - mouseUV) * mousePush * 0.6, t);
 
         float n1 = map(p);
         float n2 = map(p + vec3(n1 * 0.8, n1 * 0.5, t * 0.5));
@@ -64,28 +82,28 @@ export default function LiquidMetalBackground() {
         float spec = pow(clamp(surface * 1.4, 0.0, 1.0), 4.0);
         float goldReflect = pow(clamp((surface + 0.3) * 1.2, 0.0, 1.0), 3.0);
         liquidSurface += colMetalSpec * spec * 0.4;
-        liquidSurface += colCopperGold * goldReflect * 0.25;
+        liquidSurface += colCopperGold * goldReflect * 0.28;
 
         // Curved Neon Electric Blue & Cyan Energy Stream (Image 2)
-        // Flows down the central crevices of the liquid metal
-        float riverX = uv.x - 0.1 * sin(uv.y * 3.5 + t * 1.5) - 0.05 * cos(uv.y * 7.0 - t);
+        // Dynamic river stream reacting to cursor flow
+        float riverX = uv.x - 0.1 * sin(uv.y * 3.5 + t * 1.5) - 0.05 * cos(uv.y * 7.0 - t) - mousePush * 0.15;
         float riverDist = abs(riverX);
-        float riverMask = smoothstep(0.18, 0.0, riverDist);
+        float riverMask = smoothstep(0.22, 0.0, riverDist);
 
         // Neon Blue & Cyan Emissive Colors
         vec3 colNeonBlue = vec3(0.0, 0.53, 1.0);  // #0088FF Electric Blue
         vec3 colNeonCyan = vec3(0.0, 0.83, 1.0);  // #00D4FF Neon Cyan
-        vec3 colCoreWhite = vec3(0.8, 0.98, 1.0); // #CCFAFF Core Emissive White
+        vec3 colCoreWhite = vec3(0.85, 0.98, 1.0); // #D9FAFF Core Emissive White
 
         vec3 riverColor = mix(colNeonBlue, colNeonCyan, riverMask);
         riverColor = mix(riverColor, colCoreWhite, pow(riverMask, 3.0));
 
         // Soft Outer Volumetric Glow
-        float outerGlow = smoothstep(0.45, 0.0, riverDist);
-        vec3 emissiveGlow = colNeonBlue * outerGlow * 1.35;
+        float outerGlow = smoothstep(0.55, 0.0, riverDist);
+        vec3 emissiveGlow = colNeonBlue * outerGlow * 1.4;
 
         // Final Surface Composite
-        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.5 + emissiveGlow;
+        vec3 finalColor = liquidSurface + riverColor * riverMask * 3.6 + emissiveGlow;
 
         // Soft Vignette for Spatial Focus
         float vignette = (1.0 - length(uv * 0.55));
@@ -139,6 +157,7 @@ export default function LiquidMetalBackground() {
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
     const uResolution = gl.getUniformLocation(program, "u_resolution");
+    const uMouse = gl.getUniformLocation(program, "u_mouse");
     const uTime = gl.getUniformLocation(program, "u_time");
 
     let animId: number;
@@ -157,8 +176,13 @@ export default function LiquidMetalBackground() {
 
     const render = () => {
       resize();
+      const m = mouseRef.current;
+      m.x += (m.targetX - m.x) * 0.08; // Smooth cursor easing
+      m.y += (m.targetY - m.y) * 0.08;
+
       const now = (performance.now() - startTime) / 1000;
       gl.uniform2f(uResolution, canvas.width, canvas.height);
+      gl.uniform2f(uMouse, m.x, m.y);
       gl.uniform1f(uTime, now);
 
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -168,6 +192,7 @@ export default function LiquidMetalBackground() {
     render();
 
     return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
       cancelAnimationFrame(animId);
       gl.deleteProgram(program);
     };
