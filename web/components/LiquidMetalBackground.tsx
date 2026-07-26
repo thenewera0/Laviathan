@@ -111,22 +111,29 @@ export default function LiquidMetalBackground() {
         // Interactive mouse glow burst
         liquidSurface += colNeonCyan * mousePush * 0.4;
 
-        // Soft Vignette for Spatial Focus (expanded to ensure it reaches corners)
+        // Soft Vignette for Spatial Focus
         float vignette = (1.0 - length((gl_FragCoord.xy / u_resolution.xy) - 0.5) * 0.8);
         vignette = clamp(pow(vignette, 0.8), 0.0, 1.0);
         
-        // Two-tone horizon: Create a sharp but glowing oceanic meeting line
-        // We fade out the liquid metal rapidly below the horizon (uv.y = 0.35)
-        float hY = gl_FragCoord.xy.y / u_resolution.y;
-        float horizonMask = smoothstep(0.28, 0.35, hY);
+        // Premium Volumetric Abyss Fade
+        // Instead of a hard math line, the horizon is organically displaced by the liquid FBM itself.
+        float hY = (gl_FragCoord.xy.y / u_resolution.y);
+        // Perturb the Y coordinate with our noise function so the horizon feels like rolling waves of liquid
+        float organicY = hY + (f * 0.15) - 0.05;
         
-        // Add a glowing bright cyan rim right at the horizon line where the two worlds meet
-        float horizonGlow = smoothstep(0.25, 0.35, hY) * smoothstep(0.45, 0.35, hY);
+        // Smooth volumetric fade from the liquid ocean down into the cosmic abyss
+        float horizonMask = smoothstep(0.22, 0.45, organicY);
+        
+        // Deep subsurface glow where the ocean meets the void
+        float horizonGlow = smoothstep(0.15, 0.35, organicY) * smoothstep(0.55, 0.35, organicY);
         
         vec3 finalColor = liquidSurface * vignette * horizonMask;
-        finalColor += colNeonCyan * horizonGlow * 0.4 * vignette; // glowing edge
+        
+        // Add a breathtaking bioluminescent rim where the liquid metal dissolves
+        vec3 glowColor = mix(colNeonCyan, colPurple, f);
+        finalColor += glowColor * pow(horizonGlow, 2.0) * 0.6 * vignette;
 
-        gl_FragColor = vec4(finalColor, horizonMask); // Fade alpha to transparent at bottom
+        gl_FragColor = vec4(finalColor, horizonMask); // Fully transparent below the waves
       }
     `;
 

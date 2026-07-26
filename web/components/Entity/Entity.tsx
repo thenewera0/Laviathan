@@ -30,7 +30,7 @@ const ORB_POS: [number, number, number] = [0, 0.12, 0];  // centre, slightly low
 const ORB_SCALE = 0.92;                                   // a touch bigger
 const CAM_POS: [number, number, number] = [0, 0.9, 5.0];  // pull back + above
 const CAM_LOOK: [number, number, number] = [0, -0.25, 0]; // tilt down onto floor
-const PEDESTAL_POS: [number, number, number] = [0, -1.15, 0];
+const PEDESTAL_POS: [number, number, number] = [0, -0.95, 0];
 // -------------------------------------------------------------------------
 
 // Per-state targets; the CPU eases toward these every frame so state
@@ -247,7 +247,7 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   );
 
   const { positions, colors } = useMemo(() => {
-    const N = 12000;
+    const N = 45000; // MASSIVE density boost for a premium $100k volumetric look
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
@@ -255,20 +255,21 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
       const r = Math.pow(Math.random(), 0.5) * RGAL;
       const arm = i % 3;
       const armAngle = (arm * 2 * Math.PI) / 3;
-      const spread = randn() * 0.5 * (0.35 + r / RGAL);
+      const spread = randn() * 0.6 * (0.35 + r / RGAL);
       const theta = armAngle + 3.0 * Math.log(r + 0.2) + spread;
       pos[i * 3] = r * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(theta);
-      pos[i * 3 + 2] = randn() * 0.03; // thin disc
+      pos[i * 3 + 2] = randn() * 0.08 * (1.0 + r / RGAL); // Thicker volumetric disc toward edges
+      
       const f = r / RGAL;
       const roll = Math.random();
       let c: [number, number, number];
-      if (r < 0.55) c = [0.78, 0.9, 1.0];            // blazing core white-blue
-      else if (roll < 0.05) c = [0.98, 0.55, 0.32];  // orange old star
-      else if (roll < 0.09) c = [0.98, 0.45, 0.72];  // pink HII region
-      else if (roll < 0.13) c = [1.0, 0.96, 0.9];    // hot white
-      else if (roll < 0.2) c = [0.35, 0.95, 0.92];   // teal
-      else c = [0.2 - f * 0.14, 0.6 - f * 0.34, 1.0 - f * 0.26]; // blue arms
+      if (r < 0.6) c = [0.85, 0.95, 1.0];            // blazing core white-blue
+      else if (roll < 0.03) c = [0.98, 0.55, 0.32];  // rare orange old star
+      else if (roll < 0.08) c = [0.98, 0.45, 0.72];  // pink HII region
+      else if (roll < 0.15) c = [1.0, 0.98, 0.95];   // hot white giant
+      else if (roll < 0.25) c = [0.2, 0.9, 0.95];    // teal nebula star
+      else c = [0.1 - f * 0.05, 0.5 - f * 0.2, 1.0 - f * 0.1]; // deep electric blue arms
       col[i * 3] = c[0];
       col[i * 3 + 1] = c[1];
       col[i * 3 + 2] = c[2];
@@ -280,16 +281,16 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
     uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
     const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
     uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
-    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.03;
+    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.04;
   });
 
   return (
     <group position={PEDESTAL_POS}>
-      {/* flat, slowly spinning galactic disc + star field */}
-      <group rotation={[-Math.PI / 2, 0, 0]} scale={0.8}>
+      {/* Dynamic 3D tilt: Instead of perfectly flat, it tilts up to reveal its volumetric depth */}
+      <group rotation={[-1.25, 0, 0.15]} scale={0.9}>
         <group ref={spin}>
           <mesh>
-            <planeGeometry args={[RGAL * 2, RGAL * 2]} />
+            <planeGeometry args={[RGAL * 2.2, RGAL * 2.2]} />
             <shaderMaterial
               vertexShader={GALAXY_VERTEX}
               fragmentShader={GALAXY_FRAGMENT}
