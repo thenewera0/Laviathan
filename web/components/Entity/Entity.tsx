@@ -247,32 +247,65 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
   );
 
   const { positions, colors } = useMemo(() => {
-    const N = 25000; // OPTIMIZATION: Reduced from 45k to 25k to fix loading time and frame drops, still highly dense
-    const pos = new Float32Array(N * 3);
-    const col = new Float32Array(N * 3);
+    const pos = new Float32Array(NUM_STARS * 3);
+    const col = new Float32Array(NUM_STARS * 3);
     const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
-    for (let i = 0; i < N; i++) {
-      const r = Math.pow(Math.random(), 0.5) * RGAL;
-      const arm = i % 3;
-      const armAngle = (arm * 2 * Math.PI) / 3;
-      const spread = randn() * 0.6 * (0.35 + r / RGAL);
-      const theta = armAngle + 3.0 * Math.log(r + 0.2) + spread;
-      pos[i * 3] = r * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.sin(theta);
-      pos[i * 3 + 2] = randn() * 0.08 * (1.0 + r / RGAL); // Thicker volumetric disc toward edges
+    for (let i = 0; i < NUM_STARS; i++) {
+      // 25% of stars are deep background stars scattered everywhere, 75% form the galaxy
+      const isBackground = Math.random() < 0.25;
       
+      let r, theta, yOffset;
+      if (isBackground) {
+        // Massive volume for background stars
+        r = Math.random() * RGAL * 3.5; 
+        theta = Math.random() * Math.PI * 2;
+        yOffset = (Math.random() - 0.5) * 8.0; // Huge depth
+      } else {
+        // Realistic disk clustering (denser in the center)
+        r = Math.pow(Math.random(), 0.6) * RGAL; 
+        const arm = i % 2; // 2 main arms
+        const armAngle = (arm * 2 * Math.PI) / 2;
+        const spread = randn() * 0.5 * (0.35 + r / RGAL); // Dust spread
+        theta = armAngle + 2.0 * Math.log(r + 0.05) + spread; // Matches shader winding
+        yOffset = randn() * 0.12 * Math.exp(-r / RGAL * 2.0); // Flatter at edges, bulges at core
+      }
+
+      pos[i * 3] = r * Math.cos(theta);
+      pos[i * 3 + 1] = yOffset;
+      pos[i * 3 + 2] = r * Math.sin(theta);
+
       const f = r / RGAL;
       const roll = Math.random();
       let c: [number, number, number];
-      if (r < 0.6) c = [0.85, 0.95, 1.0];            // blazing core white-blue
-      else if (roll < 0.03) c = [0.98, 0.55, 0.32];  // rare orange old star
-      else if (roll < 0.08) c = [0.98, 0.45, 0.72];  // pink HII region
-      else if (roll < 0.15) c = [1.0, 0.98, 0.95];   // hot white giant
-      else if (roll < 0.25) c = [0.2, 0.9, 0.95];    // teal nebula star
-      else c = [0.1 - f * 0.05, 0.5 - f * 0.2, 1.0 - f * 0.1]; // deep electric blue arms
-      col[i * 3] = c[0];
-      col[i * 3 + 1] = c[1];
-      col[i * 3 + 2] = c[2];
+      
+      if (isBackground) {
+        // Background stars are mostly white, slightly blue, or slightly orange
+        if (roll < 0.2) c = [1.0, 0.8, 0.6]; // Warm orange dwarf
+        else if (roll < 0.4) c = [0.7, 0.8, 1.0]; // Blue giant
+        else c = [0.9, 0.95, 1.0]; // Standard white
+      } else {
+        // Galaxy stars exactly match the reference image gradient
+        if (f < 0.15) {
+          // Core: Blazing Gold / White
+          c = roll < 0.5 ? [1.0, 0.98, 0.9] : [1.0, 0.85, 0.6];
+        } else if (f < 0.35) {
+          // Inner Ring: Pinkish / Purple transition
+          if (roll < 0.4) c = [0.95, 0.7, 0.4]; // fading gold
+          else if (roll < 0.7) c = [0.85, 0.4, 0.75]; // vibrant pink/purple
+          else c = [1.0, 0.9, 1.0]; // bright white clusters
+        } else {
+          // Outer Arms: Deep Blue and bright Cyan clusters
+          if (roll < 0.6) c = [0.2, 0.4, 1.0]; // deep blue
+          else if (roll < 0.85) c = [0.4, 0.8, 1.0]; // bright cyan
+          else c = [1.0, 0.9, 1.0]; // brilliant white outlier
+        }
+      }
+
+      // Add a slight intensity variation
+      const intensity = 0.5 + Math.random() * 0.5;
+      col[i * 3] = c[0] * intensity;
+      col[i * 3 + 1] = c[1] * intensity;
+      col[i * 3 + 2] = c[2] * intensity;
     }
     return { positions: pos, colors: col };
   }, []);

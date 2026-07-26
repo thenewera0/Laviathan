@@ -378,53 +378,54 @@ void main() {
   float ang = atan(p.y, p.x);
   float spin = uFlow * 0.15;
 
-  // Realistic spiral arms: tighter winding, more arms, irregular
-  float phase = 3.0 * ang - 6.0 * log(r + 0.1) - spin;
+  // Ultra-realistic spiral winding (tighter near core)
+  float phase = 2.0 * ang - 5.0 * log(r + 0.05) - spin;
   
-  // Create 4 asymmetrical arms
-  float arms = pow(max(0.0, cos(phase)), 4.0)
-             + 0.7 * pow(max(0.0, cos(phase + 1.57)), 5.0)
-             + 0.5 * pow(max(0.0, cos(phase + 3.14)), 4.5)
-             + 0.3 * pow(max(0.0, cos(phase + 4.71)), 6.0);
+  // Create thick, continuous gas arms rather than thin mathematical lines
+  float arms = pow(max(0.0, cos(phase)), 2.0) + pow(max(0.0, cos(phase + 3.1415)), 2.0);
+  arms += 0.35; // Fill the gaps with ambient ambient glowing gas
 
-  float rad = smoothstep(1.0, 0.05, R);
-  float density = arms * rad;
+  float rad = smoothstep(1.0, 0.0, R);
+  float density = clamp(arms * rad, 0.0, 1.0);
 
-  // Dark dust lanes (realistic galaxies have black/brown dust blocking light)
-  float dustNoise = snoise(vec3(p * 3.0, spin * 0.1));
-  float dustLanes = smoothstep(-0.2, 0.8, dustNoise); 
-  density *= (0.3 + 0.7 * dustLanes); // Carve out dark organic gaps
-
-  // Star clusters (high frequency noise for sparkling star clouds)
-  float starClouds = snoise(vec3(p * 15.0, spin * 0.5));
-  starClouds = pow(max(0.0, starClouds), 3.0) * 1.5;
-
-  // Colors: more realistic dark space blues, stark white stars, warm golden core
-  vec3 arm  = vec3(0.01, 0.05, 0.20); // very dark deep space blue
-  vec3 mid  = vec3(0.05, 0.30, 0.80); // vibrant blue nebula
-  vec3 core = vec3(1.00, 0.95, 0.85); // bright warm white core
-  vec3 gold = vec3(0.90, 0.50, 0.10); // dusty gold inner regions
-
-  vec3 col = mix(arm, mid, smoothstep(0.8, 0.2, R));
-  col = mix(col, gold, smoothstep(0.3, 0.05, R)); // inner gold transition
-  col = mix(col, core, smoothstep(0.1, 0.0, R));
-
-  // Core glow: massively reduced size for realism (not overwhelming)
-  float coreGlow = pow(smoothstep(0.15, 0.0, R), 4.0);
-  col += core * coreGlow * (2.0 + uAudio * 1.0);
-
-  // Add star clouds strictly along the arms
-  col += vec3(0.8, 0.9, 1.0) * starClouds * density * 2.0;
-
-  // Nebula gas swirling
-  float nb = snoise(vec3(p * 2.5, spin * 0.2));
-  vec3 nebula = mix(mid, vec3(0.1, 0.6, 0.9), 0.5 + 0.5 * nb);
-  float nebAmt = smoothstep(0.4, 1.0, nb) * density;
-  col += nebula * nebAmt * 1.5;
-
-  // Alpha perfectly fades to 0 in gaps and dust lanes, ensuring high contrast
-  float alpha = clamp((density * 1.5 + coreGlow * 2.5 + nebAmt + starClouds * density), 0.0, 1.0) * smoothstep(1.0, 0.7, R);
+  // Highly detailed, organic dark dust lanes cutting through the gas
+  float dustNoise = snoise(vec3(p * 3.5, spin * 0.1));
+  float dustNoise2 = snoise(vec3(p * 7.0, spin * 0.2));
   
+  // The dust forms sharp veins that twist with the galaxy
+  float dust = smoothstep(0.1, 0.5, dustNoise + dustNoise2 * 0.5);
+  
+  // Apply dust lanes primarily to the mid and outer regions, carving out the bright gas
+  density *= mix(1.0, 0.1, dust * smoothstep(0.05, 0.8, R));
+
+  // Exact color matching to the reference image:
+  // Core (Gold/White) -> Inner (Pink/Purple) -> Outer (Deep Cobalt/Cyan)
+  vec3 colDeepSpace = vec3(0.01, 0.02, 0.06); 
+  vec3 colOuterArm  = vec3(0.15, 0.35, 0.95); // Vibrant deep blue
+  vec3 colInnerArm  = vec3(0.70, 0.30, 0.65); // Rich purple/pink
+  vec3 colCoreEdge  = vec3(0.95, 0.70, 0.40); // Warm dusty gold
+  vec3 colCoreCenter= vec3(1.00, 0.98, 0.90); // Blazing white-yellow
+  
+  vec3 col = colDeepSpace;
+  col = mix(col, colOuterArm, smoothstep(0.9, 0.4, R));
+  col = mix(col, colInnerArm, smoothstep(0.5, 0.2, R));
+  col = mix(col, colCoreEdge, smoothstep(0.25, 0.08, R));
+  col = mix(col, colCoreCenter, smoothstep(0.12, 0.0, R));
+
+  // High-frequency bright star clusters scattered in the outer blue arms
+  float starClusters = pow(max(0.0, snoise(vec3(p * 25.0, spin))), 5.0);
+  col += vec3(0.8, 0.9, 1.0) * starClusters * density * 4.0 * smoothstep(0.1, 0.8, R);
+
+  // Core volumetric glow (perfectly scaled, not blown out)
+  float coreGlow = pow(smoothstep(0.22, 0.0, R), 2.5);
+  col += colCoreCenter * coreGlow * (1.5 + uAudio * 1.0);
+
+  // Overall alpha is derived from the thick density and core glow
+  float alpha = clamp(density * 2.5 + coreGlow * 2.0, 0.0, 1.0) * rad;
+  
+  // Smoothly fade the very edges so it blends flawlessly into the titanium void
+  alpha *= smoothstep(1.0, 0.8, R);
+
   gl_FragColor = vec4(col, alpha);
 }
 `;
