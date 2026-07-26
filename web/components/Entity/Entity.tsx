@@ -286,8 +286,8 @@ function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
 
   return (
     <group position={PEDESTAL_POS}>
-      {/* Dynamic 3D tilt: Instead of perfectly flat, it tilts up to reveal its volumetric depth */}
-      <group rotation={[-1.25, 0, 0.15]} scale={0.9}>
+      {/* 3D tilt: Tilted slightly forward from flat to show off the gorgeous volumetric spiral */}
+      <group rotation={[-1.35, 0, 0]} scale={1.1}>
         <group ref={spin}>
           <mesh>
             <planeGeometry args={[RGAL * 2.2, RGAL * 2.2]} />
@@ -365,17 +365,17 @@ export default function Entity() {
       <SpiralGalaxy reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
-          intensity={0.85}
-          luminanceThreshold={0.12}
-          luminanceSmoothing={0.6}
+          intensity={0.45} // OPTIMIZATION: Halved bloom to stop the galaxy blowing out into a solid blue blob
+          luminanceThreshold={0.5} // High threshold so only the bright core and stars bloom, preserving dark space
+          luminanceSmoothing={0.8}
           mipmapBlur
         />
         <ChromaticAberration
-          offset={new THREE.Vector2(0.0004, 0.0002)}
+          offset={new THREE.Vector2(0.001, 0.001)} // Subtle premium aberration
           radialModulation={false}
           modulationOffset={0}
         />
-        <Vignette eskil={false} offset={0.18} darkness={0.72} />
+        <Vignette eskil={false} offset={0.25} darkness={0.85} /> // Stronger vignette for deep space edges
       </EffectComposer>
     </Canvas>
   );

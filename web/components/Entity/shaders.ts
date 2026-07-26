@@ -378,39 +378,41 @@ void main() {
   float ang = atan(p.y, p.x);
   float spin = uFlow * 0.15;
 
-  // three interleaved log-spiral arms -> extremely dense, glowing bioluminescent fluid disc
+  // Sharp, defined log-spiral arms with empty dark space between them
   float phase = 2.5 * ang - 4.5 * log(r + 0.15) - spin;
-  float arms = pow(0.5 + 0.5 * cos(phase), 1.8)
-             + 0.7 * pow(0.5 + 0.5 * cos(phase + 2.094), 1.8)
-             + 0.4 * pow(0.5 + 0.5 * cos(phase + 4.188), 1.8); // Third arm for maximum density
+  
+  // By using pow(..., 6.0), the arms become incredibly sharp and the gaps become totally transparent
+  float arms = pow(max(0.0, cos(phase)), 6.0)
+             + 0.6 * pow(max(0.0, cos(phase + 2.094)), 6.0)
+             + 0.4 * pow(max(0.0, cos(phase + 4.188)), 6.0);
 
   float rad = smoothstep(1.0, 0.05, R);
   float density = arms * rad;
 
   // colour: electric blue-white core -> neon cyan -> cobalt blue arms, molten gold flecks
-  vec3 arm  = vec3(0.02, 0.20, 0.85); // deep cobalt blue
-  vec3 mid  = vec3(0.00, 0.83, 1.00); // #00d4ff
-  vec3 core = vec3(0.85, 0.98, 1.00); // intensely bright white/blue
-  vec3 gold = vec3(1.00, 0.55, 0.05); // bright cosmic gold
+  vec3 arm  = vec3(0.01, 0.10, 0.60); // deeper, darker cobalt blue for contrast
+  vec3 mid  = vec3(0.00, 0.70, 1.00); // vibrant cyan
+  vec3 core = vec3(0.90, 0.98, 1.00); // intensely bright white/blue
+  vec3 gold = vec3(1.00, 0.65, 0.15); // bright cosmic gold
 
-  vec3 col = mix(arm, mid, smoothstep(0.9, 0.2, R));
-  col = mix(col, core, smoothstep(0.2, 0.0, R));
+  vec3 col = mix(arm, mid, smoothstep(0.7, 0.2, R));
+  col = mix(col, core, smoothstep(0.15, 0.0, R));
 
   // blazing life-core volumetric explosion
-  float coreGlow = pow(smoothstep(0.45, 0.0, R), 2.5);
+  float coreGlow = pow(smoothstep(0.35, 0.0, R), 3.0);
   col += core * coreGlow * (3.0 + uAudio * 1.5);
 
-  // nebula clouds — highly volumetric glowing fluid gas
-  float nb = snoise(vec3(p * 1.5, spin * 0.25));
-  float nb2 = snoise(vec3(p * 0.8, spin * 0.12));
+  // Organic gas swirls strictly clamped to the spiral arms
+  float nb = snoise(vec3(p * 2.0, spin * 0.25));
+  float nb2 = snoise(vec3(p * 1.2, spin * 0.12));
   vec3 nebula = mix(mid, gold, 0.5 + 0.5 * nb2);
-  float nebAmt = smoothstep(0.3, 0.95, nb) * rad;
   
-  // Inject organic gas swirls 
-  col += nebula * nebAmt * (0.8 + density * 1.5) * 1.8;
+  // Gas only exists where the arms are, plus a tiny bit of diffusion
+  float nebAmt = smoothstep(0.4, 1.0, nb) * rad * (density + 0.1);
+  col += nebula * nebAmt * 2.0;
 
-  // Enhance outer rim falloff for a premium soft edge
-  float alpha = clamp((density * 2.0 + coreGlow * 3.0 + nebAmt * 1.2) * smoothstep(1.0, 0.6, R), 0.0, 1.0);
+  // The critical fix: alpha MUST drop to 0 in the gaps to reveal the dark space
+  float alpha = clamp((density * 1.8 + coreGlow * 3.5 + nebAmt * 1.2), 0.0, 1.0) * smoothstep(1.0, 0.5, R);
   
   gl_FragColor = vec4(col, alpha);
 }
