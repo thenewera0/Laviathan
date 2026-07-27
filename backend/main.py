@@ -102,11 +102,14 @@ async def gateway_chat(
     client_host = request.client.host if request.client else ""
     is_local_web = client_host in ("127.0.0.1", "localhost", "::1")
 
-    if is_local_web:
+    if api_key:
+        valid_key, key_id = validate_api_key(api_key)
+    elif is_local_web:
         valid_key = True
         key_id = "local"
     else:
-        valid_key, key_id = validate_api_key(api_key)
+        valid_key = False
+        key_id = "invalid"
 
     if not valid_key:
         raise HTTPException(
