@@ -156,6 +156,7 @@ async def gateway_chat(
         temperature=temperature,
         max_tokens=max_tokens,
         has_files=bool(files),
+        response_format=body.get("response_format"),
     )
 
     if result.get("success"):
@@ -179,38 +180,80 @@ async def gateway_chat_completions(
     x_api_key: str = Header(None, alias="X-API-Key"),
     authorization: str = Header(None, alias="Authorization"),
 ):
-    """OpenAI-Compatible Chat Completion Endpoint."""
+    """OpenAI-Compatible Chat Completion Endpoint (streaming + non-streaming)."""
     import time
+
+    from fastapi.responses import StreamingResponse
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    stream = bool(body.get("stream"))
+
     res = await gateway_chat(request, x_api_key, authorization)
-    if not res.get("success"):
-        raise HTTPException(status_code=500, detail=res.get("reply", "Failed to get AI response"))
-
-    reply_content = res.get("reply", "")
-    model_id = res.get("model", "leviathan-auto")
     now_ts = int(time.time())
+    cmpl_id = f"chatcmpl-{now_ts}"
+    model_id = res.get("model", "leviathan-auto")
 
-    return {
-        "id": f"chatcmpl-{now_ts}",
-        "object": "chat.completion",
-        "created": now_ts,
-        "model": model_id,
-        "choices": [
-            {
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": reply_content,
-                },
-                "finish_reason": "stop",
+    if not res.get("success"):
+        # Honest, retryable error — NEVER a mock string a client can't parse.
+        detail = res.get("reply", "All upstream AI providers are unavailable")
+        if not stream:
+            raise HTTPException(status_code=503, detail=detail)
+
+        async def err_gen():
+            payload = {
+                "error": {"message": detail, "type": "upstream_unavailable",
+                          "code": 503}
             }
-        ],
-        "usage": {
-            "prompt_tokens": max(1, len(reply_content) // 8),
-            "completion_tokens": max(1, len(reply_content) // 4),
-            "total_tokens": max(2, len(reply_content) // 3),
-        },
-        "provider": res.get("provider", "gateway"),
-    }
+            yield f"data: {json.dumps(payload)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(err_gen(), media_type="text/event-stream",
+                                 status_code=503)
+
+    content = res.get("reply", "")
+
+    if not stream:
+        return {
+            "id": cmpl_id,
+            "object": "chat.completion",
+            "created": now_ts,
+            "model": model_id,
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": content},
+                "finish_reason": "stop",
+            }],
+            "usage": {
+                "prompt_tokens": max(1, len(content) // 8),
+                "completion_tokens": max(1, len(content) // 4),
+                "total_tokens": max(2, len(content) // 3),
+            },
+            "provider": res.get("provider", "gateway"),
+        }
+
+    # Streaming: emit valid OpenAI SSE chunks so streaming clients parse the
+    # full response (the gateway resolves the completion, then we stream it).
+    async def gen():
+        base = {"id": cmpl_id, "object": "chat.completion.chunk",
+                "created": now_ts, "model": model_id}
+        first = dict(base, choices=[{"index": 0, "delta": {"role": "assistant"},
+                                     "finish_reason": None}])
+        yield f"data: {json.dumps(first)}\n\n"
+        step = 480
+        for i in range(0, len(content), step):
+            chunk = dict(base, choices=[{"index": 0,
+                         "delta": {"content": content[i:i + step]},
+                         "finish_reason": None}])
+            yield f"data: {json.dumps(chunk)}\n\n"
+        last = dict(base, choices=[{"index": 0, "delta": {},
+                                    "finish_reason": "stop"}])
+        yield f"data: {json.dumps(last)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 # ---------------------------------------------------------------- API Key Management

@@ -49,10 +49,13 @@ def _get_circuit_state(provider: str) -> str:
 
 def _trip_circuit(provider: str):
     info = CIRCUIT_BREAKER.setdefault(provider, {"state": "CLOSED", "cooldown_until": 0.0, "errors": 0})
-    info["state"] = "OPEN"
-    info["cooldown_until"] = time.time() + COOLDOWN_DURATION
     info["errors"] += 1
-    logger.warning(f"Circuit TRIPPED for provider {provider}. Cooldown for {COOLDOWN_DURATION}s.")
+    # Only OPEN after repeated failures — a single transient 429 must not
+    # blackball a provider for a full minute (that broke whole batches).
+    if info["errors"] >= 3:
+        info["state"] = "OPEN"
+        info["cooldown_until"] = time.time() + COOLDOWN_DURATION
+        logger.warning(f"Circuit TRIPPED for provider {provider} after {info['errors']} errors.")
 
 
 def _record_success(provider: str):
@@ -171,30 +174,31 @@ class SmartAIGateway:
             elif "huggingface" in pref and "huggingface" in configured:
                 intent_order = ["huggingface"] + [p for p in intent_order if p != "huggingface"]
 
+        real = [p for p in intent_order if p in configured and p != "mock"]
+
         usable_providers = []
         overflow_providers = []
+        circuit_open = []
 
-        for p in intent_order:
-            if p not in configured:
-                continue
-
+        for p in real:
             state = _get_circuit_state(p)
             if state == "OPEN":
-                logger.info(f"Skipping {p} (Circuit OPEN, on cooldown).")
+                circuit_open.append(p)
                 continue
-
             cur_rpm = _get_provider_current_rpm(p)
             max_rpm = PROVIDER_RPM_LIMITS.get(p, 30)
-
             if cur_rpm >= max_rpm:
-                logger.info(f"Provider {p} at RPM capacity ({cur_rpm}/{max_rpm}). Moving to overflow queue.")
                 overflow_providers.append(p)
             else:
                 usable_providers.append(p)
 
-        chain = usable_providers + overflow_providers
+        # Prefer healthy providers, then RPM-overflow, then even the
+        # circuit-open ones as a last resort — a real attempt (which fails
+        # over on a genuine error) always beats serving a mock string to an
+        # API client, so we NEVER inject mock when any real key exists.
+        chain = usable_providers + overflow_providers + circuit_open
         if not chain:
-            chain = ["mock"]
+            chain = ["mock"] if not real else real
         return chain
 
     async def chat_completion(
@@ -205,6 +209,7 @@ class SmartAIGateway:
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
         has_files: bool = False,
+        response_format: Optional[Dict] = None,
     ) -> Dict[str, str]:
         """Execute chat request with task-aware routing, high output token allowance, and circuit-breaker retries."""
         task_intent = self.classifier.classify(messages, has_files)
@@ -224,7 +229,7 @@ class SmartAIGateway:
 
             try:
                 logger.info(f"Routing request to provider: '{provider}' (Task: {task_intent})")
-                reply = await self._execute_provider(provider, formatted_messages, model, temperature, max_tokens)
+                reply = await self._execute_provider(provider, formatted_messages, model, temperature, max_tokens, response_format)
                 _record_success(provider)
 
                 return {
@@ -261,17 +266,18 @@ class SmartAIGateway:
         model: Optional[str],
         temperature: float,
         max_tokens: Optional[int] = None,
+        response_format: Optional[Dict] = None,
     ) -> str:
         tokens_budget = max_tokens or 8192  # High output token limit for long articles
 
         if provider == "gemini":
-            return await self._call_gemini(messages, model, temperature, tokens_budget)
+            return await self._call_gemini(messages, model, temperature, tokens_budget, response_format)
         elif provider == "groq":
-            return await self._call_groq(messages, model, temperature, tokens_budget)
+            return await self._call_groq(messages, model, temperature, tokens_budget, response_format)
         elif provider == "openrouter":
-            return await self._call_openrouter(messages, model, temperature, tokens_budget)
+            return await self._call_openrouter(messages, model, temperature, tokens_budget, response_format)
         elif provider == "mistral":
-            return await self._call_mistral(messages, model, temperature, tokens_budget)
+            return await self._call_mistral(messages, model, temperature, tokens_budget, response_format)
         elif provider == "cohere":
             return await self._call_cohere(messages, model, temperature)
         elif provider == "huggingface":
@@ -293,7 +299,7 @@ class SmartAIGateway:
 
     # --- API Implementations ---
 
-    async def _call_gemini(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192) -> str:
+    async def _call_gemini(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         selected_model = model if model and "gemini" in model else settings.gemini_model
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{selected_model}:generateContent?key={settings.gemini_api_key}"
 
@@ -310,9 +316,13 @@ class SmartAIGateway:
             elif role == "assistant":
                 contents.append({"role": "model", "parts": [{"text": content}]})
 
+        gen_config: Dict = {"temperature": temperature, "maxOutputTokens": max_tokens}
+        if response_format and response_format.get("type") in ("json_object", "json_schema"):
+            gen_config["responseMimeType"] = "application/json"
+
         payload: Dict = {
             "contents": contents,
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+            "generationConfig": gen_config,
         }
         if system_instruction:
             payload["systemInstruction"] = system_instruction
@@ -322,9 +332,18 @@ class SmartAIGateway:
             if resp.status_code != 200:
                 raise RuntimeError(f"Gemini HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
+            candidates = data.get("candidates") or []
+            if not candidates:
+                fb = data.get("promptFeedback", {})
+                raise RuntimeError(f"Gemini returned no candidates (feedback={fb})")
+            cand = candidates[0]
+            parts = (cand.get("content") or {}).get("parts") or []
+            text = "".join(p.get("text", "") for p in parts).strip()
+            if not text:
+                raise RuntimeError(f"Gemini empty text (finishReason={cand.get('finishReason')})")
+            return text
 
-    async def _call_groq(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192) -> str:
+    async def _call_groq(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {settings.groq_api_key}",
@@ -337,6 +356,8 @@ class SmartAIGateway:
             "temperature": temperature,
             "max_tokens": min(8192, max_tokens),
         }
+        if response_format:
+            payload["response_format"] = response_format
 
         async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
@@ -345,7 +366,7 @@ class SmartAIGateway:
             data = resp.json()
             return data["choices"][0]["message"]["content"]
 
-    async def _call_openrouter(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192) -> str:
+    async def _call_openrouter(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {settings.openrouter_api_key}",
@@ -361,15 +382,20 @@ class SmartAIGateway:
             "max_tokens": max_tokens,
             "provider": {"allow_fallbacks": True},
         }
+        if response_format:
+            payload["response_format"] = response_format
 
         async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
             if resp.status_code != 200:
                 raise RuntimeError(f"OpenRouter HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            choices = data.get("choices") or []
+            if not choices:
+                raise RuntimeError(f"OpenRouter returned no choices: {str(data)[:200]}")
+            return choices[0]["message"]["content"]
 
-    async def _call_mistral(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192) -> str:
+    async def _call_mistral(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {settings.mistral_api_key}",
@@ -382,6 +408,8 @@ class SmartAIGateway:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if response_format:
+            payload["response_format"] = response_format
 
         async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
