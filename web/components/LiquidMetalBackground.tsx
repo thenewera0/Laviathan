@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLeviathan } from "@/lib/store";
 
 export default function LiquidMetalBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -33,6 +34,7 @@ export default function LiquidMetalBackground() {
       uniform vec2 u_resolution;
       uniform vec2 u_mouse;
       uniform float u_time;
+      uniform float u_audio;
 
       // Organic Liquid Metal Displacement Map using FBM
       float hash(vec2 p) {
@@ -75,14 +77,14 @@ export default function LiquidMetalBackground() {
         float revealMask = smoothstep(0.35, 0.0, mouseDist); // OPTIMIZATION: Reduced from 0.55 to 0.35
         float mousePush = exp(-mouseDist * 10.0); 
 
-        // Displace liquid coordinates with cursor push & time
+        // Displace liquid coordinates with cursor push, time & audio level
         vec2 q = vec2(0.0);
-        q.x = fbm(uv * 5.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5);
-        q.y = fbm(uv * 5.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5);
+        q.x = fbm(uv * 5.0 + vec2(t * 0.2, t * 0.3) + mousePush * 0.5 + u_audio * 0.15);
+        q.y = fbm(uv * 5.0 + vec2(-t * 0.1, t * 0.2) - mousePush * 0.5 - u_audio * 0.15);
 
         vec2 r = vec2(0.0);
-        r.x = fbm(uv * 7.0 + q * 2.5 + vec2(t * 0.4, 0.0));
-        r.y = fbm(uv * 7.0 + q * 2.5 + vec2(0.0, t * 0.3));
+        r.x = fbm(uv * 7.0 + q * 2.5 + vec2(t * 0.4 + u_audio * 0.1, 0.0));
+        r.y = fbm(uv * 7.0 + q * 2.5 + vec2(0.0, t * 0.3 + u_audio * 0.1));
 
         float f = fbm(uv * 4.0 + r * 2.0 + t * 0.5);
         
@@ -99,9 +101,11 @@ export default function LiquidMetalBackground() {
         float darkGloss = pow(f, 3.0) * 0.05; // tiny bit of shine on the black metal
         vec3 bgFinal = mix(colMatte, colTitanium, f * 0.7) + vec3(darkGloss);
 
-        // 2. Vibrant signature blue liquid metal effect (Revealed by cursor)
+        // 2. Vibrant signature blue liquid metal effect (Revealed by cursor or audio)
         vec3 liquidSurface = vec3(0.0);
-        if (revealMask > 0.0) {
+        float activeReveal = max(revealMask, u_audio * 0.35);
+
+        if (activeReveal > 0.0) {
             float ridge = smoothstep(0.45, 0.55, f);
             float edge = abs(f - 0.5) * 2.0; 
             float glowMask = pow(1.0 - edge, 3.5);
@@ -111,13 +115,13 @@ export default function LiquidMetalBackground() {
             liquidSurface = mix(liquidSurface, colNeonCyan * 0.9, smoothstep(0.5, 0.8, r.y));
 
             float spec = pow(glowMask, 5.0);
-            liquidSurface += colNeonCyan * spec * 3.0;
-            liquidSurface += colNeonBlue * pow(glowMask, 3.0) * 2.0;
-            liquidSurface += colNeonCyan * mousePush * 0.6;
+            liquidSurface += colNeonCyan * spec * (3.0 + u_audio * 4.0); // Brighten with sound
+            liquidSurface += colNeonBlue * pow(glowMask, 3.0) * (2.0 + u_audio * 2.0);
+            liquidSurface += colNeonCyan * (mousePush + u_audio * 0.35) * 0.6;
         }
 
-        // Multiply revealMask by f to make the flashlight edge organic and fluid instead of a perfect circle
-        float organicReveal = revealMask * smoothstep(0.1, 0.9, f + revealMask * 0.6);
+        // Multiply activeReveal by f to make the flashlight edge organic and fluid
+        float organicReveal = activeReveal * smoothstep(0.1, 0.9, f + activeReveal * 0.6);
         
         // Composite the two: dark space everywhere, vibrant liquid under the cursor
         vec3 finalColor = bgFinal + liquidSurface * organicReveal;
@@ -177,6 +181,7 @@ export default function LiquidMetalBackground() {
     const uResolution = gl.getUniformLocation(program, "u_resolution");
     const uMouse = gl.getUniformLocation(program, "u_mouse");
     const uTime = gl.getUniformLocation(program, "u_time");
+    const uAudio = gl.getUniformLocation(program, "u_audio");
 
     let animId: number;
     let startTime = performance.now();
@@ -198,10 +203,13 @@ export default function LiquidMetalBackground() {
       m.x += (m.targetX - m.x) * 0.08; // Smooth cursor easing
       m.y += (m.targetY - m.y) * 0.08;
 
+      const audioVal = useLeviathan.getState().audioLevel;
+
       const now = (performance.now() - startTime) / 1000;
       gl.uniform2f(uResolution, canvas.width, canvas.height);
       gl.uniform2f(uMouse, m.x, m.y);
       gl.uniform1f(uTime, now);
+      gl.uniform1f(uAudio, audioVal);
 
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       animId = requestAnimationFrame(render);
