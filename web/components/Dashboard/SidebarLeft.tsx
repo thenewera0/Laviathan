@@ -74,7 +74,7 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.16em] skeuo-button ${
+                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.08em] skeuo-button ${
                   isActive
                     ? "active text-white font-bold"
                     : "text-white/70"

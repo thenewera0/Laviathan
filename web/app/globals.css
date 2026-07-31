@@ -196,7 +196,6 @@ h1, h2, h3, h4, .font-heading {
 
 /* Heavy bevel metal container shell */
 .skeuo-panel {
-  position: relative;
   border-radius: 14px;
   background: linear-gradient(135deg, #0b111e, #050810) !important;
   border: 1px solid #1a2336 !important;
