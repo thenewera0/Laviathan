@@ -23,10 +23,14 @@ export default function CommandInput({
 
   return (
     <div className="pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
-      <form onSubmit={handleSubmit} className="relative flex items-center">
-        {/* Soft aura behind the pill */}
-        <div className="pointer-events-none absolute -inset-1.5 rounded-full bg-gradient-to-r from-[#00d4ff]/35 via-[#0099ff]/30 to-[#f59e0b]/25 blur-xl" />
-        <div className="absolute left-5 z-30 font-mono text-xs font-bold text-[#00d4ff] pointer-events-none flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="relative flex items-center p-1.5 skeuo-panel rounded-2xl shadow-[0_12px_45px_rgba(0,0,0,0.9)]">
+        {/* Decorative Hardware Screws/Rivets */}
+        <div className="skeuo-screw skeuo-screw-tl" />
+        <div className="skeuo-screw skeuo-screw-tr" />
+        <div className="skeuo-screw skeuo-screw-bl" />
+        <div className="skeuo-screw skeuo-screw-br" />
+
+        <div className="absolute left-6 z-30 font-mono text-xs font-bold text-[#00d4ff] pointer-events-none flex items-center gap-2">
           {micActive ? <ThinkingOrb state="listening" size={20} /> : "SYS_CMD >"}
         </div>
         <input
@@ -34,18 +38,18 @@ export default function CommandInput({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Speak or type autonomous instruction..."
-          className="relative w-full rounded-full border border-[#00d4ff]/40 bg-[#080d1c]/95 pl-24 pr-14 py-4 font-data text-sm tracking-wide text-white placeholder-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.85)] backdrop-blur-2xl outline-none transition-all duration-300 focus:border-[#00d4ff] focus:ring-2 focus:ring-[#00d4ff]/30"
+          className="relative w-full rounded-xl skeuo-well pl-24 pr-16 py-4 font-data text-sm tracking-wide text-white placeholder-white/35 outline-none transition-all focus:border-[#00d4ff]/40"
         />
 
         {/* Mic & Submit button */}
-        <div className="absolute right-3 flex items-center gap-1.5 z-30">
+        <div className="absolute right-4 flex items-center gap-1.5 z-30">
           <button
             type="button"
             onClick={onMicClick}
-            className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${
+            className={`flex h-10 w-10 items-center justify-center rounded-xl skeuo-button transition-all ${
               micActive
-                ? "animate-pulse bg-gradient-to-r from-[#00d4ff] via-[#0099ff] to-[#f59e0b] text-white shadow-[0_0_22px_rgba(0,212,255,0.8)]"
-                : "text-[#00d4ff] hover:bg-white/10 hover:text-white"
+                ? "active text-[#5AFBFF]"
+                : "text-[#00d4ff]"
             }`}
             aria-label="Activate Microphone"
           >

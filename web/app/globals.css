@@ -191,3 +191,157 @@ h1, h2, h3, h4, .font-heading {
     animation: none;
   }
 }
+
+/* ---- TACTICAL SKEUOMORPHIC UI CLASSES ---------------- */
+
+/* Heavy bevel metal container shell */
+.skeuo-panel {
+  position: relative;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0b111e, #050810) !important;
+  border: 1px solid #1a2336 !important;
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Sunken slot/wells for monitors, panels, inputs */
+.skeuo-well {
+  position: relative;
+  background: #030509 !important;
+  border: 1px solid #0f1524 !important;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Sci-fi glass display screen with scanline overlay */
+.skeuo-screen {
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, rgba(3, 20, 36, 0.95), rgba(1, 6, 12, 0.98)) !important;
+  border: 1px solid rgba(0, 212, 255, 0.25) !important;
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.9),
+    0 0 15px rgba(0, 212, 255, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.skeuo-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.18) 50%);
+  background-size: 100% 4px;
+  z-index: 10;
+  opacity: 0.7;
+}
+
+/* Mechanical toggle buttons / tactile keys */
+.skeuo-button {
+  position: relative;
+  background: linear-gradient(180deg, #182236, #0e1422) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  box-shadow:
+    0 3px 0 #070b13,
+    0 4px 6px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.skeuo-button:hover {
+  background: linear-gradient(180deg, #1d2b45, #111a2d) !important;
+  border-color: rgba(90, 251, 255, 0.4) !important;
+  box-shadow:
+    0 3px 0 #070b13,
+    0 4px 8px rgba(0, 0, 0, 0.7),
+    0 0 10px rgba(90, 251, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+/* Visual button press animation */
+.skeuo-button:active,
+.skeuo-button.active {
+  transform: translateY(2px);
+  background: linear-gradient(180deg, #0c111e, #070a12) !important;
+  border-color: rgba(0, 212, 255, 0.4) !important;
+  box-shadow:
+    0 1px 0 #070b13,
+    0 2px 3px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(0, 212, 255, 0.35),
+    inset 0 2px 5px rgba(0, 0, 0, 0.8);
+}
+
+/* Recessed LED metal socket housing */
+.skeuo-led-socket {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #04070c, #141c2c);
+  border: 1.5px solid #202b3d;
+  box-shadow:
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Circular glowing LED inside socket */
+.skeuo-led {
+  border-radius: 9999px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -1.5px 1.5px rgba(0, 0, 0, 0.4);
+}
+.skeuo-led.glowing-cyan {
+  background: #5AFBFF;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 0 12px #00d4ff,
+    0 0 25px rgba(0, 212, 255, 0.6);
+  animation: skeuo-led-flash 2.5s ease-in-out infinite;
+}
+.skeuo-led.glowing-red {
+  background: #ff3b30;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 0 12px #ff3b30,
+    0 0 25px rgba(255, 59, 48, 0.6);
+  animation: skeuo-led-flash-red 2.5s ease-in-out infinite;
+}
+
+@keyframes skeuo-led-flash {
+  0%, 100% { filter: brightness(1); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px #00d4ff, 0 0 18px rgba(0, 212, 255, 0.4); }
+  50% { filter: brightness(0.7); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 2px #00d4ff; }
+}
+@keyframes skeuo-led-flash-red {
+  0%, 100% { filter: brightness(1); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px #ff3b30, 0 0 18px rgba(255, 59, 48, 0.4); }
+  50% { filter: brightness(0.7); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 2px #ff3b30; }
+}
+
+/* Decorative hardware rivets/screws */
+.skeuo-screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #2b3648, #0e121a);
+  border: 1px solid #141b26;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.skeuo-screw::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3.5px;
+  height: 1px;
+  background: #101620;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.skeuo-screw-tl { top: 8px; left: 8px; }
+.skeuo-screw-tr { top: 8px; right: 8px; }
+.skeuo-screw-bl { bottom: 8px; left: 8px; }
+.skeuo-screw-br { bottom: 8px; right: 8px; }
+

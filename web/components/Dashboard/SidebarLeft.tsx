@@ -51,7 +51,13 @@ export default function SidebarLeft({
   const isError = entityState === "error";
 
   return (
-    <aside className="pointer-events-auto absolute left-4 lg:left-6 top-20 bottom-4 z-20 flex w-52 lg:w-56 flex-col justify-between select-none max-h-[calc(100vh-90px)]">
+    <aside className="pointer-events-auto absolute left-4 lg:left-6 top-20 bottom-4 z-20 flex w-52 lg:w-56 flex-col justify-between select-none max-h-[calc(100vh-90px)] skeuo-panel p-4">
+      {/* Decorative Hardware Screws/Rivets */}
+      <div className="skeuo-screw skeuo-screw-tl" />
+      <div className="skeuo-screw skeuo-screw-tr" />
+      <div className="skeuo-screw skeuo-screw-bl" />
+      <div className="skeuo-screw skeuo-screw-br" />
+
       {/* Navigation Section */}
       <div className="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -68,10 +74,10 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.16em] transition-all duration-300 ${
+                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.16em] skeuo-button ${
                   isActive
-                    ? "bg-gradient-to-r from-[#00d4ff]/35 via-[#0099ff]/25 to-[#f59e0b]/20 text-white font-bold border-l-2 border-[#00d4ff] shadow-[0_0_20px_rgba(0,212,255,0.4)] scifi-bracket"
-                    : "text-white/60 hover:bg-white/[0.08] hover:text-white"
+                    ? "active text-white font-bold"
+                    : "text-white/70"
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -92,12 +98,9 @@ export default function SidebarLeft({
       {/* Bottom Section: Entity Status & Clock */}
       <div className="flex flex-col gap-3 pt-2 border-t border-white/10 shrink-0">
         <div className="flex flex-col gap-2">
-          <div className="glass-panel flex items-center gap-3 p-3 border border-white/15">
-            <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
-              <span className={`status-live absolute inset-0 rounded-full border ${isError ? "border-rose-500" : "border-[#00d4ff]"} opacity-50`} />
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${isError ? "border-rose-500" : "border-[#00d4ff]"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${isError ? "bg-rose-500" : "bg-[#00d4ff]"} shadow-[0_0_10px_#00d4ff]`} />
-              </span>
+          <div className="skeuo-well flex items-center gap-3 p-3 rounded-xl">
+            <div className="skeuo-led-socket h-7 w-7 shrink-0">
+              <div className={`skeuo-led h-3.5 w-3.5 ${isError ? "glowing-red" : "glowing-cyan"}`} />
             </div>
 
             <div className="flex flex-col min-w-0">
@@ -118,7 +121,7 @@ export default function SidebarLeft({
             </span>
             <div className="flex flex-col gap-1.5">
               {deviceLinks.map((l) => (
-                <div key={l.url} className="glass-panel flex flex-col gap-1 p-2.5">
+                <div key={l.url} className="skeuo-well flex flex-col gap-1 p-2.5 rounded-xl">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#00d4ff]">
                       {l.purpose} · LIVE
@@ -144,7 +147,7 @@ export default function SidebarLeft({
           </div>
         )}
 
-        <div className="flex flex-col gap-1 border-t border-white/10 pt-3 font-mono text-[10px] tracking-widest text-white/50">
+        <div className="skeuo-well flex flex-col gap-1 p-3 rounded-xl font-mono text-[10px] tracking-widest text-white/55">
           <div className="flex items-center justify-between">
             <span className="text-white/35 uppercase">SYS.TIME</span>
             <span className="font-bold text-[#00d4ff]">{timeStr || "19:45:32"}</span>
