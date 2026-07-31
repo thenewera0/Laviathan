@@ -109,34 +109,72 @@ export default function SchedulesPanel({
           )}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden skeuo-well rounded-b-2xl m-3 border-t border-white/5">
+        <div className="flex-1 flex flex-col overflow-y-auto skeuo-well rounded-b-2xl m-3 border-t border-white/5">
           {/* Status bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-white/10 bg-black/60 font-mono text-[10px] text-white/55 select-none shrink-0">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
-              <span className="font-bold tracking-wider">N8N WORKFLOW SERVER: ONLINE</span>
-              <span className="text-[#38bdf8] truncate ml-4 font-normal">https://leviathan-n8n.onrender.com</span>
+              <span className="font-bold tracking-wider">N8N WORKFLOW ENGINE: ONLINE</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="bg-white/5 px-2 py-0.5 rounded text-white/40">Status: <strong className="text-emerald-400">Embedded Studio Active</strong></span>
+            <span className="text-white/30">Powered by n8n · Self-hosted on Render</span>
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8 select-none">
+            {/* Hero launch area */}
+            <div className="flex flex-col items-center gap-5">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#ff6d5a] to-[#ff4f1f] flex items-center justify-center shadow-[0_0_40px_rgba(255,79,31,0.3)]">
+                <span className="text-4xl">⛓</span>
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-foam tracking-wide mb-2">n8n Workflow Studio</h2>
+                <p className="text-foam/50 font-data text-xs max-w-md leading-relaxed">
+                  Build multi-step automations connecting 400+ apps and services.
+                  Design workflows visually, trigger them via webhooks, schedules, or Leviathan voice commands.
+                </p>
+              </div>
               <a
                 href="https://leviathan-n8n.onrender.com"
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-1.5 rounded-xl skeuo-button font-data text-[9px] text-[#00d4ff] hover:text-white transition-all uppercase tracking-wider font-bold"
+                className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#ff6d5a] to-[#ff4f1f] text-white font-bold text-sm tracking-wider uppercase shadow-[0_4px_20px_rgba(255,79,31,0.4)] hover:shadow-[0_6px_30px_rgba(255,79,31,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
-                ↗ Open Dashboard
+                ↗ Open n8n Studio
               </a>
             </div>
-          </div>
-          {/* embedded workspace */}
-          <div className="flex-1 relative bg-black/50">
-            <iframe
-              src="https://leviathan-n8n.onrender.com?v=2"
-              title="n8n Automation Studio"
-              className="w-full h-full border-none"
-              allow="clipboard-read; clipboard-write"
-            />
+
+            {/* Capabilities grid */}
+            <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
+              {[
+                { icon: "🎙️", title: "Voice Control", desc: "Ask Leviathan to create workflows" },
+                { icon: "⚡", title: "400+ Integrations", desc: "Slack, Gmail, APIs, databases" },
+                { icon: "🔁", title: "Scheduled Triggers", desc: "Cron, webhook, event-based" },
+                { icon: "🤖", title: "AI-Powered", desc: "Leviathan builds automations for you" },
+              ].map((cap) => (
+                <div
+                  key={cap.title}
+                  className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3.5 hover:border-[#ff6d5a]/30 hover:bg-white/[0.03] transition-all"
+                >
+                  <span className="text-lg shrink-0">{cap.icon}</span>
+                  <div className="font-data text-[10px] leading-relaxed">
+                    <span className="block text-foam font-bold tracking-wider uppercase">{cap.title}</span>
+                    <span className="block text-foam/40 mt-0.5">{cap.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Connection info */}
+            <div className="flex items-center gap-4 text-[10px] font-mono text-white/30">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                leviathan-n8n.onrender.com
+              </span>
+              <span>•</span>
+              <span>Port 5678</span>
+              <span>•</span>
+              <span>Singapore Region</span>
+            </div>
           </div>
         </div>
       )}
