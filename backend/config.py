@@ -46,6 +46,8 @@ class Settings:
     github_token: str = os.getenv("GITHUB_TOKEN", "")
     rawg_api_key: str = os.getenv("RAWG_API_KEY", "")
     coingecko_api_key: str = os.getenv("COINGECKO_API_KEY", "")
+    n8n_url: str = os.getenv("N8N_URL", "https://leviathan-n8n.onrender.com")
+    n8n_api_key: str = os.getenv("N8N_API_KEY", "")
 
     # run_code sandbox — Docker ONLY, never the host
     docker_image: str = os.getenv("LEVIATHAN_DOCKER_IMAGE", "python:3.11-slim")

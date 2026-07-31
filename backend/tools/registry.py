@@ -21,6 +21,7 @@ from tools import (
     search,
     translate,
     vision,
+    n8n,
 )
 
 
@@ -589,6 +590,48 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["which"],
         },
     },
+    {
+        "name": "n8n_automation",
+        "description": (
+            "Create, list, toggle, or delete automated workflows inside the "
+            "n8n workflow server. Useful when the user wants to set up external "
+            "automations, triggers, webhooks, or multi-step integrations. "
+            "To CREATE a workflow, generate the JSON nodes and connections. "
+            "n8n nodes usually contain properties like parameters, type, typeVersion, name, position."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "create", "delete", "toggle"],
+                    "description": "The action to perform on the n8n server."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "For 'create': the human-readable name of the workflow."
+                },
+                "nodes": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "For 'create': n8n JSON nodes array, each having type, typeVersion, name, position, parameters."
+                },
+                "connections": {
+                    "type": "object",
+                    "description": "For 'create': n8n JSON connections object linking nodes."
+                },
+                "id": {
+                    "type": "string",
+                    "description": "For 'delete' or 'toggle': the n8n workflow ID."
+                },
+                "active": {
+                    "type": "boolean",
+                    "description": "For 'toggle': whether the workflow should be active (true) or inactive (false)."
+                }
+            },
+            "required": ["action"]
+        }
+    },
 ]
 
 _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
@@ -623,6 +666,7 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "set_routine": schedule_tools.set_routine,
     "list_schedules": schedule_tools.list_schedules,
     "cancel_schedule": schedule_tools.cancel_schedule,
+    "n8n_automation": n8n.run,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -658,6 +702,7 @@ THOUGHT_LINES = {
     "set_routine": "setting a rhythm — {instruction}",
     "list_schedules": "recalling what is set",
     "cancel_schedule": "unmarking — {which}",
+    "n8n_automation": "weaving dynamic automation — {action}",
 }
 
 
