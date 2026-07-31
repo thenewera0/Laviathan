@@ -132,7 +132,7 @@ export default function SchedulesPanel({
           {/* embedded workspace */}
           <div className="flex-1 relative bg-black/50">
             <iframe
-              src="https://leviathan-n8n.onrender.com"
+              src="https://leviathan-n8n.onrender.com?v=2"
               title="n8n Automation Studio"
               className="w-full h-full border-none"
               allow="clipboard-read; clipboard-write"
