@@ -118,7 +118,7 @@ export default function SchedulesPanel({
               <span className="text-[#38bdf8] truncate ml-4 font-normal">https://leviathan-n8n.onrender.com</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="bg-white/5 px-2 py-0.5 rounded text-white/40">Basic Auth User: <strong className="text-white">leviathan</strong></span>
+              <span className="bg-white/5 px-2 py-0.5 rounded text-white/40">Status: <strong className="text-emerald-400">Embedded Studio Active</strong></span>
               <a
                 href="https://leviathan-n8n.onrender.com"
                 target="_blank"
