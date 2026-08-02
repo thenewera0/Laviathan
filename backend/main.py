@@ -21,6 +21,7 @@ from brain.gateway import gateway
 from brain.loop import BrainSession
 from config import settings
 from fastapi import File, Header, HTTPException, UploadFile
+from tools import workflow_library
 from voice import neural_tts, stt
 
 app = FastAPI(title="Leviathan Core & AI Gateway", version="0.3.0")
@@ -298,6 +299,58 @@ async def revoke_key_endpoint(key_id: str):
     except Exception as err:
         print(f"Key revocation failed: {err}")
         raise HTTPException(status_code=500, detail=f"Key revocation failed: {str(err)}")
+
+
+# ---------------------------------------------------------------- n8n Workflow Library
+
+@app.get("/v1/workflows/categories")
+async def workflow_categories():
+    """List every integration category in the workflow library with counts."""
+    return await workflow_library.run(None, action="browse_categories")
+
+
+@app.get("/v1/workflows/search")
+async def workflow_search(q: str = "", category: str = "", limit: int = 30):
+    """Relevance-ranked search across the workflow catalog."""
+    return await workflow_library.run(
+        None, action="search", query=q, category=category, limit=limit
+    )
+
+
+@app.get("/v1/workflows/{workflow_id}")
+async def workflow_details(workflow_id: str):
+    """Fetch a workflow's full JSON (nodes/connections) from GitHub."""
+    res = await workflow_library.run(None, action="get_details", id=workflow_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=404, detail=res.get("error", "Workflow not found"))
+    return res
+
+
+@app.post("/v1/workflows/deploy")
+async def workflow_deploy(request: Request):
+    """Import a library workflow into the connected n8n instance."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    workflow_id = str(body.get("id") or "").strip()
+    raw_url = body.get("github_raw_url") or ""
+    if not workflow_id and not raw_url:
+        raise HTTPException(status_code=400, detail="Provide a workflow 'id' or 'github_raw_url'")
+
+    res = await workflow_library.run(
+        None,
+        action="deploy",
+        id=workflow_id,
+        github_raw_url=raw_url,
+        name=body.get("name", ""),
+    )
+    if not res.get("success"):
+        # n8n unreachable / unconfigured is the operator's setup problem, not a
+        # bad request — surface it as 502 with the real reason.
+        raise HTTPException(status_code=502, detail=res.get("error", "Deploy failed"))
+    return res
 
 
 # ---------------------------------------------------------------- File Upload Route

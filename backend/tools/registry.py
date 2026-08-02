@@ -22,6 +22,7 @@ from tools import (
     translate,
     vision,
     n8n,
+    workflow_library,
 )
 
 
@@ -632,6 +633,42 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["action"]
         }
     },
+    {
+        "name": "workflow_library",
+        "description": (
+            "Access, search, browse, recommend, or deploy 2,000+ pre-built, production-ready "
+            "n8n workflows (Airtable, Slack, Gmail, Notion, OpenAI, Crypto, Webhooks, etc.). "
+            "Use 'search' to find workflows by query or category. Use 'recommend' to match user requests "
+            "to workflows. Use 'deploy' to immediately import and activate a workflow into the user's n8n server."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["search", "browse_categories", "get_details", "deploy", "recommend"],
+                    "description": "The action to perform on the workflow library."
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Search query string or user request for search/recommend."
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Optional category filter (e.g. 'Airtable', 'Slack', 'Gmail', 'Crypto')."
+                },
+                "id": {
+                    "type": "string",
+                    "description": "Workflow ID for get_details or deploy."
+                },
+                "github_raw_url": {
+                    "type": "string",
+                    "description": "Direct GitHub raw URL for get_details or deploy."
+                }
+            },
+            "required": ["action"]
+        }
+    },
 ]
 
 _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
@@ -667,6 +704,7 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "list_schedules": schedule_tools.list_schedules,
     "cancel_schedule": schedule_tools.cancel_schedule,
     "n8n_automation": n8n.run,
+    "workflow_library": workflow_library.run,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -703,6 +741,7 @@ THOUGHT_LINES = {
     "list_schedules": "recalling what is set",
     "cancel_schedule": "unmarking — {which}",
     "n8n_automation": "weaving dynamic automation — {action}",
+    "workflow_library": "accessing 2,000+ workflow repository — {action}",
 }
 
 

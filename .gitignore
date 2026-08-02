@@ -22,7 +22,11 @@ next-env.d.ts
 
 # generated media + local memory/reports
 backend/media/
-backend/data/
+# Ignore the *contents* of backend/data (local DBs, keys, reports) but keep the
+# n8n workflow catalog, which the backend needs at runtime in production.
+# (Git can't re-include a file if its parent directory itself is excluded.)
+backend/data/*
+!backend/data/workflow_catalog.json
 
 # private business/architecture map — NEVER push to the public repo
 knowledge_base/

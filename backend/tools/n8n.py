@@ -41,15 +41,22 @@ async def run(session, action: str, **kwargs) -> dict:
                 name = kwargs.get("name", "Generated Automation")
                 nodes = kwargs.get("nodes", [])
                 connections = kwargs.get("connections", {})
+                # NB: don't name this `settings` — it would shadow the module-level
+                # config import used above.
+                wf_settings = kwargs.get("settings") or {"executionOrder": "v1"}
+                activate = kwargs.get("activate", True)
 
                 if not nodes:
                     return {"success": False, "error": "Cannot create a workflow without any nodes."}
 
+                # n8n API v1 treats `active` as read-only on create and requires
+                # `settings`; sending `active` returns 400. Create first, then
+                # activate through the dedicated endpoint.
                 payload = {
                     "name": name,
                     "nodes": nodes,
                     "connections": connections,
-                    "active": True
+                    "settings": wf_settings,
                 }
 
                 resp = await client.post(f"{api_base}/workflows", headers=headers, json=payload)
@@ -58,17 +65,42 @@ async def run(session, action: str, **kwargs) -> dict:
 
                 data = resp.json()
                 wf_id = data.get("id")
+                wf_url = f"{n8n_url}/workflow/{wf_id}" if wf_id else n8n_url
 
-                # Ensure workflow is active
-                if wf_id and not data.get("active"):
-                    await client.post(f"{api_base}/workflows/{wf_id}/activate", headers=headers)
-                    data["active"] = True
+                if not activate or not wf_id:
+                    return {
+                        "success": True,
+                        "active": bool(data.get("active")),
+                        "message": f"Created workflow '{name}' (inactive).",
+                        "workflow": data,
+                        "url": wf_url,
+                    }
+
+                # Activation legitimately fails when the workflow needs credentials
+                # the user hasn't connected yet, or has no activatable trigger.
+                # The import still succeeded — report that honestly.
+                act = await client.post(f"{api_base}/workflows/{wf_id}/activate", headers=headers)
+                if act.status_code in (200, 201):
+                    return {
+                        "success": True,
+                        "active": True,
+                        "message": f"Created and activated workflow '{name}'.",
+                        "workflow": act.json() if act.content else data,
+                        "url": wf_url,
+                    }
 
                 return {
                     "success": True,
-                    "message": f"Successfully created and activated workflow '{name}'",
+                    "active": False,
+                    "message": (
+                        f"Imported workflow '{name}', but it could not be activated "
+                        f"automatically (n8n said {act.status_code}). This usually means "
+                        "it needs credentials connected or has no active trigger. "
+                        f"Open it and finish setup: {wf_url}"
+                    ),
+                    "activation_error": act.text[:300],
                     "workflow": data,
-                    "url": f"{n8n_url}/workflow/{wf_id}"
+                    "url": wf_url,
                 }
 
             elif action == "delete":

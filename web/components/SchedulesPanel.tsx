@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useLeviathan } from "@/lib/store";
+import { fetchApi } from "@/lib/apiConfig";
+
+type LibraryWorkflow = {
+  id: string;
+  name: string;
+  category: string;
+  trigger_type: string;
+  integrations: string[];
+  github_raw_url: string;
+};
+
+type LibraryCategory = { name: string; count: number };
 
 export default function SchedulesPanel({
   onClose,
@@ -13,12 +25,101 @@ export default function SchedulesPanel({
   onCancel: (id: string) => void;
 }) {
   const schedules = useLeviathan((s) => s.schedules);
-  const [activeSubTab, setActiveSubTab] = useState<"schedules" | "n8n">("schedules");
+  const [activeSubTab, setActiveSubTab] = useState<"schedules" | "n8n" | "library">("schedules");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [deployingId, setDeployingId] = useState<string | null>(null);
+  const [deployStatus, setDeployStatus] = useState<string | null>(null);
+  const [deployOk, setDeployOk] = useState(true);
+
+  const [workflows, setWorkflows] = useState<LibraryWorkflow[]>([]);
+  const [categories, setCategories] = useState<LibraryCategory[]>([]);
+  const [librarySize, setLibrarySize] = useState<number | null>(null);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
 
   useEffect(() => {
     onRefresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Real category list, loaded once the Library tab is first opened.
+  useEffect(() => {
+    if (activeSubTab !== "library" || categories.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchApi("/v1/workflows/categories");
+        const data = await res.json();
+        if (cancelled) return;
+        setCategories(data.categories ?? []);
+        setLibrarySize(data.total_workflows ?? null);
+      } catch {
+        if (!cancelled) setLibraryError("Couldn't reach the Leviathan backend.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSubTab, categories.length]);
+
+  // Debounced, server-ranked search over the real catalog.
+  useEffect(() => {
+    if (activeSubTab !== "library") return;
+    let cancelled = false;
+    setLoadingLibrary(true);
+    const t = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: searchQuery, limit: "40" });
+        if (selectedCategory !== "All") params.set("category", selectedCategory);
+        const res = await fetchApi(`/v1/workflows/search?${params.toString()}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setWorkflows(data.workflows ?? []);
+        if (data.library_size) setLibrarySize(data.library_size);
+        setLibraryError(null);
+      } catch {
+        if (!cancelled) setLibraryError("Couldn't reach the Leviathan backend.");
+      } finally {
+        if (!cancelled) setLoadingLibrary(false);
+      }
+    }, 220);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [activeSubTab, searchQuery, selectedCategory]);
+
+  const popularCategories = ["All", ...categories.slice(0, 14).map((c) => c.name)];
+
+  const handleDeploy = async (wf: LibraryWorkflow) => {
+    setDeployingId(wf.id);
+    setDeployOk(true);
+    setDeployStatus(`Importing "${wf.name}" into n8n…`);
+    try {
+      const res = await fetchApi("/v1/workflows/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: wf.id, github_raw_url: wf.github_raw_url }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setDeployOk(false);
+        setDeployStatus(data?.detail || `Deploy failed (HTTP ${res.status}).`);
+      } else {
+        setDeployOk(true);
+        // The backend distinguishes "imported and running" from "imported but
+        // needs credentials" — surface whichever actually happened.
+        setDeployStatus(data.message || `Imported "${wf.name}".`);
+      }
+    } catch {
+      setDeployOk(false);
+      setDeployStatus("Couldn't reach the Leviathan backend to deploy.");
+    } finally {
+      setDeployingId(null);
+    }
+  };
 
   return (
     <div className="pointer-events-auto absolute left-56 lg:left-60 right-4 lg:right-6 top-20 bottom-4 z-30 flex flex-col overflow-hidden skeuo-panel shadow-2xl text-foam/90 max-h-[calc(100vh-90px)] p-1">
@@ -46,7 +147,15 @@ export default function SchedulesPanel({
                 activeSubTab === "n8n" ? "active text-white font-bold" : "text-white/60"
               }`}
             >
-              ⛓ n8n Workflow Studio
+              ⛓ n8n Studio
+            </button>
+            <button
+              onClick={() => setActiveSubTab("library")}
+              className={`px-4 py-2 rounded-xl skeuo-button font-data text-[10px] uppercase tracking-wider ${
+                activeSubTab === "library" ? "active text-white font-bold bg-[#ff6d5a]/20 border-[#ff6d5a]/50 text-[#ff6d5a]" : "text-white/60"
+              }`}
+            >
+              ⚡ Workflow Library{librarySize ? ` (${librarySize.toLocaleString()})` : ""}
             </button>
           </div>
           {activeSubTab === "schedules" && (
@@ -108,7 +217,7 @@ export default function SchedulesPanel({
             ))
           )}
         </div>
-      ) : (
+      ) : activeSubTab === "n8n" ? (
         <div className="flex-1 flex flex-col overflow-y-auto skeuo-well rounded-b-2xl m-3 border-t border-white/5">
           {/* Status bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-white/10 bg-black/60 font-mono text-[10px] text-white/55 select-none shrink-0">
@@ -147,9 +256,9 @@ export default function SchedulesPanel({
             <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
               {[
                 { icon: "🎙️", title: "Voice Control", desc: "Ask Leviathan to create workflows" },
-                { icon: "⚡", title: "400+ Integrations", desc: "Slack, Gmail, APIs, databases" },
+                { icon: "⚡", title: `${librarySize ? librarySize.toLocaleString() : "2,000+"} Workflows`, desc: "Access the ultimate library" },
                 { icon: "🔁", title: "Scheduled Triggers", desc: "Cron, webhook, event-based" },
-                { icon: "🤖", title: "AI-Powered", desc: "Leviathan builds automations for you" },
+                { icon: "🤖", title: "AI-Powered", desc: "Leviathan deploys automations for you" },
               ].map((cap) => (
                 <div
                   key={cap.title}
@@ -177,7 +286,138 @@ export default function SchedulesPanel({
             </div>
           </div>
         </div>
+      ) : (
+        /* WORKFLOW LIBRARY SUB-TAB */
+        <div className="flex-1 flex flex-col overflow-hidden skeuo-well rounded-b-2xl m-3 border-t border-white/5 p-4 gap-4">
+          {/* Top search & status bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-black/40 p-3.5 rounded-xl border border-white/5">
+            <div className="relative flex-1 w-full">
+              <input
+                type="text"
+                placeholder={`Search ${librarySize ? librarySize.toLocaleString() : ""} production-ready n8n workflows...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#ff6d5a]/50 font-data"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-2.5 text-xs text-white/40 hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono text-foam/60 shrink-0">
+              <span>📚 {librarySize ? librarySize.toLocaleString() : "—"} Index</span>
+              <span>•</span>
+              <span>{categories.length || "—"} Integrations</span>
+            </div>
+          </div>
+
+          {/* Category Pill Navigation */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {popularCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-xl font-data text-[10px] uppercase tracking-wider shrink-0 transition-all ${
+                  selectedCategory === cat
+                    ? "bg-[#ff6d5a] text-white font-bold shadow-[0_0_12px_rgba(255,109,90,0.4)]"
+                    : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Deploy Notification */}
+          {deployStatus && (
+            <div
+              className={`px-4 py-2.5 rounded-xl text-xs font-data flex items-start justify-between gap-3 animate-fade-in border ${
+                deployOk
+                  ? "bg-[#ff6d5a]/10 border-[#ff6d5a]/30 text-[#ff6d5a]"
+                  : "bg-amber-500/10 border-amber-500/40 text-amber-300"
+              }`}
+            >
+              <span className="leading-relaxed">{deployStatus}</span>
+              <button onClick={() => setDeployStatus(null)} className="text-white/40 hover:text-white shrink-0">✕</button>
+            </div>
+          )}
+
+          {libraryError && (
+            <div className="bg-amber-500/10 border border-amber-500/40 px-4 py-2.5 rounded-xl text-xs font-data text-amber-300">
+              {libraryError}
+            </div>
+          )}
+
+          {/* Workflow Cards Grid */}
+          <div className="flex-1 overflow-y-auto pr-1">
+            {loadingLibrary && workflows.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs font-data text-foam/40">
+                Loading workflows…
+              </div>
+            ) : workflows.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs font-data text-foam/40">
+                {libraryError ? "Library unavailable." : `No workflows match "${searchQuery}".`}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {workflows.map((wf) => (
+                  <div
+                    key={`${wf.id}-${wf.github_raw_url}`}
+                    className="flex flex-col justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-[#ff6d5a]/40 hover:bg-white/[0.04] transition-all group"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded bg-[#ff6d5a]/20 border border-[#ff6d5a]/30 text-[#ff6d5a] font-mono text-[9px] uppercase font-bold">
+                          {wf.category}
+                        </span>
+                        <span className="text-white/40 font-mono text-[9px] uppercase">
+                          ⚡ {wf.trigger_type}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-xs text-foam group-hover:text-[#ff6d5a] transition-colors leading-snug">
+                        {wf.name}
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(wf.integrations ?? []).map((integ) => (
+                          <span
+                            key={integ}
+                            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-foam/60 font-mono text-[9px]"
+                          >
+                            {integ}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                      <a
+                        href={wf.github_raw_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-mono text-white/40 hover:text-white/80 transition-colors"
+                      >
+                        View Source ↗
+                      </a>
+                      <button
+                        onClick={() => handleDeploy(wf)}
+                        disabled={deployingId === wf.id}
+                        className="px-4 py-1.5 rounded-xl bg-[#ff6d5a] hover:bg-[#ff4f1f] text-white font-bold font-data text-[10px] uppercase tracking-wider shadow-[0_2px_10px_rgba(255,109,90,0.3)] transition-all disabled:opacity-50"
+                      >
+                        {deployingId === wf.id ? "Deploying..." : "⚡ Deploy to n8n"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
