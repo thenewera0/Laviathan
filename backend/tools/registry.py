@@ -330,10 +330,9 @@ TOOL_SCHEMAS: list[dict] = [
         "name": "run_command",
         "description": (
             "Run a terminal command on the paired PC (e.g. 'npm install', "
-            "'python app.py', 'npm run build'). The companion asks the "
-            "user to confirm before it runs. Use to install deps, build, "
-            "or start a project you wrote. With several PCs paired, set "
-            "'device' to target one, or omit to run on ALL at once."
+            "'python app.py', 'npm run build'). Runs immediately. Use to "
+            "install deps, build, or start a project you wrote. With several "
+            "PCs paired, set 'device' to target one, or omit to run on ALL."
         ),
         "parameters": {
             "type": "object",
@@ -345,6 +344,78 @@ TOOL_SCHEMAS: list[dict] = [
                 },
             },
             "required": ["command"],
+        },
+    },
+    {
+        "name": "local_python",
+        "description": (
+            "Run Python ON THE USER'S OWN COMPUTER, with its full CPU, GPU, RAM, "
+            "disk and installed software. This is your muscle: the cloud you run "
+            "in has no GPU and little memory, so anything heavy — transcribing "
+            "audio, crunching a dataset, reading a big PDF, controlling an app, "
+            "running a local AI model, indexing a folder — belongs here. You may "
+            "write whatever code the task needs. If an import is missing, call "
+            "install_packages first. Prefer this over guessing an answer: compute it."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "description": "the Python source to run"},
+                "timeout": {"type": "integer", "description": "seconds to allow (default 600)"},
+                "device": {"type": "string", "description": "optional device name"},
+            },
+            "required": ["code"],
+        },
+    },
+    {
+        "name": "install_packages",
+        "description": (
+            "Install Python packages on the user's computer so a capability can "
+            "run there — e.g. 'yt-dlp' for video, 'pymupdf' for PDFs, "
+            "'faster-whisper' for transcription, 'pandas' for data, 'pyautogui' "
+            "for controlling apps, 'yfinance' for markets. This is how you give "
+            "yourself new abilities without waiting for an update. Install first, "
+            "then use local_python."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "packages": {"type": "string", "description": "space/comma separated package names"},
+                "device": {"type": "string", "description": "optional device name"},
+            },
+            "required": ["packages"],
+        },
+    },
+    {
+        "name": "undo_last",
+        "description": (
+            "Undo the last file change(s) you made on the user's computer. Every "
+            "overwrite, move and delete is snapshotted first, so this restores the "
+            "previous version. Use it the moment the user says 'undo', 'revert', "
+            "'put it back' or 'that was wrong'."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "count": {"type": "integer", "description": "how many changes to roll back (default 1)"},
+                "device": {"type": "string", "description": "optional device name"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "delete_path",
+        "description": (
+            "Delete a file on the user's PC. It is snapshotted first, so "
+            "undo_last can bring it back."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "file to delete"},
+                "device": {"type": "string", "description": "optional device name"},
+            },
+            "required": ["path"],
         },
     },
     {
@@ -691,6 +762,10 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "write_file": computer.write_file,
     "read_path": computer.read_path,
     "run_command": computer.run_command,
+    "local_python": computer.local_python,
+    "install_packages": computer.install_packages,
+    "undo_last": computer.undo_last,
+    "delete_path": computer.delete_path,
     "preview_project": computer.preview_project,
     "list_network_devices": devices.list_network_devices,
     "device_vitals": devices.device_vitals,
@@ -727,7 +802,11 @@ THOUGHT_LINES = {
     "write_project": "forging a new work — {name}",
     "write_file": "inscribing — {path}",
     "read_path": "studying — {path}",
-    "run_command": "asking your leave to run — {command}",
+    "run_command": "running on your machine — {command}",
+    "local_python": "using your machine's full power",
+    "install_packages": "teaching myself something new — {packages}",
+    "undo_last": "putting it back the way it was",
+    "delete_path": "removing — {path}",
     "preview_project": "raising a preview — {name}",
     "list_network_devices": "sensing the currents of your network",
     "device_vitals": "reading the pulse of your machine",

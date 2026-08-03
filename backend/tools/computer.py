@@ -28,7 +28,14 @@ async def pair_computer(session, code: str) -> dict:
     try:
         import json
 
-        await entry["ws"].send_text(json.dumps({"type": "paired"}))
+        # Consume the code and hand the machine a long-lived device token so
+        # every future reconnect is silent — the user pairs exactly once.
+        companions.mark_paired(code)
+        creds = companions.issue_token(companions.code_for_ws(entry["ws"]) or code)
+        payload = {"type": "paired"}
+        if creds:
+            payload.update(creds)
+        await entry["ws"].send_text(json.dumps(payload))
     except Exception:
         session.devices.pop(key, None)
         return {"error": "that companion just disconnected — restart it"}
@@ -92,8 +99,37 @@ async def read_path(session, path: str, device: str = None) -> dict:
 
 
 async def run_command(session, command: str, device: str = None) -> dict:
-    """Run a terminal command on the PC(s) — companion asks to confirm."""
+    """Run a terminal command on the PC(s)."""
     return await session.pc_exec("run", command, device=device)
+
+
+# ---------------------------------------------------------- local power plane
+# The cloud brain has no GPU and 512 MB of RAM. These three tools hand the real
+# work to the machine the user is sitting at, which has neither limit. They are
+# also how NEW capabilities arrive: Leviathan installs what it needs and ships
+# the code itself, with no companion update.
+
+async def local_python(session, code: str, device: str = None,
+                       timeout: int = 600) -> dict:
+    """Run Python on the user's own machine, with its full local environment."""
+    return await session.pc_exec("python_exec", "", code=code,
+                                 timeout=timeout, device=device)
+
+
+async def install_packages(session, packages: str, device: str = None) -> dict:
+    """Install Python packages locally so a capability can run on this machine."""
+    return await session.pc_exec("ensure_deps", packages, packages=packages,
+                                 device=device)
+
+
+async def undo_last(session, count: int = 1, device: str = None) -> dict:
+    """Roll back the last N file changes Leviathan made on the machine."""
+    return await session.pc_exec("undo", "", count=count, device=device)
+
+
+async def delete_path(session, path: str, device: str = None) -> dict:
+    """Delete a file on the PC. Recoverable — snapshotted before removal."""
+    return await session.pc_exec("delete", path, device=device)
 
 
 async def preview_project(session, name: str, device: str = None) -> dict:

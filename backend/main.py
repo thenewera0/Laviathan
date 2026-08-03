@@ -405,8 +405,19 @@ async def companion_endpoint(ws: WebSocket):
     from linking import companions
 
     await ws.accept()
-    code = companions.register(ws)
-    await ws.send_text(json.dumps({"type": "code", "code": code}))
+
+    # A returning device presents its token in the query string and is restored
+    # silently; a new one gets a pairing code to show on its screen.
+    device_id = ws.query_params.get("device_id")
+    token = ws.query_params.get("token")
+    reg = companions.register(ws, device_id=device_id, token=token)
+
+    if reg["mode"] == "paired":
+        await ws.send_text(json.dumps({"type": "reconnected",
+                                       "device_id": reg["device_id"]}))
+    else:
+        await ws.send_text(json.dumps({"type": "code", "code": reg["code"]}))
+
     try:
         while True:
             raw = await ws.receive_text()

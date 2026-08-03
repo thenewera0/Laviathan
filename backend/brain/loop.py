@@ -168,12 +168,22 @@ class BrainSession:
             self._pc_futures.pop(cmd_id, None)
             await self._broadcast_devices()
             return {"error": f"device '{name}' disconnected"}
+        # Most actions answer instantly, but the local power plane runs real
+        # work — pip installs and heavy Python can take minutes. Wait as long
+        # as the command itself is allowed to run, plus margin.
+        if action == "ensure_deps":
+            wait = 900
+        elif action in ("python_exec", "run"):
+            wait = int(extra.get("timeout") or 600) + 30
+        else:
+            wait = 30
+
         try:
-            result = await asyncio.wait_for(fut, timeout=30)
+            result = await asyncio.wait_for(fut, timeout=wait)
             return {k: v for k, v in result.items() if k in ("ok", "detail")}
         except asyncio.TimeoutError:
             self._pc_futures.pop(cmd_id, None)
-            return {"error": f"device '{name}' did not answer in time"}
+            return {"error": f"device '{name}' did not answer within {wait}s"}
 
     async def pc_exec(self, action: str, target: str,
                       device: str | None = None, **extra) -> dict:
