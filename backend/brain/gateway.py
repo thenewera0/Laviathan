@@ -72,6 +72,83 @@ CONTINUE_PROMPT = (
 )
 
 
+# Some providers have no JSON mode at all (Cohere v1, HuggingFace) and some
+# free models are reasoning models that narrate before answering. Native
+# response_format therefore cannot be relied on — we instruct, then extract,
+# then verify, and only accept a reply that actually parses.
+JSON_DIRECTIVE = (
+    "Respond with a single raw JSON document and nothing else. No preamble, "
+    "no explanation, no reasoning, no markdown fences. The very first "
+    "character of your reply must be { or [ and the last must be } or ]."
+)
+
+
+def _extract_json(text: str) -> Optional[str]:
+    """Pull the JSON document out of a reply that may be wrapped in prose.
+
+    Handles ```json fences and models that narrate before emitting the object.
+    Returns None when nothing parseable is present.
+    """
+    if not text:
+        return None
+    s = text.strip()
+
+    # Fast path: already valid.
+    try:
+        json.loads(s)
+        return s
+    except Exception:
+        pass
+
+    # Strip markdown fences.
+    if "```" in s:
+        for block in s.split("```")[1::2]:
+            body = block.split("\n", 1)[-1] if block[:20].lower().startswith("json") else block
+            body = body.strip()
+            try:
+                json.loads(body)
+                return body
+            except Exception:
+                continue
+
+    # Scan for the first balanced {...} or [...], respecting strings/escapes.
+    for opener, closer in (("{", "}"), ("[", "]")):
+        start = s.find(opener)
+        if start == -1:
+            continue
+        depth, in_str, esc = 0, False, False
+        for i in range(start, len(s)):
+            ch = s[i]
+            if esc:
+                esc = False
+                continue
+            if ch == "\\":
+                esc = True
+                continue
+            if ch == '"':
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == opener:
+                depth += 1
+            elif ch == closer:
+                depth -= 1
+                if depth == 0:
+                    candidate = s[start:i + 1]
+                    try:
+                        json.loads(candidate)
+                        return candidate
+                    except Exception:
+                        break
+    return None
+
+
+def _wants_json(response_format: Optional[Dict]) -> bool:
+    return bool(response_format) and response_format.get("type") in (
+        "json_object", "json_schema")
+
+
 def _norm_finish(raw: Optional[str]) -> str:
     """Map every provider's completion reason onto the OpenAI vocabulary.
 
@@ -294,6 +371,13 @@ class SmartAIGateway:
         if system_prompt:
             formatted_messages.insert(0, {"role": "system", "content": system_prompt})
 
+        # Say it in the prompt as well as the API field. Cohere and HuggingFace
+        # have no response_format at all, and some free models are reasoning
+        # models that narrate first, so the API flag alone is not enough.
+        want_json = _wants_json(response_format)
+        if want_json:
+            formatted_messages.append({"role": "system", "content": JSON_DIRECTIVE})
+
         chain = self.build_smart_provider_chain(task_intent, model)
         attempts = []
         last_err = None
@@ -354,6 +438,27 @@ class SmartAIGateway:
                     if not more.strip():
                         break
                     reply = reply + more if reply.endswith(("\n", " ")) else reply + more
+
+                # JSON was asked for — verify we actually have it. A model that
+                # narrates its reasoning instead of emitting JSON is a failed
+                # attempt, not a success: fall through to the next provider
+                # rather than handing prose to a parser.
+                if want_json:
+                    extracted = _extract_json(reply)
+                    if extracted is None:
+                        preview = reply.strip()[:120].replace("\n", " ")
+                        logger.warning(
+                            f"'{provider}' returned prose instead of JSON "
+                            f"({preview!r}) — trying the next provider.")
+                        last_err = RuntimeError(
+                            f"{provider} did not return JSON")
+                        await asyncio.sleep(random.uniform(0.2, 0.5))
+                        continue
+                    if extracted != reply.strip():
+                        logger.info(
+                            f"Recovered JSON from a prose-wrapped reply on "
+                            f"'{provider}'.")
+                    reply = extracted
 
                 _record_success(provider)
 
@@ -434,7 +539,7 @@ class SmartAIGateway:
         elif provider == "mistral":
             return await self._call_mistral(messages, model, temperature, tokens_budget, response_format)
         elif provider == "cohere":
-            return await self._call_cohere(messages, model, temperature)
+            return await self._call_cohere(messages, model, temperature, tokens_budget, response_format)
         elif provider == "huggingface":
             return await self._call_huggingface(messages, model, temperature, tokens_budget)
         else:
@@ -596,18 +701,38 @@ class SmartAIGateway:
             ch = (data.get("choices") or [{}])[0]
             return ch.get("message", {}).get("content", ""), _norm_finish(ch.get("finish_reason"))
 
-    async def _call_cohere(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float) -> str:
+    async def _call_cohere(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 4096, response_format: Optional[Dict] = None) -> Tuple[str, str]:
         url = "https://api.cohere.com/v1/chat"
         headers = {
             "Authorization": f"Bearer {settings.cohere_api_key}",
             "Content-Type": "application/json",
         }
-        last_msg = messages[-1]["content"] if messages else ""
+
+        # This previously sent ONLY messages[-1], silently dropping the system
+        # prompt and the entire conversation. Any instruction living in the
+        # system message (like "return JSON") never reached the model, which
+        # is why complex prompts came back as prose.
+        preamble_parts = [m["content"] for m in messages if m.get("role") == "system"]
+        convo = [m for m in messages if m.get("role") != "system"]
+        last_msg = convo[-1]["content"] if convo else ""
+        history = [
+            {"role": "USER" if m.get("role") == "user" else "CHATBOT",
+             "message": m.get("content", "")}
+            for m in convo[:-1]
+        ]
+
         payload = {
             "message": last_msg,
             "model": settings.cohere_model,
             "temperature": temperature,
+            "max_tokens": min(4096, max_tokens),
         }
+        if preamble_parts:
+            payload["preamble"] = "\n\n".join(preamble_parts)
+        if history:
+            payload["chat_history"] = history
+        if _wants_json(response_format):
+            payload["response_format"] = {"type": "json_object"}
 
         async with httpx.AsyncClient(timeout=45.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
