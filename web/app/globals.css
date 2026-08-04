@@ -194,25 +194,73 @@ h1, h2, h3, h4, .font-heading {
 
 /* ---- TACTICAL SKEUOMORPHIC UI CLASSES ---------------- */
 
-/* Heavy bevel metal container shell */
+/* ============================================================
+   MACHINED METAL SYSTEM
+   One material language for the whole dashboard: milled graphite
+   plate, cold rim light from above, recessed wells, tactile keys.
+   Accent light is used sparingly — it should read as a few real
+   indicator LEDs, not as neon.
+   ============================================================ */
+
+/* Milled plate — the chassis every panel is cut from */
 .skeuo-panel {
   border-radius: 14px;
-  background: linear-gradient(135deg, #0b111e, #050810) !important;
-  border: 1px solid #1a2336 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0%, transparent 18%),
+    linear-gradient(158deg, #101827 0%, #0a1120 46%, #060a13 100%) !important;
+  border: 1px solid #1b2434 !important;
   box-shadow:
-    0 15px 35px rgba(0, 0, 0, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.8);
+    /* contact shadow + ambient occlusion */
+    0 22px 48px -12px rgba(0, 0, 0, 0.9),
+    0 2px 8px rgba(0, 0, 0, 0.6),
+    /* machined top bevel catching the rim light */
+    inset 0 1px 0 rgba(190, 220, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.9),
+    inset 1px 0 0 rgba(255, 255, 255, 0.03),
+    inset -1px 0 0 rgba(0, 0, 0, 0.5);
 }
 
-/* Sunken slot/wells for monitors, panels, inputs */
+/* Sunken well — anything set INTO the plate: screens, inputs, lists */
 .skeuo-well {
   position: relative;
-  background: #030509 !important;
-  border: 1px solid #0f1524 !important;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #02040a 0%, #04070e 100%) !important;
+  border: 1px solid #0d1422 !important;
   box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    inset 0 3px 8px rgba(0, 0, 0, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.035),
     0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Engraved label — etched into metal, so it is cut IN, not printed on */
+.skeuo-etch {
+  color: rgba(150, 175, 205, 0.62);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 -1px 0 rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Instrument readout — numerals on a lit display */
+.skeuo-readout {
+  color: #cfe9ff;
+  text-shadow: 0 0 10px rgba(90, 180, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Milled seam between stacked controls */
+.skeuo-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.9) 12%,
+    rgba(0, 0, 0, 0.9) 88%,
+    transparent
+  );
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
 /* Sci-fi glass display screen with scanline overlay */
@@ -237,37 +285,44 @@ h1, h2, h3, h4, .font-heading {
   opacity: 0.7;
 }
 
-/* Mechanical toggle buttons / tactile keys */
+/* Tactile key — a real moving part: sits proud, travels down when pressed */
 .skeuo-button {
   position: relative;
-  background: linear-gradient(180deg, #182236, #0e1422) !important;
-  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 42%),
+    linear-gradient(180deg, #1a2438 0%, #101827 55%, #0b1220 100%) !important;
+  border: 1px solid #202b3e !important;
   box-shadow:
-    0 3px 0 #070b13,
-    0 4px 6px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: all 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    0 2px 0 #070b13,          /* the key's own side wall */
+    0 4px 7px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(200, 225, 255, 0.10);
+  transition:
+    transform 0.09s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.09s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.16s ease;
 }
 .skeuo-button:hover {
-  background: linear-gradient(180deg, #1d2b45, #111a2d) !important;
-  border-color: rgba(90, 251, 255, 0.4) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 42%),
+    linear-gradient(180deg, #202c44 0%, #141d30 55%, #0d1524 100%) !important;
+  border-color: #2b3950 !important;
   box-shadow:
-    0 3px 0 #070b13,
-    0 4px 8px rgba(0, 0, 0, 0.7),
-    0 0 10px rgba(90, 251, 255, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 2px 0 #070b13,
+    0 5px 10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(210, 235, 255, 0.14);
 }
-/* Visual button press animation */
+/* Pressed / latched: the key bottoms out into the plate and lights its edge */
 .skeuo-button:active,
 .skeuo-button.active {
   transform: translateY(2px);
-  background: linear-gradient(180deg, #0c111e, #070a12) !important;
-  border-color: rgba(0, 212, 255, 0.4) !important;
+  background:
+    linear-gradient(180deg, #080d17 0%, #0b1220 100%) !important;
+  border-color: rgba(90, 200, 255, 0.34) !important;
   box-shadow:
-    0 1px 0 #070b13,
-    0 2px 3px rgba(0, 0, 0, 0.4),
-    0 0 12px rgba(0, 212, 255, 0.35),
-    inset 0 2px 5px rgba(0, 0, 0, 0.8);
+    0 0 0 #070b13,
+    inset 0 2px 6px rgba(0, 0, 0, 0.9),
+    inset 0 0 12px rgba(60, 170, 255, 0.10),
+    0 0 0 1px rgba(90, 200, 255, 0.10);
 }
 
 /* Recessed LED metal socket housing */
@@ -291,30 +346,31 @@ h1, h2, h3, h4, .font-heading {
     inset 0 1px 1px rgba(255, 255, 255, 0.6),
     inset 0 -1.5px 1.5px rgba(0, 0, 0, 0.4);
 }
+/* Indicator lamps — small, physical, with a tight bloom rather than neon wash */
 .skeuo-led.glowing-cyan {
-  background: #5AFBFF;
+  background: radial-gradient(circle at 35% 30%, #d6feff 0%, #5afbff 45%, #0d8fb5 100%);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.8),
-    0 0 12px #00d4ff,
-    0 0 25px rgba(0, 212, 255, 0.6);
-  animation: skeuo-led-flash 2.5s ease-in-out infinite;
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    0 0 6px rgba(60, 220, 255, 0.75),
+    0 0 14px rgba(0, 190, 255, 0.28);
+  animation: skeuo-led-flash 3.2s ease-in-out infinite;
 }
 .skeuo-led.glowing-red {
-  background: #ff3b30;
+  background: radial-gradient(circle at 35% 30%, #ffd9d6 0%, #ff5b52 45%, #a11b13 100%);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.8),
-    0 0 12px #ff3b30,
-    0 0 25px rgba(255, 59, 48, 0.6);
-  animation: skeuo-led-flash-red 2.5s ease-in-out infinite;
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    0 0 6px rgba(255, 80, 68, 0.75),
+    0 0 14px rgba(255, 59, 48, 0.28);
+  animation: skeuo-led-flash-red 3.2s ease-in-out infinite;
 }
 
 @keyframes skeuo-led-flash {
-  0%, 100% { filter: brightness(1); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px #00d4ff, 0 0 18px rgba(0, 212, 255, 0.4); }
-  50% { filter: brightness(0.7); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 2px #00d4ff; }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(0.62); }
 }
 @keyframes skeuo-led-flash-red {
-  0%, 100% { filter: brightness(1); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px #ff3b30, 0 0 18px rgba(255, 59, 48, 0.4); }
-  50% { filter: brightness(0.7); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 2px #ff3b30; }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(0.62); }
 }
 
 /* Decorative hardware rivets/screws */

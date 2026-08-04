@@ -14,7 +14,7 @@ import DeviceRoster from "@/components/DeviceRoster";
 import ExecuteStudio from "@/components/ExecuteStudio";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
-import LiquidMetalBackground from "@/components/LiquidMetalBackground";
+import Backdrop from "@/components/Backdrop";
 import MediaLayer from "@/components/MediaLayer";
 import MemoryPanel from "@/components/MemoryPanel";
 import SchedulesPanel from "@/components/SchedulesPanel";
@@ -325,8 +325,8 @@ export default function Home() {
 
   return (
     <main className="relative h-dvh w-full select-none overflow-hidden bg-[#020305]">
-      {/* Procedural Liquid Metal & Emissive Blue Energy Shader Background */}
-      <LiquidMetalBackground />
+      {/* Machined graphite chassis — pure CSS, no shader, no cursor tracking */}
+      <Backdrop />
 
       {/* 3D Void Super Core */}
       {surfaced && <Entity />}

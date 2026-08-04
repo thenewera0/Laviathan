@@ -74,20 +74,27 @@ export default function SidebarLeft({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 font-data text-xs tracking-[0.08em] skeuo-button ${
+                className={`group relative flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 font-data text-[11px] tracking-[0.04em] skeuo-button ${
                   isActive
-                    ? "active text-white font-bold"
+                    ? "active font-bold text-white"
                     : "text-white/70"
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={isActive ? "text-[#00d4ff] drop-shadow-[0_0_8px_#00d4ff]" : "text-white/40 group-hover:text-white"}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={
+                      isActive
+                        ? "text-[#7fb2e0]"
+                        : "text-white/40 group-hover:text-white/80"
+                    }
+                  >
                     {item.icon}
                   </span>
-                  <span className="truncate">{item.id}</span>
+                  {/* full label must fit — it was clipping to "VOICE COMMAN…" */}
+                  <span className="whitespace-nowrap">{item.id}</span>
                 </div>
-                <span className="font-mono text-[9px] text-white/40 group-hover:text-[#00d4ff]">
-                  [{item.code}]
+                <span className="shrink-0 font-mono text-[9px] text-white/35 group-hover:text-white/60">
+                  {item.code}
                 </span>
               </button>
             );

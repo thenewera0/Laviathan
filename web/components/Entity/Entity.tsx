@@ -19,8 +19,6 @@ import { useLeviathan, type EntityState } from "@/lib/store";
 import {
   FRAGMENT_SHADER,
   VERTEX_SHADER,
-  GALAXY_VERTEX,
-  GALAXY_FRAGMENT,
   BEAM_VERTEX,
   BEAM_FRAGMENT,
 } from "./shaders";
@@ -257,146 +255,35 @@ function MarineSnow({ reducedMotion }: { reducedMotion: boolean }) {
 
 
 
-const RGAL = 3.6;
-
-function SpiralGalaxy({ reducedMotion }: { reducedMotion: boolean }) {
-  const spin = useRef<THREE.Group>(null!);
+/* Light column beneath the core.
+   The spiral galaxy and its 50,000 stars used to live here and were removed.
+   What remains reacts to voice and entity state — never to the cursor. */
+function CorePedestal({ reducedMotion }: { reducedMotion: boolean }) {
   const uniforms = useMemo(
     () => ({ uFlow: { value: 0 }, uAudio: { value: 0 }, uCursorActive: { value: 0 } }),
     []
   );
-
-  const { positions, colors } = useMemo(() => {
-    const NUM_STARS = 50000; // ULTRA HD: Doubled star count for extreme realism
-    const pos = new Float32Array(NUM_STARS * 3);
-    const col = new Float32Array(NUM_STARS * 3);
-    const randn = () => Math.random() + Math.random() + Math.random() - 1.5;
-    for (let i = 0; i < NUM_STARS; i++) {
-      // 25% of stars are deep background stars scattered everywhere, 75% form the galaxy
-      const isBackground = Math.random() < 0.25;
-      
-      let r, theta, yOffset;
-      if (isBackground) {
-        // Uniform distribution across the disk to prevent a vertical pillar of stars at the center
-        r = Math.sqrt(Math.random()) * RGAL * 3.5; 
-        theta = Math.random() * Math.PI * 2;
-        yOffset = (Math.random() - 0.5) * 8.0; // Huge depth
-      } else {
-        // Realistic disk clustering (denser in the center but avoiding a singularity)
-        r = Math.pow(Math.random(), 0.5) * RGAL + 0.1; 
-        const arm = i % 2; // 2 main arms
-        const armAngle = (arm * 2 * Math.PI) / 2;
-        const spread = randn() * 0.5 * (0.35 + r / RGAL); // Dust spread
-        theta = armAngle + 2.0 * Math.log(r + 0.05) + spread; // Matches shader winding
-        yOffset = randn() * 0.12 * Math.exp(-r / RGAL * 2.0); // Flatter at edges, bulges at core
-      }
-
-      pos[i * 3] = r * Math.cos(theta);
-      pos[i * 3 + 1] = yOffset;
-      pos[i * 3 + 2] = r * Math.sin(theta);
-
-      const f = r / RGAL;
-      const roll = Math.random();
-      let c: [number, number, number];
-      
-      if (isBackground) {
-        // Background stars are mostly white, slightly blue, or slightly orange
-        if (roll < 0.2) c = [1.0, 0.8, 0.6]; // Warm orange dwarf
-        else if (roll < 0.4) c = [0.7, 0.8, 1.0]; // Blue giant
-        else c = [0.9, 0.95, 1.0]; // Standard white
-      } else {
-        // Galaxy stars exactly match the reference image gradient
-        if (f < 0.15) {
-          // Core: Blazing Gold / White
-          c = roll < 0.5 ? [1.0, 0.98, 0.9] : [1.0, 0.85, 0.6];
-        } else if (f < 0.35) {
-          // Inner Ring: Pinkish / Purple transition
-          if (roll < 0.4) c = [0.95, 0.7, 0.4]; // fading gold
-          else if (roll < 0.7) c = [0.85, 0.4, 0.75]; // vibrant pink/purple
-          else c = [1.0, 0.9, 1.0]; // bright white clusters
-        } else {
-          // Outer Arms: Deep Blue and bright Cyan clusters
-          if (roll < 0.6) c = [0.2, 0.4, 1.0]; // deep blue
-          else if (roll < 0.85) c = [0.4, 0.8, 1.0]; // bright cyan
-          else c = [1.0, 0.9, 1.0]; // brilliant white outlier
-        }
-      }
-
-      // Add a slight intensity variation
-      const intensity = 0.5 + Math.random() * 0.5;
-      col[i * 3] = c[0] * intensity;
-      col[i * 3 + 1] = c[1] * intensity;
-      col[i * 3 + 2] = c[2] * intensity;
-    }
-    return { positions: pos, colors: col };
-  }, []);
-
-  const { pointer } = useThree();
-  const lastPointer = useRef({ x: 0, y: 0 });
-  const cursorActivity = useRef(0);
+  const activity = useRef(0);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     uniforms.uFlow.value += (reducedMotion ? 0.15 : 1) * dt;
 
-    const dx = pointer.x - lastPointer.current.x;
-    const dy = pointer.y - lastPointer.current.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    lastPointer.current.x = pointer.x;
-    lastPointer.current.y = pointer.y;
-    
     const a = reducedMotion ? 0 : useLeviathan.getState().audioLevel;
     const { entityState } = useLeviathan.getState();
-    const isStateActive = entityState === 'listening' || entityState === 'thinking' || entityState === 'speaking';
-    const isInteracting = dist > 0.001 || a > 0.05 || isStateActive;
+    const live =
+      entityState === "listening" ||
+      entityState === "thinking" ||
+      entityState === "speaking";
 
-    if (isInteracting) {
-      cursorActivity.current = damp(cursorActivity.current, 1.0, 10, dt);
-    } else {
-      cursorActivity.current = damp(cursorActivity.current, 0.0, 2.0, dt);
-    }
-    uniforms.uCursorActive.value = cursorActivity.current;
-
+    const target = live || a > 0.05 ? 1 : 0;
+    activity.current = damp(activity.current, target, live ? 10 : 2, dt);
+    uniforms.uCursorActive.value = activity.current;
     uniforms.uAudio.value = damp(uniforms.uAudio.value, a, 6, dt);
-    if (spin.current && !reducedMotion) spin.current.rotation.z += dt * 0.04;
   });
 
   return (
     <group position={PEDESTAL_POS}>
-      {/* 3D tilt: Tilted slightly forward from flat to show off the gorgeous volumetric spiral */}
-      <group rotation={[-1.35, 0, 0]} scale={1.1}>
-        <group ref={spin}>
-          <mesh>
-            <planeGeometry args={[RGAL * 2.2, RGAL * 2.2]} />
-            <shaderMaterial
-              vertexShader={GALAXY_VERTEX}
-              fragmentShader={GALAXY_FRAGMENT}
-              uniforms={uniforms}
-              transparent
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <points>
-            <bufferGeometry>
-              <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-              <bufferAttribute attach="attributes-color" args={[colors, 3]} />
-            </bufferGeometry>
-            <pointsMaterial
-              size={0.005} // OPTIMIZATION: Smaller points so they look like distinct stars, not a blob
-              vertexColors
-              transparent
-              opacity={0.35} 
-              sizeAttenuation
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </points>
-        </group>
-      </group>
-
-      {/* column of light rising into the orb */}
       <mesh position={[0, 0.85, 0]}>
         <planeGeometry args={[0.95, 1.7]} />
         <shaderMaterial
@@ -432,11 +319,11 @@ export default function Entity() {
       <group position={ORB_POS} scale={ORB_SCALE}>
         <EntityBody reducedMotion={reducedMotion} />
       </group>
-      <SpiralGalaxy reducedMotion={reducedMotion} />
+      <CorePedestal reducedMotion={reducedMotion} />
       <EffectComposer>
         <Bloom
-          intensity={0.45} // OPTIMIZATION: Halved bloom to stop the galaxy blowing out into a solid blue blob
-          luminanceThreshold={0.5} // High threshold so only the bright core and stars bloom, preserving dark space
+          intensity={0.55} // with the galaxy gone, the core carries the frame
+          luminanceThreshold={0.5}
           luminanceSmoothing={0.8}
           mipmapBlur
         />

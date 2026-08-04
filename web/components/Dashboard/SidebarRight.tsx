@@ -146,12 +146,12 @@ export default function SidebarRight() {
     <aside className="pointer-events-auto absolute right-4 lg:right-6 top-20 bottom-4 z-20 flex w-72 lg:w-80 flex-col gap-4 select-none max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
       
       {/* ACTIVE OPERATIONS */}
-      <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
-            // ACTIVE OPERATIONS [01]
+      <div className="skeuo-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-black/60 pb-2 shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+          <span className="skeuo-etch font-data text-[9px] font-semibold">
+            Active Operations
           </span>
-          <span className="h-2 w-2 rounded-full bg-[#00d4ff] shadow-[0_0_8px_#00d4ff] animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-[#5afbff] shadow-[0_0_5px_rgba(90,251,255,0.7)] animate-pulse" />
         </div>
 
         <div className="flex flex-col gap-2.5 max-h-44 overflow-y-auto">
@@ -176,10 +176,10 @@ export default function SidebarRight() {
       </div>
 
       {/* AUDIO WAVEFORM SPECTRUM */}
-      <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
-            // AUDIO SPECTRUM [02]
+      <div className="skeuo-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-black/60 pb-2 shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+          <span className="skeuo-etch font-data text-[9px] font-semibold">
+            Audio Spectrum
           </span>
           <span className="font-mono text-[9px] text-[#f59e0b]">44.1 kHz</span>
         </div>
@@ -195,10 +195,10 @@ export default function SidebarRight() {
       </div>
 
       {/* CORE VITALS TELEMETRY GAUGES */}
-      <div className="glass-panel p-4 flex flex-col gap-3 scifi-bracket border border-white/15">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
-            // CORE VITALS TELEMETRY [03]
+      <div className="skeuo-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-black/60 pb-2 shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+          <span className="skeuo-etch font-data text-[9px] font-semibold">
+            Core Vitals
           </span>
           <span className="font-mono text-[9px] text-[#34d399]">HEALTH: 100%</span>
         </div>
