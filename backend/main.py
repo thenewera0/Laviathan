@@ -219,6 +219,11 @@ async def gateway_chat_completions(
                                  status_code=503)
 
     content = res.get("reply", "")
+    # Report what actually happened. This was hardcoded to "stop", so a reply
+    # that had been cut off at the token ceiling was presented to clients as a
+    # complete one — which is how truncated JSON reached downstream parsers
+    # with no way to detect it.
+    finish = res.get("finish_reason", "stop")
 
     if not stream:
         return {
@@ -229,7 +234,7 @@ async def gateway_chat_completions(
             "choices": [{
                 "index": 0,
                 "message": {"role": "assistant", "content": content},
-                "finish_reason": "stop",
+                "finish_reason": finish,
             }],
             "usage": {
                 "prompt_tokens": max(1, len(content) // 8),
@@ -237,6 +242,7 @@ async def gateway_chat_completions(
                 "total_tokens": max(2, len(content) // 3),
             },
             "provider": res.get("provider", "gateway"),
+            "continuations": res.get("continuations", 0),
         }
 
     # Streaming: emit valid OpenAI SSE chunks so streaming clients parse the
@@ -254,7 +260,7 @@ async def gateway_chat_completions(
                          "finish_reason": None}])
             yield f"data: {json.dumps(chunk)}\n\n"
         last = dict(base, choices=[{"index": 0, "delta": {},
-                                    "finish_reason": "stop"}])
+                                    "finish_reason": finish}])
         yield f"data: {json.dumps(last)}\n\n"
         yield "data: [DONE]\n\n"
 

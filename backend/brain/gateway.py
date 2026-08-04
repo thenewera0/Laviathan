@@ -60,6 +60,37 @@ OPENROUTER_FREE_FALLBACKS = [
 ]
 
 
+# Truncation recovery. Free tiers cap output per call, so a long article or a
+# big JSON list can stop mid-token. We resume instead of returning a fragment.
+MAX_CONTINUATIONS = 3
+CONTINUE_PROMPT = (
+    "Continue the response from exactly where it stopped. Do not repeat any "
+    "text you already produced, do not restate the question, and do not add a "
+    "preamble — resume mid-sentence if that is where it ended. If the response "
+    "was JSON, continue the raw JSON so the two parts concatenate into one "
+    "valid document."
+)
+
+
+def _norm_finish(raw: Optional[str]) -> str:
+    """Map every provider's completion reason onto the OpenAI vocabulary.
+
+    Only "length" matters operationally: it means the model ran out of room
+    mid-answer. Reporting that as "stop" tells a client a cut-off response is
+    complete, which is how truncated JSON reached DeskNomads' parser.
+    """
+    if not raw:
+        return "stop"
+    r = str(raw).strip().upper()
+    if r in ("MAX_TOKENS", "LENGTH", "MAX_TOKEN", "TOKEN_LIMIT"):
+        return "length"
+    if r in ("SAFETY", "RECITATION", "CONTENT_FILTER", "BLOCKED"):
+        return "content_filter"
+    if r in ("TOOL_CALLS", "FUNCTION_CALL"):
+        return "tool_calls"
+    return "stop"
+
+
 def _normalize_model(model: Optional[str]) -> Optional[str]:
     """Resolve an advertised catalogue ID to a real one (or None for auto)."""
     if model is None:
@@ -273,12 +304,64 @@ class SmartAIGateway:
 
             try:
                 logger.info(f"Routing request to provider: '{provider}' (Task: {task_intent})")
-                reply = await self._execute_provider(provider, formatted_messages, model, temperature, max_tokens, response_format)
+                reply, finish = await self._execute_provider(
+                    provider, formatted_messages, model, temperature, max_tokens,
+                    response_format)
+
+                # The model ran out of room mid-answer. Rather than hand back a
+                # sentence that stops dead (or JSON that won't parse), ask it to
+                # carry on from exactly where it stopped and stitch the pieces.
+                # This is what lets long articles and big JSON lists finish on
+                # free tiers with modest per-call output caps.
+                rounds = 0
+                while finish == "length" and rounds < MAX_CONTINUATIONS:
+                    rounds += 1
+                    logger.info(
+                        f"Output hit the token ceiling on '{provider}' — "
+                        f"continuing (round {rounds}/{MAX_CONTINUATIONS})")
+                    cont = formatted_messages + [
+                        {"role": "assistant", "content": reply},
+                        {"role": "user", "content": CONTINUE_PROMPT},
+                    ]
+                    # Continue on whichever provider can take it. The one that
+                    # produced the fragment is often the one that just hit its
+                    # quota, so falling back matters more here than anywhere.
+                    more, finish, used = None, finish, None
+                    for cand in [provider] + [p for p in chain if p != provider]:
+                        if _get_circuit_state(cand) == "OPEN":
+                            continue
+                        try:
+                            _record_request_timestamp(cand)
+                            more, finish = await self._execute_provider(
+                                cand, cont, model, temperature, max_tokens,
+                                response_format)
+                            used = cand
+                            break
+                        except Exception as cont_err:
+                            logger.warning(
+                                f"Continuation on '{cand}' failed: "
+                                f"{str(cont_err)[:120]}")
+                            continue
+
+                    if more is None:
+                        # Nothing could continue it. Keep what we have and let
+                        # the caller see finish_reason="length".
+                        logger.warning("No provider could continue the response.")
+                        finish = "length"
+                        break
+                    if used and used != provider:
+                        logger.info(f"Continued on '{used}' instead of '{provider}'.")
+                    if not more.strip():
+                        break
+                    reply = reply + more if reply.endswith(("\n", " ")) else reply + more
+
                 _record_success(provider)
 
                 return {
                     "success": True,
                     "reply": reply,
+                    "finish_reason": finish,
+                    "continuations": rounds,
                     "provider": provider,
                     "task_intent": task_intent,
                     "model": model or self._default_model_for_provider(provider),
@@ -338,7 +421,8 @@ class SmartAIGateway:
         temperature: float,
         max_tokens: Optional[int] = None,
         response_format: Optional[Dict] = None,
-    ) -> str:
+    ) -> Tuple[str, str]:
+        """Returns (text, finish_reason)."""
         tokens_budget = max_tokens or 8192  # High output token limit for long articles
 
         if provider == "gemini":
@@ -412,7 +496,7 @@ class SmartAIGateway:
             text = "".join(p.get("text", "") for p in parts).strip()
             if not text:
                 raise RuntimeError(f"Gemini empty text (finishReason={cand.get('finishReason')})")
-            return text
+            return text, _norm_finish(cand.get("finishReason"))
 
     async def _call_groq(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://api.groq.com/openai/v1/chat/completions"
@@ -435,7 +519,8 @@ class SmartAIGateway:
             if resp.status_code != 200:
                 raise RuntimeError(f"Groq HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            ch = (data.get("choices") or [{}])[0]
+            return ch.get("message", {}).get("content", ""), _norm_finish(ch.get("finish_reason"))
 
     async def _call_openrouter(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://openrouter.ai/api/v1/chat/completions"
@@ -473,7 +558,9 @@ class SmartAIGateway:
                     data = resp.json()
                     choices = data.get("choices") or []
                     if choices:
-                        return choices[0]["message"]["content"]
+                        ch = choices[0]
+                        return (ch["message"]["content"],
+                                _norm_finish(ch.get("finish_reason")))
                     last = f"no choices from {slug}: {str(data)[:160]}"
                     continue
 
@@ -506,7 +593,8 @@ class SmartAIGateway:
             if resp.status_code != 200:
                 raise RuntimeError(f"Mistral HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            ch = (data.get("choices") or [{}])[0]
+            return ch.get("message", {}).get("content", ""), _norm_finish(ch.get("finish_reason"))
 
     async def _call_cohere(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float) -> str:
         url = "https://api.cohere.com/v1/chat"
@@ -526,7 +614,7 @@ class SmartAIGateway:
             if resp.status_code != 200:
                 raise RuntimeError(f"Cohere HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data.get("text", "")
+            return data.get("text", ""), _norm_finish(data.get("finish_reason"))
 
     async def _call_huggingface(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float) -> str:
         url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions"
@@ -546,12 +634,14 @@ class SmartAIGateway:
             if resp.status_code != 200:
                 raise RuntimeError(f"HuggingFace HTTP {resp.status_code}: {resp.text}")
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            ch = (data.get("choices") or [{}])[0]
+            return ch.get("message", {}).get("content", ""), _norm_finish(ch.get("finish_reason"))
 
-    async def _call_mock(self, messages: List[Dict[str, str]]) -> str:
+    async def _call_mock(self, messages: List[Dict[str, str]]) -> Tuple[str, str]:
         await asyncio.sleep(0.3)
         last_user = messages[-1]["content"] if messages else "Hello"
-        return f"[Leviathan Mock Response]: Processed '{last_user}'. All configured API keys are active."
+        return (f"[Leviathan Mock Response]: Processed '{last_user}'. "
+                "All configured API keys are active."), "stop"
 
     def get_gateway_stats(self) -> Dict:
         """Return real-time health, RPM usage, and circuit status for monitoring."""
