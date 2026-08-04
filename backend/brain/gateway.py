@@ -182,17 +182,21 @@ class SmartAIGateway:
         """Build priority provider chain based on Task Intent & RPM Headroom."""
         configured = self.get_configured_providers()
 
-        # Task-based base preference order
+        # Task-based base preference order.
+        # OpenRouter sits LAST in every chain: it is metered by account credit,
+        # and when the balance runs down its free tier collapses to ~50
+        # requests/day. Gemini/Groq/Mistral/Cohere free tiers refill hourly or
+        # by the minute, so they must all be exhausted before we spend credit.
         if task_intent == "VISION":
-            intent_order = ["gemini", "openrouter", "huggingface", "groq", "mistral"]
+            intent_order = ["gemini", "huggingface", "groq", "mistral", "openrouter"]
         elif task_intent == "REASONING_CODE":
-            intent_order = ["groq", "openrouter", "gemini", "mistral", "cohere"]
+            intent_order = ["groq", "gemini", "mistral", "cohere", "openrouter"]
         elif task_intent == "LONG_CONTEXT":
-            intent_order = ["gemini", "groq", "openrouter", "mistral", "cohere"]
+            intent_order = ["gemini", "groq", "mistral", "cohere", "openrouter"]
         elif task_intent == "CONVERSATIONAL_FAST":
             intent_order = ["groq", "gemini", "mistral", "cohere", "openrouter"]
         else:
-            intent_order = ["gemini", "groq", "openrouter", "mistral", "cohere", "huggingface"]
+            intent_order = ["gemini", "groq", "mistral", "cohere", "huggingface", "openrouter"]
 
         # Override if user requested specific model
         if user_model_preference:
@@ -285,8 +289,35 @@ class SmartAIGateway:
                 logger.error(f"Execution failed on provider '{provider}': {err_str}")
                 last_err = exc
 
-                if "429" in err_str or "rate limit" in err_str.lower() or "quota" in err_str.lower():
-                    _trip_circuit(provider)
+                low = err_str.lower()
+                throttled = (
+                    "429" in err_str
+                    or "rate limit" in low
+                    or "quota" in low
+                )
+                # A drained account is not a transient blip — retrying it just
+                # burns time on every later request. Treat it like a throttle
+                # so the breaker parks the provider instead of hammering it.
+                broke = (
+                    "402" in err_str
+                    or "insufficient" in low
+                    or "credit" in low
+                    or "negative balance" in low
+                    or "payment required" in low
+                )
+                if throttled or broke:
+                    if broke:
+                        logger.warning(
+                            f"Provider '{provider}' is out of credit — parking it."
+                        )
+                        # Skip straight to OPEN; there is nothing to retry into.
+                        CIRCUIT_BREAKER[provider] = {
+                            "state": "OPEN",
+                            "cooldown_until": time.time() + COOLDOWN_DURATION * 5,
+                            "errors": 99,
+                        }
+                    else:
+                        _trip_circuit(provider)
 
                 await asyncio.sleep(random.uniform(0.2, 0.6))
 
