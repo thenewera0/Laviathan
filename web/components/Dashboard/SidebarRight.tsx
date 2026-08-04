@@ -38,11 +38,15 @@ export default function SidebarRight() {
       phase += 0.08;
       const amp = 10 + (audioLevel || (entityState === "listening" ? 15 : 5));
 
-      // Cobalt Sapphire Fluid Gradient
+      // Sampled from the core's live light so the spectrum shifts colour
+      // with Leviathan's state along with everything else on the deck.
+      const cs = getComputedStyle(document.documentElement);
+      const coreH = cs.getPropertyValue("--core-h").trim() || "212";
+      const coreS = cs.getPropertyValue("--core-s").trim() || "55%";
       const gradCobalt = ctx.createLinearGradient(0, 0, w, 0);
-      gradCobalt.addColorStop(0, "#00d4ff");
-      gradCobalt.addColorStop(0.5, "#0099ff");
-      gradCobalt.addColorStop(1, "#38bdf8");
+      gradCobalt.addColorStop(0, `hsl(${coreH} ${coreS} 68%)`);
+      gradCobalt.addColorStop(0.5, `hsl(${coreH} ${coreS} 56%)`);
+      gradCobalt.addColorStop(1, `hsl(${coreH} ${coreS} 72%)`);
 
       // Primary Wave (Cobalt)
       ctx.save();
@@ -109,7 +113,7 @@ export default function SidebarRight() {
   ];
 
   const boltIcon = (
-    <span className="text-[#00d4ff] font-bold">⚡</span>
+    <span className="core-lit font-bold">⚡</span>
   );
 
   const liveOps =
@@ -120,7 +124,7 @@ export default function SidebarRight() {
           title: t.label,
           status: t.status === "running" ? "In Progress" : t.status === "done" ? "Completed" : "Failed",
           time: "just now",
-          tone: t.status === "failed" ? "text-rose-400" : t.status === "done" ? "text-[#34d399]" : "text-[#00d4ff]",
+          tone: t.status === "failed" ? "text-rose-400" : t.status === "done" ? "text-[#34d399]" : "core-lit",
         }))
       : activity.length > 0
         ? activity.map((a) => ({
@@ -129,7 +133,7 @@ export default function SidebarRight() {
             title: a.text,
             status: "done",
             time: relTime(a.at),
-            tone: "text-[#00d4ff]",
+            tone: "core-lit",
           }))
         : [
             {
@@ -143,7 +147,7 @@ export default function SidebarRight() {
           ];
 
   return (
-    <aside className="pointer-events-auto absolute right-4 lg:right-6 top-20 bottom-4 z-20 flex w-72 lg:w-80 flex-col gap-4 select-none max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
+    <aside style={{ "--d": "320ms" } as React.CSSProperties} className="rail-in-right pointer-events-auto absolute right-4 lg:right-6 top-20 bottom-4 z-20 flex w-72 lg:w-80 flex-col gap-4 select-none max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
       
       {/* ACTIVE OPERATIONS */}
       <div className="skeuo-panel p-4 flex flex-col gap-3">
@@ -151,14 +155,14 @@ export default function SidebarRight() {
           <span className="skeuo-etch font-data text-[9px] font-semibold">
             Active Operations
           </span>
-          <span className="h-2 w-2 rounded-full bg-[#5afbff] shadow-[0_0_5px_rgba(90,251,255,0.7)] animate-pulse" />
+          <span className="h-2 w-2 rounded-full core-dot animate-pulse" />
         </div>
 
         <div className="flex flex-col gap-2.5 max-h-44 overflow-y-auto">
           {liveOps.slice(0, 4).map((op) => (
             <div
               key={op.id}
-              className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#080d1c]/80 border border-white/10 hover:border-[#00d4ff]/50 transition-all"
+              className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#080d1c]/80 border border-white/10 hover:border-[hsl(var(--core-h)_var(--core-s)_60%)]/45 transition-all"
             >
               <span className="mt-0.5">{op.icon}</span>
               <div className="flex flex-col min-w-0 flex-1">
@@ -190,7 +194,7 @@ export default function SidebarRight() {
 
         <div className="flex items-center justify-between font-mono text-[9px] text-white/50 px-1">
           <span>STATUS: {entityState.toUpperCase()}</span>
-          <span className="text-[#00d4ff]">{audioLevel > 0 ? `${Math.round(audioLevel * 100)} RMS` : "STANDBY"}</span>
+          <span className="core-lit">{audioLevel > 0 ? `${Math.round(audioLevel * 100)} RMS` : "STANDBY"}</span>
         </div>
       </div>
 

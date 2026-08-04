@@ -15,6 +15,7 @@ import ExecuteStudio from "@/components/ExecuteStudio";
 import GestureLayer from "@/components/GestureLayer";
 import HudFrame from "@/components/HudFrame";
 import Backdrop from "@/components/Backdrop";
+import CoreLight from "@/components/CoreLight";
 import MediaLayer from "@/components/MediaLayer";
 import MemoryPanel from "@/components/MemoryPanel";
 import SchedulesPanel from "@/components/SchedulesPanel";
@@ -325,7 +326,9 @@ export default function Home() {
 
   return (
     <main className="relative h-dvh w-full select-none overflow-hidden bg-[#020305]">
-      {/* Machined graphite chassis — pure CSS, no shader, no cursor tracking */}
+      {/* The core lights the whole room: CoreLight damps --core-* every frame
+          from the entity's state, Backdrop and every panel read from it. */}
+      <CoreLight />
       <Backdrop />
 
       {/* 3D Void Super Core */}
@@ -335,7 +338,22 @@ export default function Home() {
         <>
           {/* Ambient core bloom */}
           <div className="orb-halo" />
-          {/* Dashboard HUD & Frame */}
+
+          {/* One sweep of light across the deck as it powers up */}
+          <div className="pointer-events-none absolute inset-0 z-[5] overflow-hidden">
+            <div
+              className="deck-sweep absolute inset-y-0 -left-1/3 w-1/3"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, hsl(var(--core-h) var(--core-s) 72% / 0.10), transparent)",
+              }}
+            />
+          </div>
+
+          {/* Dashboard HUD & Frame — the deck assembles around the core.
+              Entrance classes live on each component's own root element: a
+              wrapper with a transform would become the containing block for
+              these absolutely-positioned panels and move them. */}
           <HudFrame />
           <Header />
           <SidebarLeft activeTab={activeTab} onSelectTab={setActiveTab} />

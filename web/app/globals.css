@@ -202,22 +202,51 @@ h1, h2, h3, h4, .font-heading {
    indicator LEDs, not as neon.
    ============================================================ */
 
-/* Milled plate — the chassis every panel is cut from */
+/* Core light defaults. <CoreLight> damps these every frame; these values are
+   only what the deck looks like before the first paint. */
+:root {
+  --core-h: 212;
+  --core-s: 55%;
+  --core-glow: 0.30;
+  --core-pulse: 0;
+}
+
+/* Milled plate — the chassis every panel is cut from.
+   The plate is DARK; what makes it read is the core's light landing on its
+   top bevel and edge. Change the core's state and every panel re-lights. */
 .skeuo-panel {
+  position: relative;
   border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0%, transparent 18%),
-    linear-gradient(158deg, #101827 0%, #0a1120 46%, #060a13 100%) !important;
-  border: 1px solid #1b2434 !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 18%),
+    linear-gradient(158deg, #0e1524 0%, #080e1b 46%, #04070e 100%) !important;
+  border: 1px solid #18202f !important;
   box-shadow:
     /* contact shadow + ambient occlusion */
-    0 22px 48px -12px rgba(0, 0, 0, 0.9),
-    0 2px 8px rgba(0, 0, 0, 0.6),
-    /* machined top bevel catching the rim light */
-    inset 0 1px 0 rgba(190, 220, 255, 0.14),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.9),
-    inset 1px 0 0 rgba(255, 255, 255, 0.03),
-    inset -1px 0 0 rgba(0, 0, 0, 0.5);
+    0 26px 56px -14px rgba(0, 0, 0, 0.92),
+    0 2px 10px rgba(0, 0, 0, 0.65),
+    /* the core, landing on the top bevel */
+    inset 0 1px 0 hsl(var(--core-h) var(--core-s) 78% / calc(0.10 + var(--core-glow) * 0.26)),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.92),
+    inset 1px 0 0 rgba(255, 255, 255, 0.026),
+    inset -1px 0 0 rgba(0, 0, 0, 0.55),
+    /* faint spill around the whole plate */
+    0 0 26px -6px hsl(var(--core-h) var(--core-s) 55% / calc(var(--core-glow) * 0.16));
+  transition: box-shadow 420ms ease-out;
+}
+
+/* Edge nearest the core catches a thin line of light. */
+.skeuo-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--core-h) var(--core-s) 70% / calc(var(--core-glow) * 0.07)) 0%,
+    transparent 34%
+  );
 }
 
 /* Sunken well — anything set INTO the plate: screens, inputs, lists */
@@ -231,6 +260,23 @@ h1, h2, h3, h4, .font-heading {
     inset 0 3px 8px rgba(0, 0, 0, 0.95),
     inset 0 -1px 0 rgba(255, 255, 255, 0.035),
     0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Anything lit by the core. Replaces hardcoded cyan so accents shift with
+   Leviathan's state instead of staying one fixed colour forever. */
+.core-lit {
+  color: hsl(var(--core-h) var(--core-s) 76%);
+  text-shadow: 0 0 14px hsl(var(--core-h) var(--core-s) 62% / calc(var(--core-glow) * 0.45));
+  transition: color 400ms ease-out, text-shadow 400ms ease-out;
+}
+
+/* A lamp/dot carrying the core's colour. */
+.core-dot {
+  background: hsl(var(--core-h) var(--core-s) 68%);
+  box-shadow:
+    0 0 6px hsl(var(--core-h) var(--core-s) 62% / 0.85),
+    0 0 16px hsl(var(--core-h) var(--core-s) 58% / calc(var(--core-glow) * 0.6));
+  transition: background 400ms ease-out, box-shadow 400ms ease-out;
 }
 
 /* Engraved label — etched into metal, so it is cut IN, not printed on */
@@ -303,26 +349,107 @@ h1, h2, h3, h4, .font-heading {
 }
 .skeuo-button:hover {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 42%),
-    linear-gradient(180deg, #202c44 0%, #141d30 55%, #0d1524 100%) !important;
-  border-color: #2b3950 !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0%, transparent 42%),
+    linear-gradient(180deg, #1e2a40 0%, #131c2e 55%, #0c1422 100%) !important;
+  border-color: hsl(var(--core-h) var(--core-s) 60% / 0.30) !important;
   box-shadow:
     0 2px 0 #070b13,
-    0 5px 10px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(210, 235, 255, 0.14);
+    0 5px 12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 hsl(var(--core-h) var(--core-s) 82% / 0.20),
+    0 0 16px -4px hsl(var(--core-h) var(--core-s) 60% / calc(var(--core-glow) * 0.5));
 }
-/* Pressed / latched: the key bottoms out into the plate and lights its edge */
+/* Pressed / latched: the key bottoms out into the plate and its edge lights
+   with whatever colour the core is currently burning. */
 .skeuo-button:active,
 .skeuo-button.active {
   transform: translateY(2px);
   background:
-    linear-gradient(180deg, #080d17 0%, #0b1220 100%) !important;
-  border-color: rgba(90, 200, 255, 0.34) !important;
+    linear-gradient(180deg, #070c16 0%, #0a111f 100%) !important;
+  border-color: hsl(var(--core-h) var(--core-s) 62% / 0.42) !important;
   box-shadow:
     0 0 0 #070b13,
-    inset 0 2px 6px rgba(0, 0, 0, 0.9),
-    inset 0 0 12px rgba(60, 170, 255, 0.10),
-    0 0 0 1px rgba(90, 200, 255, 0.10);
+    inset 0 2px 6px rgba(0, 0, 0, 0.92),
+    inset 0 0 14px hsl(var(--core-h) var(--core-s) 58% / calc(0.10 + var(--core-glow) * 0.20)),
+    0 0 0 1px hsl(var(--core-h) var(--core-s) 62% / 0.14),
+    0 0 20px -6px hsl(var(--core-h) var(--core-s) 60% / calc(var(--core-glow) * 0.55));
+}
+
+/* ============================================================
+   BOOT SEQUENCE
+   The deck assembles instead of appearing. Each element sets
+   --d and arrives on its own beat.
+   ============================================================ */
+@keyframes deck-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+.deck-in {
+  animation: deck-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Centred elements need their own keyframe: animating `transform` would
+   otherwise wipe the -translate-x-1/2 that centres them and snap them left. */
+@keyframes deck-in-center {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px) scale(0.985);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+    filter: blur(0);
+  }
+}
+.deck-in-center {
+  animation: deck-in-center 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Rails slide in from their own edge, so the deck closes around the core. */
+@keyframes rail-in-left {
+  from { opacity: 0; transform: translateX(-26px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes rail-in-right {
+  from { opacity: 0; transform: translateX(26px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.rail-in-left  { animation: rail-in-left  0.9s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d, 0ms); }
+.rail-in-right { animation: rail-in-right 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d, 0ms); }
+
+/* One sweep of light across the deck as it comes up. */
+@keyframes deck-sweep {
+  0%   { opacity: 0; transform: translateX(-60%) skewX(-12deg); }
+  22%  { opacity: 0.5; }
+  100% { opacity: 0; transform: translateX(160%) skewX(-12deg); }
+}
+.deck-sweep {
+  animation: deck-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-in, .rail-in-left, .rail-in-right, .deck-sweep {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  /* keep the centring transform when the animation is disabled */
+  .deck-in-center {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
 }
 
 /* Recessed LED metal socket housing */

@@ -51,7 +51,7 @@ export default function SidebarLeft({
   const isError = entityState === "error";
 
   return (
-    <aside className="pointer-events-auto absolute left-4 lg:left-6 top-20 bottom-4 z-20 flex w-52 lg:w-56 flex-col justify-between select-none max-h-[calc(100vh-90px)] skeuo-panel p-4">
+    <aside style={{ "--d": "220ms" } as React.CSSProperties} className="rail-in-left pointer-events-auto absolute left-4 lg:left-6 top-20 bottom-4 z-20 flex w-52 lg:w-56 flex-col justify-between select-none max-h-[calc(100vh-90px)] skeuo-panel p-4">
       {/* Decorative Hardware Screws/Rivets */}
       <div className="skeuo-screw skeuo-screw-tl" />
       <div className="skeuo-screw skeuo-screw-tr" />
@@ -61,8 +61,8 @@ export default function SidebarLeft({
       {/* Navigation Section */}
       <div className="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <span className="font-data text-[9px] font-bold tracking-[0.3em] text-[#00d4ff] uppercase">
-            // TACTICAL SYSTEM NAV
+          <span className="skeuo-etch font-data text-[9px] font-semibold">
+            Tactical System Nav
           </span>
           <span className="font-mono text-[9px] text-white/40">SYS.v2.5</span>
         </div>
@@ -84,7 +84,7 @@ export default function SidebarLeft({
                   <span
                     className={
                       isActive
-                        ? "text-[#7fb2e0]"
+                        ? "core-lit"
                         : "text-white/40 group-hover:text-white/80"
                     }
                   >
@@ -114,7 +114,7 @@ export default function SidebarLeft({
               <span className="font-data text-[11px] font-bold tracking-wider text-white truncate">
                 LEVIATHAN CORE
               </span>
-              <span className={`font-mono text-[9px] uppercase tracking-wider ${isError ? "text-rose-400" : "text-[#00d4ff]"}`}>
+              <span className={`font-mono text-[9px] uppercase tracking-wider ${isError ? "text-rose-400" : "core-lit"}`}>
                 {isError ? "SYS_ERROR" : "ONLINE // AES-256"}
               </span>
             </div>
@@ -123,19 +123,19 @@ export default function SidebarLeft({
 
         {deviceLinks.length > 0 && (
           <div className="flex flex-col gap-2">
-            <span className="font-data text-[9px] font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
-              // ACTIVE PAIRING LINKS
+            <span className="skeuo-etch font-data text-[9px] font-semibold">
+              Active Pairing Links
             </span>
             <div className="flex flex-col gap-1.5">
               {deviceLinks.map((l) => (
                 <div key={l.url} className="skeuo-well flex flex-col gap-1 p-2.5 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#00d4ff]">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] core-lit">
                       {l.purpose} · LIVE
                     </span>
                     <button
                       onClick={() => copyLink(l.url)}
-                      className="font-data text-[9px] uppercase tracking-wider text-white/60 transition-colors hover:text-[#00d4ff]"
+                      className="font-data text-[9px] uppercase tracking-wider text-white/60 transition-colors hover:core-lit"
                     >
                       {copiedUrl === l.url ? "copied ✓" : "copy"}
                     </button>
@@ -144,7 +144,7 @@ export default function SidebarLeft({
                     href={l.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="break-all font-mono text-[10px] leading-4 text-white/60 underline decoration-white/20 underline-offset-2 transition-colors hover:text-[#00d4ff]"
+                    className="break-all font-mono text-[10px] leading-4 text-white/60 underline decoration-white/20 underline-offset-2 transition-colors hover:core-lit"
                   >
                     {l.url.replace(/^https?:\/\//, "")}
                   </a>
@@ -157,7 +157,7 @@ export default function SidebarLeft({
         <div className="skeuo-well flex flex-col gap-1 p-3 rounded-xl font-mono text-[10px] tracking-widest text-white/55">
           <div className="flex items-center justify-between">
             <span className="text-white/35 uppercase">SYS.TIME</span>
-            <span className="font-bold text-[#00d4ff]">{timeStr || "19:45:32"}</span>
+            <span className="font-bold core-lit">{timeStr || "19:45:32"}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-white/35 uppercase">SYS.DATE</span>

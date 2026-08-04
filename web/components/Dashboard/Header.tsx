@@ -27,7 +27,7 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
     : "I am listening. How may I assist you?";
 
   return (
-    <header className="pointer-events-auto absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-8 py-5 select-none">
+    <header style={{ "--d": "120ms" } as React.CSSProperties} className="deck-in pointer-events-auto absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-8 py-5 select-none">
       {/* Top Left Branding: Physical Metallic Badge */}
       <div className="skeuo-panel px-4 py-2 rounded-xl flex flex-col gap-0.5 min-w-[170px] shadow-lg">
         {/* Decorative rivets */}
@@ -38,7 +38,7 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
         <span className="font-voice text-lg font-bold tracking-[0.45em] celestial-text-gradient drop-shadow-[0_0_15px_rgba(0,212,255,0.5)]">
           LEVIATHAN
         </span>
-        <span className="font-data text-[8px] tracking-[0.3em] text-[#00d4ff]/90 font-semibold uppercase">
+        <span className="font-data text-[8px] tracking-[0.3em] core-lit/90 font-semibold uppercase">
           Autonomous AI Entity
         </span>
       </div>
@@ -58,7 +58,7 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
         {/* Recessed display screen for the live transcription stream */}
         <div className="skeuo-well skeuo-screen rounded-lg px-4 py-1.5 flex items-center gap-2.5 font-data text-xs text-[#7dd3fc] w-full min-w-[280px] max-w-md justify-center border-t border-white/5">
           <div className="flex h-3 items-center gap-0.5">
-            <span className="h-2.5 w-0.5 animate-pulse rounded-full bg-[#00d4ff]" />
+            <span className="h-2.5 w-0.5 animate-pulse rounded-full core-dot" />
             <span className="h-3 w-0.5 animate-pulse rounded-full bg-[#0099ff] delay-75" />
             <span className="h-1.5 w-0.5 animate-pulse rounded-full bg-[#f59e0b] delay-150" />
           </div>
@@ -82,7 +82,7 @@ export default function Header({ onOpenSettings }: { onOpenSettings?: () => void
         {onOpenSettings && (
           <button
             onClick={onOpenSettings}
-            className="skeuo-button flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-[#00d4ff]"
+            className="skeuo-button flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:core-lit"
             title="System Settings"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

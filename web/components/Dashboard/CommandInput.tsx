@@ -22,7 +22,7 @@ export default function CommandInput({
   };
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
+    <div style={{ "--d": "430ms" } as React.CSSProperties} className="deck-in-center pointer-events-auto absolute left-1/2 bottom-28 z-20 w-full max-w-xl -translate-x-1/2 px-4 select-none">
       <form onSubmit={handleSubmit} className="relative flex items-center p-1.5 skeuo-panel rounded-2xl shadow-[0_12px_45px_rgba(0,0,0,0.9)]">
         {/* Decorative Hardware Screws/Rivets */}
         <div className="skeuo-screw skeuo-screw-tl" />
@@ -30,7 +30,7 @@ export default function CommandInput({
         <div className="skeuo-screw skeuo-screw-bl" />
         <div className="skeuo-screw skeuo-screw-br" />
 
-        <div className="absolute left-6 z-30 font-mono text-xs font-bold text-[#00d4ff] pointer-events-none flex items-center gap-2">
+        <div className="absolute left-6 z-30 font-mono text-xs font-bold core-lit pointer-events-none flex items-center gap-2">
           {micActive ? <ThinkingOrb state="listening" size={20} /> : "SYS_CMD >"}
         </div>
         <input
@@ -38,7 +38,7 @@ export default function CommandInput({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Speak or type autonomous instruction..."
-          className="relative w-full rounded-xl skeuo-well pl-24 pr-16 py-4 font-data text-sm tracking-wide text-white placeholder-white/35 outline-none transition-all focus:border-[#00d4ff]/40"
+          className="relative w-full rounded-xl skeuo-well pl-24 pr-16 py-4 font-data text-sm tracking-wide text-white placeholder-white/35 outline-none transition-all focus:border-[hsl(var(--core-h)_var(--core-s)_60%)]/45"
         />
 
         {/* Mic & Submit button */}
@@ -48,8 +48,8 @@ export default function CommandInput({
             onClick={onMicClick}
             className={`flex h-10 w-10 items-center justify-center rounded-xl skeuo-button transition-all ${
               micActive
-                ? "active text-[#5AFBFF]"
-                : "text-[#00d4ff]"
+                ? "active core-lit"
+                : "core-lit"
             }`}
             aria-label="Activate Microphone"
           >
