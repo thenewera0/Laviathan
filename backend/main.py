@@ -53,16 +53,20 @@ async def health():
 @app.get("/v1/models")
 async def list_models():
     """OpenAI-compatible models list endpoint."""
+    # These IDs are verified against each provider's live model list. Clients
+    # copy them straight out of here, so a stale entry becomes a hard failure
+    # downstream — which is exactly how "leviathan-auto" broke the fallback.
+    # Older friendly IDs still work via MODEL_ALIASES in the gateway.
     return {
         "object": "list",
         "data": [
             {"id": "leviathan-auto", "object": "model", "created": 1700000000, "owned_by": "leviathan"},
             {"id": "gemini-2.5-flash", "object": "model", "created": 1700000000, "owned_by": "google"},
-            {"id": "llama-3.3-70b", "object": "model", "created": 1700000000, "owned_by": "groq"},
-            {"id": "qwen-2.5-72b", "object": "model", "created": 1700000000, "owned_by": "groq"},
-            {"id": "deepseek-r1", "object": "model", "created": 1700000000, "owned_by": "openrouter"},
-            {"id": "mistral-small", "object": "model", "created": 1700000000, "owned_by": "mistral"},
-            {"id": "command-r-plus", "object": "model", "created": 1700000000, "owned_by": "cohere"},
+            {"id": "llama-3.3-70b-versatile", "object": "model", "created": 1700000000, "owned_by": "groq"},
+            {"id": "qwen/qwen3.6-27b", "object": "model", "created": 1700000000, "owned_by": "groq"},
+            {"id": "nvidia/nemotron-3-super-120b-a12b:free", "object": "model", "created": 1700000000, "owned_by": "openrouter"},
+            {"id": "mistral-small-latest", "object": "model", "created": 1700000000, "owned_by": "mistral"},
+            {"id": "command-a-03-2025", "object": "model", "created": 1700000000, "owned_by": "cohere"},
         ],
     }
 

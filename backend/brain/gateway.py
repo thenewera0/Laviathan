@@ -35,6 +35,40 @@ PROVIDER_REQUEST_WINDOWS: Dict[str, List[float]] = {}
 CIRCUIT_BREAKER: Dict[str, Dict] = {}
 COOLDOWN_DURATION = 60.0  # 60 seconds cooldown on 429/failures
 
+# ---------------------------------------------------------------- model names
+# /v1/models advertises friendly catalogue IDs. They are OURS, not any
+# provider's, so they must be resolved before a request leaves the gateway.
+# "leviathan-auto" means "you pick" -> None -> every provider uses its default.
+VIRTUAL_MODELS = {"leviathan-auto", "auto", "default", "leviathan", ""}
+
+# Friendly catalogue ID -> the real slug at the provider that serves it.
+# Every value here was checked against the provider's live /models list.
+MODEL_ALIASES = {
+    "llama-3.3-70b": "llama-3.3-70b-versatile",          # groq
+    "qwen-2.5-72b": "qwen/qwen3.6-27b",                  # groq (old qwen retired)
+    "mistral-small": "mistral-small-latest",             # mistral
+    "command-r-plus": "command-a-03-2025",               # cohere (retired 2025-09-15)
+    "deepseek-r1": "deepseek/deepseek-r1",               # openrouter (no :free tier)
+}
+
+# If the chosen free slug is retired or throttled, try these before giving up.
+# Free slugs churn constantly; one dead default must not kill the fallback.
+OPENROUTER_FREE_FALLBACKS = [
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "openai/gpt-oss-20b:free",
+    "inclusionai/ling-3.0-flash:free",
+]
+
+
+def _normalize_model(model: Optional[str]) -> Optional[str]:
+    """Resolve an advertised catalogue ID to a real one (or None for auto)."""
+    if model is None:
+        return None
+    name = str(model).strip()
+    if name.lower() in VIRTUAL_MODELS:
+        return None
+    return MODEL_ALIASES.get(name, name)
+
 
 def _get_circuit_state(provider: str) -> str:
     info = CIRCUIT_BREAKER.setdefault(provider, {"state": "CLOSED", "cooldown_until": 0.0, "errors": 0})
@@ -212,6 +246,12 @@ class SmartAIGateway:
         response_format: Optional[Dict] = None,
     ) -> Dict[str, str]:
         """Execute chat request with task-aware routing, high output token allowance, and circuit-breaker retries."""
+        # Callers legitimately send the catalogue IDs we advertise on
+        # /v1/models — including the virtual "leviathan-auto". Those are OUR
+        # names, not any provider's, so resolve them here. Forwarding
+        # "leviathan-auto" verbatim is what broke the OpenRouter fallback.
+        model = _normalize_model(model)
+
         task_intent = self.classifier.classify(messages, has_files)
         logger.info(f"Gateway Classified Task Intent: {task_intent}")
 
@@ -374,26 +414,45 @@ class SmartAIGateway:
             "HTTP-Referer": "https://leviathan.ai",
             "X-Title": "Leviathan Gateway",
         }
-        selected_model = model or settings.openrouter_model
-        payload = {
-            "model": selected_model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "provider": {"allow_fallbacks": True},
-        }
-        if response_format:
-            payload["response_format"] = response_format
+        # Only honour a caller's model if it is actually an OpenRouter slug
+        # ("vendor/model"). Every other provider already guards this way;
+        # OpenRouter did not, so names like "leviathan-auto" or "gemini-2.5-
+        # flash" were forwarded verbatim and rejected as invalid model IDs.
+        wanted = model if (model and "/" in model) else settings.openrouter_model
 
+        # Try the wanted slug, then known-good free ones. A retired or
+        # throttled free model must not take the whole fallback down with it.
+        candidates = [wanted] + [m for m in OPENROUTER_FREE_FALLBACKS if m != wanted]
+
+        last = ""
         async with httpx.AsyncClient(timeout=180.0) as client:
-            resp = await client.post(url, headers=headers, json=payload)
-            if resp.status_code != 200:
-                raise RuntimeError(f"OpenRouter HTTP {resp.status_code}: {resp.text}")
-            data = resp.json()
-            choices = data.get("choices") or []
-            if not choices:
-                raise RuntimeError(f"OpenRouter returned no choices: {str(data)[:200]}")
-            return choices[0]["message"]["content"]
+            for slug in candidates:
+                payload = {
+                    "model": slug,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "provider": {"allow_fallbacks": True},
+                }
+                if response_format:
+                    payload["response_format"] = response_format
+
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices") or []
+                    if choices:
+                        return choices[0]["message"]["content"]
+                    last = f"no choices from {slug}: {str(data)[:160]}"
+                    continue
+
+                last = f"HTTP {resp.status_code} on {slug}: {resp.text[:160]}"
+                # 4xx here means this slug is wrong/retired/unavailable — move
+                # to the next candidate. Anything else is worth failing fast on.
+                if resp.status_code not in (400, 402, 404, 429):
+                    break
+
+        raise RuntimeError(f"OpenRouter: {last}")
 
     async def _call_mistral(self, messages: List[Dict[str, str]], model: Optional[str], temperature: float, max_tokens: int = 8192, response_format: Optional[Dict] = None) -> str:
         url = "https://api.mistral.ai/v1/chat/completions"

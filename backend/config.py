@@ -23,13 +23,18 @@ class Settings:
     leviathan_master_key: str = os.getenv("LEVIATHAN_MASTER_KEY", "lvh-master-7f8e9d0a1b2c3d4e5f6")
 
     # Provider Models
+    # NOTE: free model slugs get retired without warning. The previous default
+    # ("meta-llama/llama-3.3-70b-instruct:free") stopped being free and started
+    # 404-ing, which silently killed the OpenRouter fallback entirely.
+    # OPENROUTER_FREE_FALLBACKS below covers a retired/throttled slug.
     openrouter_model: str = os.getenv(
-        "OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free"
+        "OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free"
     )
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     groq_model: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     mistral_model: str = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
-    cohere_model: str = os.getenv("COHERE_MODEL", "command-r-plus")
+    # 'command-r-plus' was removed by Cohere on 2025-09-15 and 404s.
+    cohere_model: str = os.getenv("COHERE_MODEL", "command-a-03-2025")
 
     # Long-term memory: Supabase Postgres/pgvector when set, else local SQLite.
     supabase_db_url: str = os.getenv("SUPABASE_DB_URL", "")
