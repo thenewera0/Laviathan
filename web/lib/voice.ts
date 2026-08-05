@@ -496,7 +496,44 @@ export class VoiceEngine {
     this.cb.onSpeakEnd();
   }
 
-  speak(text: string, lang?: string) {
+  /**
+   * Written text -> something a person would actually say.
+   *
+   * Mirrors `speakable()` in backend/voice/neural_tts.py so the browser
+   * fallback never reads markdown, emoji or a raw URL aloud. A voice
+   * pronouncing "asterisk asterisk" or spelling out an https link is the
+   * loudest AI tell there is.
+   */
+  private speakable(text: string): string {
+    return text
+      .replace(/```[\s\S]*?```/g, " ")          // never read code blocks
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")  // keep the label, drop the URL
+      .replace(/https?:\/\/\S+|www\.\S+/g, " the link ")
+      .replace(/^\s{0,3}#{1,6}\s*/gm, "")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/(\*\*|__|\*|_)(.+?)\1/gs, "$2")
+      .replace(
+        /[\u{1F300}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F000}-\u{1F2FF}]/gu,
+        ""
+      )
+      .replace(/\be\.g\./gi, "for example")
+      .replace(/\bi\.e\./gi, "that is")
+      .replace(/\betc\./gi, "and so on")
+      .replace(/&/g, " and ")
+      .replace(/%/g, " percent")
+      .replace(/[*_~`>#|]/g, "")
+      .replace(/\n{2,}/g, ". ")
+      .replace(/\n/g, ", ")
+      .replace(/\s+([,.!?;:])/g, "$1")
+      .replace(/([,.!?;:]){2,}/g, "$1")
+      .replace(/,\s*\./g, ".")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
+  speak(rawText: string, lang?: string) {
+    const text = this.speakable(rawText);
     if (!text.trim()) {
       this.cb.onSpeakEnd();
       return;

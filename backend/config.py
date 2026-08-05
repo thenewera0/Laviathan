@@ -58,8 +58,15 @@ class Settings:
     docker_image: str = os.getenv("LEVIATHAN_DOCKER_IMAGE", "python:3.11-slim")
     code_timeout: int = int(os.getenv("LEVIATHAN_CODE_TIMEOUT", "20"))
 
-    # Signature voice
-    edge_voice: str = os.getenv("LEVIATHAN_EDGE_VOICE", "en-US-ChristopherNeural")
+    # Signature voice — LOCKED.
+    # The real signature lives in voice/neural_tts.py as SIGNATURE_VOICE and
+    # is deliberately NOT read from here: an env var silently overriding a
+    # pinned value is how the gateway's model bug stayed hidden. This entry
+    # remains only so LEVIATHAN_EDGE_VOICE does not look unrecognised; it has
+    # no effect on how Leviathan sounds.
+    edge_voice: str = "en-US-ChristopherNeural"  # informational only
+    # Used solely by the last-resort Gemini fallback (a different voice, only
+    # reached if edge-tts is fully down — see neural_tts).
     tts_voice: str = os.getenv("LEVIATHAN_TTS_VOICE", "Charon")
 
     # Server-side STT
