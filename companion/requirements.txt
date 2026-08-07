@@ -7,3 +7,9 @@ mss>=9.0             # screen capture
 # Anything a specific capability needs (yt-dlp, pymupdf, pandas,
 # faster-whisper, pyautogui, ...) is installed on demand at runtime via the
 # `install_packages` tool — nothing to add here.
+#
+# Notably crawl4ai (browser-grade scraping) installs itself, along with a
+# Chromium build, the first time `deep_crawl` runs on this machine. That
+# first call takes a few minutes; every later one is fast. Install it up
+# front instead if you prefer:
+#   pip install crawl4ai && python -m playwright install chromium

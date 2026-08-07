@@ -23,6 +23,7 @@ from tools import (
     vision,
     n8n,
     workflow_library,
+    crawler,
 )
 
 
@@ -705,6 +706,52 @@ TOOL_SCHEMAS: list[dict] = [
         }
     },
     {
+        "name": "deep_crawl",
+        "description": (
+            "Browser-grade web scraping on the user's OWN computer, powered by "
+            "crawl4ai. Unlike 'browse' (a light fetch that cannot run "
+            "JavaScript), this drives a real headless Chromium: it renders "
+            "single-page apps, waits for content to load, and returns clean "
+            "markdown plus links, images and metadata. Use action='scrape' for "
+            "one page, or action='crawl' to follow internal links across a site "
+            "and gather many pages at once — ideal for reading documentation, "
+            "harvesting a catalogue, monitoring competitors or researching in "
+            "depth. Set screenshot=true to also capture the page as an image. "
+            "The first call installs the browser and takes a few minutes; after "
+            "that it is fast. Requires a paired computer; without one it falls "
+            "back to the lightweight reader automatically."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["scrape", "crawl"],
+                    "description": "'scrape' = this page only; 'crawl' = follow links",
+                },
+                "url": {"type": "string", "description": "page or site to read"},
+                "max_pages": {
+                    "type": "integer",
+                    "description": "crawl only: how many pages to gather (default 8)",
+                },
+                "depth": {
+                    "type": "integer",
+                    "description": "crawl only: how many links deep to follow (default 1)",
+                },
+                "same_domain": {
+                    "type": "boolean",
+                    "description": "crawl only: stay on the seed site (default true)",
+                },
+                "screenshot": {
+                    "type": "boolean",
+                    "description": "also capture the page as a PNG (default false)",
+                },
+                "device": {"type": "string", "description": "optional device name"},
+            },
+            "required": ["url"],
+        },
+    },
+    {
         "name": "workflow_library",
         "description": (
             "Access, search, browse, recommend, or deploy 2,000+ pre-built, production-ready "
@@ -780,6 +827,7 @@ _IMPL: dict[str, Callable[..., Awaitable[dict]]] = {
     "cancel_schedule": schedule_tools.cancel_schedule,
     "n8n_automation": n8n.run,
     "workflow_library": workflow_library.run,
+    "deep_crawl": crawler.run,
 }
 
 # One quiet line for the ThoughtStream while each tool works
@@ -821,6 +869,7 @@ THOUGHT_LINES = {
     "cancel_schedule": "unmarking — {which}",
     "n8n_automation": "weaving dynamic automation — {action}",
     "workflow_library": "accessing 2,000+ workflow repository — {action}",
+    "deep_crawl": "reading the web with real eyes — {url}",
 }
 
 
